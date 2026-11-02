@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "EMS",
+  "classifications": [
+    "EMS",
+    "Catalog"
+  ],
+  "identity": "EMS.CatalogEntity",
+  "name": "EMS catalog entity",
+  "description": "A complete catalog (lookup / master-data) entity: entity, EF configuration, repository, DTOs, validators, service and thin controller. All CRUD behaviour comes from CatalogService. After generating, follow docs/CATALOGS.md (permission group, migration, test case).",
+  "shortName": "ems-catalog",
+  "tags": {
+    "language": "C#",
+    "type": "item"
+  },
+  "sourceName": "Widget",
+  "preferNameDirectory": false,
+  "symbols": {
+    "Label": {
+      "type": "parameter",
+      "datatype": "text",
+      "isRequired": true,
+      "description": "Persian name of the entity used in messages (e.g. برند).",
+      "replaces": "__LABEL__"
+    },
+    "Plural": {
+      "type": "parameter",
+      "datatype": "text",
+      "description": "Plural of the entity name: permission group, table name (e.g. Categories). Default: the name + 's'."
+    },
+    "PluralDefault": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "addS",
+      "replaces": "__UNUSED__"
+    },
+    "PluralOrDefault": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "Plural",
+        "fallbackVariableName": "PluralDefault"
+      },
+      "replaces": "__PLURAL__"
+    },
+    "HasCode": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "The entity has an optional Code field besides Title."
+    }
+  },
+  "forms": {
+    "addS": {
+      "identifier": "replace",
+      "pattern": "$",
+      "replacement": "s"
+    }
+  }
+}
