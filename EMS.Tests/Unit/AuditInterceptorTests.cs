@@ -6,6 +6,9 @@ using EMS.Infrastructure.Persistence.Identity;
 using EMS.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using EMS.Tests.Support;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -162,6 +165,51 @@ namespace EMS.Tests.Unit
             // The Created/Modified stamps must still be applied.
             var brand = await ctx.Brands.SingleAsync();
             Assert.Equal(42, brand.CreatedByUserId);
+        }
+
+        /// <summary>Simulates the AuditLogs table being unavailable (e.g. migration not applied).</summary>
+        private sealed class FailWhenWritingAuditLogs : SaveChangesInterceptor
+        {
+            public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+                DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+            {
+                if (eventData.Context!.ChangeTracker.Entries<AuditLog>().Any(e => e.State == EntityState.Added))
+                    throw new InvalidOperationException("Invalid object name 'AuditLogs'.");
+                return base.SavingChangesAsync(eventData, result, cancellationToken);
+            }
+        }
+
+        [Fact]
+        public async Task A_failing_audit_trail_write_never_breaks_the_business_operation_and_is_logged()
+        {
+            var logs = new ListLoggerFactory();
+            var interceptor = new AuditSaveChangesInterceptor(
+                new FakeCurrentUser(),
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+                Options.Create(new AuditTrailOptions { Enabled = true }),
+                logs.CreateLogger<AuditSaveChangesInterceptor>());
+            var options = new DbContextOptionsBuilder<EMSDbContext>()
+                .UseInMemoryDatabase(NewDb())
+                .AddInterceptors(interceptor, new FailWhenWritingAuditLogs())
+                .Options;
+
+            await using var ctx = new EMSDbContext(options, interceptor);
+            ctx.Brands.Add(new Brand { Title = "Survives", Code = "S" });
+
+            var saved = await ctx.SaveChangesAsync();   // must not throw
+
+            Assert.Equal(1, saved);
+            Assert.Equal("Survives", (await ctx.Brands.SingleAsync()).Title);
+            Assert.Empty(ctx.ChangeTracker.Entries<AuditLog>());   // failed audit rows are not left tracked
+
+            var entry = Assert.Single(logs.Entries);
+            Assert.Equal(LogLevel.Error, entry.Level);
+            Assert.Contains("Failed to write 1 audit trail row", entry.Message);
+            Assert.NotNull(entry.Exception);
+
+            // ...and the next save works normally again.
+            ctx.Brands.Add(new Brand { Title = "Second", Code = "S2" });
+            Assert.Equal(1, await ctx.SaveChangesAsync());
         }
 
         [Fact]
