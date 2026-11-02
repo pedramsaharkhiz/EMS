@@ -34,7 +34,9 @@ namespace EMS.Application.Services.SupportingDepartment
         {
             var query = _repository.Query(asNoTracking: true);
 
-            query = query.Where(x => x.IsActive);
+            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
+            var wantActive = request.IsActive ?? true;
+            query = query.Where(x => x.IsActive == wantActive);
 
             if (request.CityId.HasValue)
             {
@@ -112,6 +114,12 @@ namespace EMS.Application.Services.SupportingDepartment
 
             entity.CityId = request.CityId.HasValue ? request.CityId.Value : entity.CityId;
             entity.Title = title;
+            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
+                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
+
+            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.SupportingDepartmentId, cancellationToken))
+                throw new ConflictException("این واحد پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
+
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -124,6 +132,9 @@ namespace EMS.Application.Services.SupportingDepartment
             var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
             if (entity is null)
                 return false;
+
+            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
+                throw new ConflictException("این واحد پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -153,6 +164,7 @@ namespace EMS.Application.Services.SupportingDepartment
                 CityId = entity.CityId,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
+                RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
         }
     }

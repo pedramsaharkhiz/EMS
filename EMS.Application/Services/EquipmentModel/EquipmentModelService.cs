@@ -36,7 +36,9 @@ namespace EMS.Application.Services.EquipmentModel
         {
             var query = _repository.Query(asNoTracking: true);
 
-            query = query.Where(x => x.IsActive);
+            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
+            var wantActive = request.IsActive ?? true;
+            query = query.Where(x => x.IsActive == wantActive);
 
             if (!string.IsNullOrWhiteSpace(request.Title))
             {
@@ -98,6 +100,12 @@ namespace EMS.Application.Services.EquipmentModel
             if (!existBrand)
                 throw new NotFoundException("برند یافت نشد.");
 
+            if (!await _repositoryType.ExistsAsync(x => x.EquipmentTypeId == request.EquipmentTypeId && x.IsActive, cancellationToken))
+                throw new BadRequestException("نوع تجهیزات انتخاب‌شده غیرفعال است.");
+
+            if (!await _repositoryBrand.ExistsAsync(x => x.BrandId == request.BrandId && x.IsActive, cancellationToken))
+                throw new BadRequestException("برند انتخاب‌شده غیرفعال است.");
+
             var duplicateExists = await _repository.ExistsByTitleAsync(title, cancellationToken: cancellationToken);
             if (duplicateExists)
                 throw new ConflictException("مدل تجهیز دیگری با این عنوان وجود دارد.");
@@ -137,6 +145,19 @@ namespace EMS.Application.Services.EquipmentModel
                     throw new NotFoundException("برند یافت نشد.");
             }
 
+            // A parent must be active when it is being changed or when this record is being re-activated.
+            var reactivating = !entity.IsActive && request.IsActive;
+
+            var targetTypeId = request.EquipmentTypeId ?? entity.EquipmentTypeId;
+            if ((targetTypeId != entity.EquipmentTypeId || reactivating) &&
+                !await _repositoryType.ExistsAsync(x => x.EquipmentTypeId == targetTypeId && x.IsActive, cancellationToken))
+                throw new BadRequestException("نوع تجهیزات انتخاب‌شده غیرفعال است.");
+
+            var targetBrandId = request.BrandId ?? entity.BrandId;
+            if ((targetBrandId != entity.BrandId || reactivating) &&
+                !await _repositoryBrand.ExistsAsync(x => x.BrandId == targetBrandId && x.IsActive, cancellationToken))
+                throw new BadRequestException("برند انتخاب‌شده غیرفعال است.");
+
             var title = request.Title?.Length > 1 ? request.Title.Trim() : entity.Title;
             var code = request.Code?.Length > 1 ? request.Code.Trim() : entity.Code;
 
@@ -146,6 +167,12 @@ namespace EMS.Application.Services.EquipmentModel
 
             entity.Title = title;
             entity.Code = code;
+            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
+                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
+
+            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.EquipmentModelId, cancellationToken))
+                throw new ConflictException("این مدل توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.");
+
             entity.IsActive = request.IsActive;
             entity.EquipmentTypeId = request.EquipmentTypeId.HasValue ? request.EquipmentTypeId.Value : entity.EquipmentTypeId;
             entity.BrandId = request.BrandId.HasValue ? request.BrandId.Value : entity.BrandId;
@@ -162,6 +189,9 @@ namespace EMS.Application.Services.EquipmentModel
             var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
             if (entity is null)
                 return false;
+
+            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
+                throw new ConflictException("این مدل توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.");
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -198,6 +228,7 @@ namespace EMS.Application.Services.EquipmentModel
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,
+                RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
         }
     }

@@ -10,5 +10,7 @@ namespace EMS.Application.Dtos.EquipmentLocationType
         public string? Title { get; set; }
         public string? Code { get; set; }
         //public bool IsActive { get; set; } = true;
+        /// <summary>null = active records only (default); true/false = only active / only inactive records.</summary>
+        public bool? IsActive { get; set; }
     }
 }

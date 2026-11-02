@@ -32,7 +32,9 @@ namespace EMS.Application.Services.EquipmentStatus
         {
             var query = _repository.Query(asNoTracking: true);
 
-            query = query.Where(x => x.IsActive);
+            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
+            var wantActive = request.IsActive ?? true;
+            query = query.Where(x => x.IsActive == wantActive);
 
             if (!string.IsNullOrWhiteSpace(request.Title))
             {
@@ -97,6 +99,12 @@ namespace EMS.Application.Services.EquipmentStatus
                 throw new ConflictException("وضعیت تجهیز دیگری با این عنوان وجود دارد.");
 
             entity.Title = title;
+            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
+                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
+
+            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.EquipmentStatusId, cancellationToken))
+                throw new ConflictException("این وضعیت توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.");
+
             entity.IsActive = request.IsActive;
             entity.Code = code;
             _repository.Update(entity);
@@ -110,6 +118,9 @@ namespace EMS.Application.Services.EquipmentStatus
             var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
             if (entity is null)
                 return false;
+
+            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
+                throw new ConflictException("این وضعیت توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.");
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -139,6 +150,7 @@ namespace EMS.Application.Services.EquipmentStatus
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,
+                RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
         }
     }

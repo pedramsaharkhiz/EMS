@@ -71,11 +71,11 @@
 | `Login succeeded` | Information | کاربر، IP، User-Agent |
 | `Login failed (Reason)` | Warning | `Reason` یکی از `UnknownUser`، `InactiveUser`، `InvalidPassword`، `LockedOut` |
 | `Refresh token rotated` | Information | |
-| `Refresh token rejected (Reason)` | Warning | `TokenNotFound`، `TokenExpired`، `TokenInactive`، `UserInvalid` |
+| `Refresh token rejected (Reason)` | Warning | `TokenNotFound`، `TokenExpired`، `TokenInactive`، `UserInvalid`، `ConcurrentUse` (همان توکن دو بار تقریباً هم‌زمان یا کمتر از ۱۰ ثانیه بعد از مصرف استفاده شد) |
 | `Refresh token rejected (TokenReuseDetected)` | Error | توکن قبلاً ابطال شده بود و دوباره استفاده شد |
 | `Refresh token revoked by request` | Information | |
 | `Access denied: user ... lacks permission X` | Warning | کاربر لاگین‌شده بدون permission لازم (۴۰۳) |
-| `Authentication failed (reason)` | Warning | توکن ارسال شده ولی رد شد: منقضی، امضای نامعتبر، ... (خود توکن هرگز لاگ نمی‌شود) |
+| `Authentication failed (reason)` | Warning | توکن ارسال شده ولی رد شد: منقضی، امضای نامعتبر، کاربر غیرفعال، تغییر دسترسی بعد از صدور توکن، ... (خود توکن هرگز لاگ نمی‌شود) |
 
 دلیل دقیق شکست ورود فقط در لاگ ثبت می‌شود. پاسخ به کلاینت همیشه پیام عمومی «نام کاربری یا کلمه عبور نامعتبر است» است تا امکان user enumeration نباشد.
 

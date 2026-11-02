@@ -12,5 +12,7 @@ namespace EMS.Application.Dtos.EquipmentModel
         public long? EquipmentTypeId { get; set; }
         public long? BrandId { get; set; }
         //public bool IsActive { get; set; } = true;
+        /// <summary>null = active records only (default); true/false = only active / only inactive records.</summary>
+        public bool? IsActive { get; set; }
     }
 }

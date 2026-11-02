@@ -44,6 +44,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecurityEventLogger, SecurityEventLogger>();
         services.AddScoped<IAuditEventLogger, AuditEventLogger>();
         services.Configure<AuditTrailOptions>(configuration.GetSection(AuditTrailOptions.SectionName));
+        services.Configure<RefreshTokenCleanupOptions>(configuration.GetSection(RefreshTokenCleanupOptions.SectionName));
+        services.AddHostedService<EMS.Infrastructure.Maintenance.RefreshTokenCleanupBackgroundService>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         var slowQueryThresholdMs = configuration.GetValue("Logging:SlowQueryThresholdMs", 500);
         services.AddSingleton(sp => new SlowQueryLoggingInterceptor(

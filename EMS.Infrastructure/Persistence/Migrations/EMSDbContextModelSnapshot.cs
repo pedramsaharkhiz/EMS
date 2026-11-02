@@ -164,6 +164,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -175,7 +176,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_Brands_Title");
+                        .HasDatabaseName("UX_Brands_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Brands", (string)null);
                 });
@@ -455,6 +457,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -466,7 +469,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_EquipmentCategories_Title");
+                        .HasDatabaseName("UX_EquipmentCategories_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentCategories", (string)null);
                 });
@@ -570,6 +574,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -581,7 +586,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_EquipmentLocationTypes_Title");
+                        .HasDatabaseName("UX_EquipmentLocationTypes_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentLocationTypes", (string)null);
                 });
@@ -622,6 +628,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -637,7 +644,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_EquipmentModels_Title");
+                        .HasDatabaseName("UX_EquipmentModels_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentModels", (string)null);
                 });
@@ -672,6 +680,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -683,7 +692,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_EquipmentStatuses_Title");
+                        .HasDatabaseName("UX_EquipmentStatuses_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentStatuses", (string)null);
                 });
@@ -721,6 +731,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -734,7 +745,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_EquipmentTypes_Title");
+                        .HasDatabaseName("UX_EquipmentTypes_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentTypes", (string)null);
                 });
@@ -764,6 +776,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -775,7 +788,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_FailureCategories_Title");
+                        .HasDatabaseName("UX_FailureCategories_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("FailureCategories", (string)null);
                 });
@@ -1356,6 +1370,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1369,7 +1384,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_SupportingDepartments_Title");
+                        .HasDatabaseName("UX_SupportingDepartments_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("SupportingDepartments", (string)null);
                 });
@@ -1661,6 +1677,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(45)");
 
                     b.Property<DateTime?>("RevokedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TokenHash")

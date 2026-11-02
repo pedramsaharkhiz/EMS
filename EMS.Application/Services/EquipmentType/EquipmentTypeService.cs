@@ -33,7 +33,9 @@ namespace EMS.Application.Services.EquipmentType
         {
             var query = _repository.Query(asNoTracking: true);
 
-            query = query.Where(x => x.IsActive);
+            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
+            var wantActive = request.IsActive ?? true;
+            query = query.Where(x => x.IsActive == wantActive);
 
             if (!string.IsNullOrWhiteSpace(request.Title))
             {
@@ -84,6 +86,9 @@ namespace EMS.Application.Services.EquipmentType
             if (!existCategory)
                 throw new NotFoundException("دسته‌بندی تجهیزات یافت نشد.");
 
+            if (!await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == request.EquipmentCategoryId && x.IsActive, cancellationToken))
+                throw new BadRequestException("دسته‌بندی تجهیزات انتخاب‌شده غیرفعال است.");
+
             var duplicateExists = await _repository.ExistsByTitleAsync(title, cancellationToken: cancellationToken);
             if (duplicateExists)
                 throw new ConflictException("نوع تجهیز دیگری با این عنوان وجود دارد.");
@@ -115,6 +120,12 @@ namespace EMS.Application.Services.EquipmentType
                     throw new NotFoundException("دسته‌بندی تجهیزات یافت نشد.");
             }
 
+            // The category must be active when it is being changed or when this record is being re-activated.
+            var targetCategoryId = request.EquipmentCategoryId ?? entity.EquipmentCategoryId;
+            if ((targetCategoryId != entity.EquipmentCategoryId || (!entity.IsActive && request.IsActive)) &&
+                !await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == targetCategoryId && x.IsActive, cancellationToken))
+                throw new BadRequestException("دسته‌بندی تجهیزات انتخاب‌شده غیرفعال است.");
+
             var title = request.Title?.Length > 1 ? request.Title.Trim() : entity.Title;
             var code = request.Code?.Length > 1 ? request.Code.Trim() : entity.Code;
 
@@ -123,6 +134,12 @@ namespace EMS.Application.Services.EquipmentType
                 throw new ConflictException("دسته‌بندی دیگری با این عنوان وجود دارد.");
 
             entity.Title = title;
+            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
+                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
+
+            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.EquipmentTypeId, cancellationToken))
+                throw new ConflictException("این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
+
             entity.IsActive = request.IsActive;
             entity.Code = code;
             entity.EquipmentCategoryId = request.EquipmentCategoryId.HasValue ? request.EquipmentCategoryId.Value : entity.EquipmentCategoryId;
@@ -139,6 +156,9 @@ namespace EMS.Application.Services.EquipmentType
             var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
             if (entity is null)
                 return false;
+
+            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
+                throw new ConflictException("این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -173,6 +193,7 @@ namespace EMS.Application.Services.EquipmentType
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,
+                RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
         }
     }

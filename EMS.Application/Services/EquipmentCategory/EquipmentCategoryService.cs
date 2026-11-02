@@ -30,7 +30,9 @@ namespace EMS.Application.Services.EquipmentCategory
         {
             var query = _repository.Query(asNoTracking: true);
 
-            query = query.Where(x => x.IsActive);
+            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
+            var wantActive = request.IsActive ?? true;
+            query = query.Where(x => x.IsActive == wantActive);
 
             if (!string.IsNullOrWhiteSpace(request.Title))
             {
@@ -84,6 +86,12 @@ namespace EMS.Application.Services.EquipmentCategory
                 throw new ConflictException("دسته‌بندی دیگری با این عنوان وجود دارد.");
 
             entity.Title = title;
+            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
+                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
+
+            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.EquipmentCategoryId, cancellationToken))
+                throw new ConflictException("این دسته‌بندی دارای نوع تجهیز فعال است و قابل غیرفعال‌سازی نیست. ابتدا نوع‌های آن را غیرفعال کنید.");
+
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -96,6 +104,9 @@ namespace EMS.Application.Services.EquipmentCategory
             var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
             if (entity is null)
                 return false;
+
+            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
+                throw new ConflictException("این دسته‌بندی دارای نوع تجهیز فعال است و قابل غیرفعال‌سازی نیست. ابتدا نوع‌های آن را غیرفعال کنید.");
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -124,6 +135,7 @@ namespace EMS.Application.Services.EquipmentCategory
                 EquipmentCategoryId = entity.EquipmentCategoryId,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
+                RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
         }
     }

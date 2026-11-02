@@ -19,13 +19,18 @@ namespace EMS.Infrastructure.Repositories
         }
         public async Task<bool> ExistsByTitleAsync(string title, long? exceptId = null, CancellationToken cancellationToken = default)
         {
-            var normalizedTitle = title.Trim(); var query = _dbSet.AsQueryable();
+            var normalizedTitle = title.Trim(); // Only active records reserve a title: a deactivated record must not block its reuse.
+            var query = _dbSet.Where(x => x.IsActive);
             query = query.Where(x => x.Title.ToLower() == normalizedTitle.ToLower());
             if (exceptId.HasValue)
             {
                 query = query.Where(x => x.FailureCategoryId != exceptId.Value);
             }
             return await query.AnyAsync(cancellationToken);
+        }
+        public async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
+        {
+            return await _context.FailureTypes.AnyAsync(x => x.FailureCategoryId == id && x.IsActive, cancellationToken);
         }
     }
 }

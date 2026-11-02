@@ -25,6 +25,9 @@ namespace EMS.Domain.Interfaces
         Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
         void Update(T entity);
+
+        /// <summary>Makes the next save fail if the row's ModifiedDateTime in the database is not <paramref name="expected"/>.</summary>
+        void SetExpectedModifiedDateTime(T entity, DateTime? expected);
         void Remove(T entity);
         void RemoveRange(IEnumerable<T> entities);
     }

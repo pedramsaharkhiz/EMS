@@ -65,6 +65,11 @@ namespace EMS.Infrastructure.Repositories
             _dbSet.Update(entity);
         }
 
+        public virtual void SetExpectedModifiedDateTime(T entity, DateTime? expected)
+        {
+            _context.Entry(entity).Property("ModifiedDateTime").OriginalValue = expected;
+        }
+
         public virtual void Remove(T entity)
         {
             _dbSet.Remove(entity);
