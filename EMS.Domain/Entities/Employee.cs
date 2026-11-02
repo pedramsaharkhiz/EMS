@@ -12,7 +12,7 @@ namespace EMS.Domain.Entities
         public DateTime BirthDate { get; set; }
         public long OrganizationId { get; set; }
         public long OrganizationStructureId { get; set; }
-        public string? ProfilePictureUrl { get; set; }
+        public string? ProfilePictureUrl1 { get; set; }
 
         public Organization Organization { get; set; } = null!;
         public OrganizationStructure OrganizationStructure { get; set; } = null!;
