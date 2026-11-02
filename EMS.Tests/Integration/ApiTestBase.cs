@@ -99,6 +99,12 @@ namespace EMS.Tests.Integration
         protected async Task RemoveRoleAsync(string adminToken, long userId, long roleId) =>
             Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/Users/{userId}/roles/{roleId}", bearer: adminToken)).StatusCode);
 
+        // Entry points for fixture helpers that live outside the test class hierarchy.
+        public IServiceProvider ServicesForFixtures => _factory.Services;
+        public Task<(string AccessToken, string RefreshToken, long UserId)> LoginAdminForFixturesAsync() => LoginAdminAsync();
+        public Task<HttpResponseMessage> SendForFixturesAsync(HttpMethod method, string url, object? body, string bearer) => SendAsync(method, url, body, bearer: bearer);
+        public Task<JsonElement> ReadForFixturesAsync(HttpResponseMessage response) => ReadJsonAsync(response);
+
         protected async Task<HttpStatusCode> StatusOfAsync(HttpMethod method, string url, string bearer, object? body = null) =>
             (await SendAsync(method, url, body, bearer: bearer)).StatusCode;
     }

@@ -1,0 +1,678 @@
+GET api/Brand
+  authorization: Permission:Brands.View
+  Query: Code : String
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<BrandListItemDto>
+    Items : IReadOnlyList<BrandListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/Brand
+  authorization: Permission:Brands.Create
+  body: BrandCreateDto
+    Title : String
+    Code : String
+  response 200: BrandDetailDto
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/Brand
+  authorization: Permission:Brands.Update
+  body: BrandUpdateDto
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: BrandDetailDto
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/Brand/{id}
+  authorization: Permission:Brands.Delete
+  Path: id : Int64 (required)
+GET api/Brand/{id}
+  authorization: Permission:Brands.View
+  Path: id : Int64 (required)
+  response 200: BrandDetailDto
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/EquipmentCategory
+  authorization: Permission:EquipmentCategories.View
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<EquipmentCategoryListItemDto>
+    Items : IReadOnlyList<EquipmentCategoryListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/EquipmentCategory
+  authorization: Permission:EquipmentCategories.Create
+  body: EquipmentCategoryCreateDto
+    Title : String
+  response 200: EquipmentCategoryDetailDto
+    EquipmentCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/EquipmentCategory
+  authorization: Permission:EquipmentCategories.Update
+  body: EquipmentCategoryUpdateDto
+    EquipmentCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: EquipmentCategoryDetailDto
+    EquipmentCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/EquipmentCategory/{id}
+  authorization: Permission:EquipmentCategories.Delete
+  Path: id : Int64 (required)
+GET api/EquipmentCategory/{id}
+  authorization: Permission:EquipmentCategories.View
+  Path: id : Int64 (required)
+  response 200: EquipmentCategoryDetailDto
+    EquipmentCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/EquipmentLocationType
+  authorization: Permission:EquipmentLocationTypes.View
+  Query: Code : String
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<EquipmentLocationTypeListItemDto>
+    Items : IReadOnlyList<EquipmentLocationTypeListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/EquipmentLocationType
+  authorization: Permission:EquipmentLocationTypes.Create
+  body: EquipmentLocationTypeCreateDto
+    Title : String
+    Code : String
+  response 200: EquipmentLocationTypeDetailDto
+    EquipmentLocationTypeId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/EquipmentLocationType
+  authorization: Permission:EquipmentLocationTypes.Update
+  body: EquipmentLocationTypeUpdateDto
+    EquipmentLocationTypeId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: EquipmentLocationTypeDetailDto
+    EquipmentLocationTypeId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/EquipmentLocationType/{id}
+  authorization: Permission:EquipmentLocationTypes.Delete
+  Path: id : Int64 (required)
+GET api/EquipmentLocationType/{id}
+  authorization: Permission:EquipmentLocationTypes.View
+  Path: id : Int64 (required)
+  response 200: EquipmentLocationTypeDetailDto
+    EquipmentLocationTypeId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/EquipmentModel
+  authorization: Permission:EquipmentModels.View
+  Query: BrandId : Int64?
+  Query: Code : String
+  Query: EquipmentTypeId : Int64?
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<EquipmentModelListItemDto>
+    Items : IReadOnlyList<EquipmentModelListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/EquipmentModel
+  authorization: Permission:EquipmentModels.Create
+  body: EquipmentModelCreateDto
+    EquipmentTypeId : Int64
+    BrandId : Int64
+    Title : String
+    Code : String
+  response 200: EquipmentModelDetailDto
+    EquipmentModelId : Int64
+    EquipmentTypeId : Int64
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/EquipmentModel
+  authorization: Permission:EquipmentModels.Update
+  body: EquipmentModelUpdateDto
+    EquipmentModelId : Int64
+    EquipmentTypeId : Int64?
+    BrandId : Int64?
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: EquipmentModelDetailDto
+    EquipmentModelId : Int64
+    EquipmentTypeId : Int64
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/EquipmentModel/{id}
+  authorization: Permission:EquipmentModels.Delete
+  Path: id : Int64 (required)
+GET api/EquipmentModel/{id}
+  authorization: Permission:EquipmentModels.View
+  Path: id : Int64 (required)
+  response 200: EquipmentModelDetailDto
+    EquipmentModelId : Int64
+    EquipmentTypeId : Int64
+    BrandId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/EquipmentStatus
+  authorization: Permission:EquipmentStatuses.View
+  Query: Code : String
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<EquipmentStatusListItemDto>
+    Items : IReadOnlyList<EquipmentStatusListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/EquipmentStatus
+  authorization: Permission:EquipmentStatuses.Create
+  body: EquipmentStatusCreateDto
+    Title : String
+    Code : String
+  response 200: EquipmentStatusDetailDto
+    EquipmentStatusId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/EquipmentStatus
+  authorization: Permission:EquipmentStatuses.Update
+  body: EquipmentStatusUpdateDto
+    EquipmentStatusId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: EquipmentStatusDetailDto
+    EquipmentStatusId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/EquipmentStatus/{id}
+  authorization: Permission:EquipmentStatuses.Delete
+  Path: id : Int64 (required)
+GET api/EquipmentStatus/{id}
+  authorization: Permission:EquipmentStatuses.View
+  Path: id : Int64 (required)
+  response 200: EquipmentStatusDetailDto
+    EquipmentStatusId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/EquipmentType
+  authorization: Permission:EquipmentTypes.View
+  Query: Code : String
+  Query: EquipmentCategoryId : Int64?
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<EquipmentTypeListItemDto>
+    Items : IReadOnlyList<EquipmentTypeListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/EquipmentType
+  authorization: Permission:EquipmentTypes.Create
+  body: EquipmentTypeCreateDto
+    EquipmentCategoryId : Int64
+    Title : String
+    Code : String
+  response 200: EquipmentTypeDetailDto
+    EquipmentTypeId : Int64
+    EquipmentCategoryId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/EquipmentType
+  authorization: Permission:EquipmentTypes.Update
+  body: EquipmentTypeUpdateDto
+    EquipmentTypeId : Int64
+    EquipmentCategoryId : Int64?
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: EquipmentTypeDetailDto
+    EquipmentTypeId : Int64
+    EquipmentCategoryId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/EquipmentType/{id}
+  authorization: Permission:EquipmentTypes.Delete
+  Path: id : Int64 (required)
+GET api/EquipmentType/{id}
+  authorization: Permission:EquipmentTypes.View
+  Path: id : Int64 (required)
+  response 200: EquipmentTypeDetailDto
+    EquipmentTypeId : Int64
+    EquipmentCategoryId : Int64
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/FailureCategory
+  authorization: Permission:FailureCategories.View
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<FailureCategoryListItemDto>
+    Items : IReadOnlyList<FailureCategoryListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/FailureCategory
+  authorization: Permission:FailureCategories.Create
+  body: FailureCategoryCreateDto
+    Title : String
+  response 200: FailureCategoryDetailDto
+    FailureCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/FailureCategory
+  authorization: Permission:FailureCategories.Update
+  body: FailureCategoryUpdateDto
+    FailureCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: FailureCategoryDetailDto
+    FailureCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/FailureCategory/{id}
+  authorization: Permission:FailureCategories.Delete
+  Path: id : Int64 (required)
+GET api/FailureCategory/{id}
+  authorization: Permission:FailureCategories.View
+  Path: id : Int64 (required)
+  response 200: FailureCategoryDetailDto
+    FailureCategoryId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+POST api/Identity/Login
+  authorization: anonymous
+  body: LoginRequestDto
+    UserName : String
+    Password : String
+POST api/Identity/RefreshToken
+  authorization: anonymous
+  body: RefreshTokenRequestDto
+    RefreshToken : String
+POST api/Identity/RevokeRefreshToken
+  authorization: (authenticated)
+  body: RefreshTokenRequestDto
+    RefreshToken : String
+GET api/Role
+  authorization: (authenticated), Permission:Roles.View
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: Search : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  response 200: PagedResult<RoleListItemDto>
+    Items : IReadOnlyList<RoleListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/Role
+  authorization: (authenticated), Permission:Roles.Create
+  body: CreateRoleDto
+    Name : String
+  response 200: RoleDetailDto
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    Name : String
+    IsActive : Boolean
+    UserCount : Int32
+POST api/Role/AssignPermissions
+  authorization: (authenticated), Permission:Roles.ManagePermissions
+  body: AssignPermissionsToRoleDto
+    RoleName : String
+    Permissions : List<String>
+DELETE api/Role/{id}
+  authorization: (authenticated), Permission:Roles.Delete
+  Path: id : Int64 (required)
+GET api/Role/{id}
+  authorization: (authenticated), Permission:Roles.View
+  Path: id : Int64 (required)
+  response 200: RoleDetailDto
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    Name : String
+    IsActive : Boolean
+    UserCount : Int32
+PUT api/Role/{id}
+  authorization: (authenticated), Permission:Roles.Update
+  body: UpdateRoleDto
+    Name : String
+    IsActive : Boolean
+  Path: id : Int64 (required)
+  response 200: RoleDetailDto
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    Name : String
+    IsActive : Boolean
+    UserCount : Int32
+GET api/Role/{roleId}/users
+  authorization: (authenticated), Permission:Roles.View
+  Path: roleId : Int64 (required)
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: Search : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  response 200: PagedResult<UserListItemDto>
+    Items : IReadOnlyList<UserListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+PUT api/Role/{roleId}/users
+  authorization: (authenticated), Permission:Roles.ManageUsers
+  body: SetRoleUsersDto
+    UserIds : List<Int64>
+  Path: roleId : Int64 (required)
+DELETE api/Role/{roleId}/users/{userId}
+  authorization: (authenticated), Permission:Roles.ManageUsers
+  Path: roleId : Int64 (required)
+  Path: userId : Int64 (required)
+POST api/Role/{roleId}/users/{userId}
+  authorization: (authenticated), Permission:Roles.ManageUsers
+  Path: roleId : Int64 (required)
+  Path: userId : Int64 (required)
+GET api/Role/{roleName}/permissions
+  authorization: (authenticated), Permission:Roles.View
+  Path: roleName : String (required)
+GET api/SupportingDepartment
+  authorization: Permission:SupportingDepartments.View
+  Query: CityId : Int64?
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: PagedResult<SupportingDepartmentListItemDto>
+    Items : IReadOnlyList<SupportingDepartmentListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/SupportingDepartment
+  authorization: Permission:SupportingDepartments.Create
+  body: SupportingDepartmentCreateDto
+    CityId : Int64
+    Title : String
+  response 200: SupportingDepartmentDetailDto
+    SupportingDepartmentId : Int64
+    CityId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+PUT api/SupportingDepartment
+  authorization: Permission:SupportingDepartments.Update
+  body: SupportingDepartmentUpdateDto
+    SupportingDepartmentId : Int64
+    CityId : Int64?
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+  response 200: SupportingDepartmentDetailDto
+    SupportingDepartmentId : Int64
+    CityId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+DELETE api/SupportingDepartment/{id}
+  authorization: Permission:SupportingDepartments.Delete
+  Path: id : Int64 (required)
+GET api/SupportingDepartment/{id}
+  authorization: Permission:SupportingDepartments.View
+  Path: id : Int64 (required)
+  response 200: SupportingDepartmentDetailDto
+    SupportingDepartmentId : Int64
+    CityId : Int64
+    Title : String
+    IsActive : Boolean
+    RowVersion : String
+GET api/Users
+  authorization: Permission:Users.View
+  Query: Email : String
+  Query: FirstName : String
+  Query: Id : Int64?
+  Query: IsActive : Boolean?
+  Query: LastName : String
+  Query: NationalCode : String
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: PersonnelCode : String
+  Query: PhoneNumber : String
+  Query: Search : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: SupportingDepartmentId : Int64?
+  Query: UserName : String
+  response 200: PagedResult<UserListItemDto>
+    Items : IReadOnlyList<UserListItemDto>
+    PageNumber : Int32
+    PageSize : Int32
+    TotalCount : Int32
+    TotalPages : Int32
+    HasPreviousPage : Boolean
+    HasNextPage : Boolean
+POST api/Users
+  authorization: Permission:Users.Create
+  body: CreateUserDto
+    UserName : String
+    Password : String
+    FirstName : String
+    LastName : String
+    PersonnelCode : String
+    NationalCode : String
+    PhoneNumber : String
+    Email : String
+    SupportingDepartmentId : Int64?
+    IsActive : Boolean
+  response 200: UserDetailDto
+    EmailConfirmed : Boolean
+    PhoneNumberConfirmed : Boolean
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    UserName : String
+    FirstName : String
+    LastName : String
+    FullName : String
+    PersonnelCode : String
+    NationalCode : String
+    PhoneNumber : String
+    Email : String
+    SupportingDepartmentId : Int64?
+    IsActive : Boolean
+    Roles : List<UserRoleSummaryDto>
+    Skills : List<UserSkillSummaryDto>
+DELETE api/Users/{id}
+  authorization: Permission:Users.Delete
+  Path: id : Int64 (required)
+GET api/Users/{id}
+  authorization: Permission:Users.View
+  Path: id : Int64 (required)
+  response 200: UserDetailDto
+    EmailConfirmed : Boolean
+    PhoneNumberConfirmed : Boolean
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    UserName : String
+    FirstName : String
+    LastName : String
+    FullName : String
+    PersonnelCode : String
+    NationalCode : String
+    PhoneNumber : String
+    Email : String
+    SupportingDepartmentId : Int64?
+    IsActive : Boolean
+    Roles : List<UserRoleSummaryDto>
+    Skills : List<UserSkillSummaryDto>
+PUT api/Users/{id}
+  authorization: Permission:Users.Update
+  body: UpdateUserDto
+    UserName : String
+    FirstName : String
+    LastName : String
+    PersonnelCode : String
+    NationalCode : String
+    PhoneNumber : String
+    Email : String
+    SupportingDepartmentId : Int64?
+    IsActive : Boolean
+  Path: id : Int64 (required)
+  response 200: UserDetailDto
+    EmailConfirmed : Boolean
+    PhoneNumberConfirmed : Boolean
+    CreatedDateTime : DateTime
+    ModifiedDateTime : DateTime?
+    Id : Int64
+    UserName : String
+    FirstName : String
+    LastName : String
+    FullName : String
+    PersonnelCode : String
+    NationalCode : String
+    PhoneNumber : String
+    Email : String
+    SupportingDepartmentId : Int64?
+    IsActive : Boolean
+    Roles : List<UserRoleSummaryDto>
+    Skills : List<UserSkillSummaryDto>
+PUT api/Users/{id}/password
+  authorization: Permission:Users.Update
+  body: SetUserPasswordDto
+    NewPassword : String
+  Path: id : Int64 (required)
+GET api/Users/{userId}/roles
+  authorization: Permission:Users.View
+  Path: userId : Int64 (required)
+  response 200: IReadOnlyList<UserRoleItemDto>
+    Id : Int64
+    Name : String
+    IsActive : Boolean
+PUT api/Users/{userId}/roles
+  authorization: Permission:Users.ManageRoles
+  body: SetUserRolesDto
+    RoleIds : List<Int64>
+  Path: userId : Int64 (required)
+DELETE api/Users/{userId}/roles/{roleId}
+  authorization: Permission:Users.ManageRoles
+  Path: roleId : Int64 (required)
+  Path: userId : Int64 (required)
+POST api/Users/{userId}/roles/{roleId}
+  authorization: Permission:Users.ManageRoles
+  Path: roleId : Int64 (required)
+  Path: userId : Int64 (required)
