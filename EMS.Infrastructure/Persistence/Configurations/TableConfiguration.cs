@@ -29,9 +29,6 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.IsAttachmentEnabled)
                 .IsRequired();
 
-            builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
-            builder.Property(x => x.CreatedByUserId).IsRequired();
-            builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
         }
     }
 }

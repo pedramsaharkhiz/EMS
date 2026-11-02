@@ -26,9 +26,6 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Ignore(x => x.IsExpired);
             builder.Ignore(x => x.IsValid);
 
-            builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
-            builder.Property(x => x.CreatedByUserId).IsRequired();
-            builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
 
             builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.NoAction);
         }

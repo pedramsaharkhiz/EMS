@@ -60,6 +60,13 @@ namespace EMS.Infrastructure.Persistence
 
 
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            base.ConfigureConventions(configurationBuilder);
+            // Columns shared by every BaseEntity are configured once (an explicit entity configuration still wins).
+            configurationBuilder.Conventions.Add(_ => new Conventions.BaseEntityConvention());
+        }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

@@ -14,8 +14,6 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Description).HasMaxLength(500).IsRequired(false);
             builder.Property(x => x.StreamId).IsRequired(false);
             builder.Property(x => x.IsActive).HasDefaultValue(true);
-            builder.Property(x => x.CreatedByUserId).IsRequired();
-            builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
 
             builder.HasOne(x => x.Table).WithMany(x => x.EntityAttachments).HasForeignKey(x => x.TableId).OnDelete(DeleteBehavior.NoAction);
         }

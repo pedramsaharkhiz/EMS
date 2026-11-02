@@ -13,9 +13,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.OrganizationStructureCode).HasMaxLength(20).IsRequired(false);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired(false);
             builder.Property(x => x.Grade).IsRequired(false);
-            builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
             builder.Property(x => x.CreatedByUserId).IsRequired(false);
-            builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
             builder.HasOne(x => x.ParentOrganizationStructure).WithMany(x => x.Children).HasForeignKey(x => x.ParentOrganizationStructureId).OnDelete(DeleteBehavior.NoAction);
         }
     }
