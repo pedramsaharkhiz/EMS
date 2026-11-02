@@ -9,6 +9,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<EquipmentStatus> builder)
         {
             builder.ToTable("EquipmentStatuses");
+            builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.EquipmentStatusId);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
             builder.Property(x => x.Code).HasMaxLength(20).IsUnicode(false).IsRequired(false);

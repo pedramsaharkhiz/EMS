@@ -9,6 +9,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<SupportingDepartment> builder)
         {
             builder.ToTable("SupportingDepartments");
+            builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.SupportingDepartmentId);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
             builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();

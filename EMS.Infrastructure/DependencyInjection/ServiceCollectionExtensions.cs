@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,10 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<EMSDbContext>((sp, options) =>
         {
             options.UseSqlServer(configuration.GetConnectionString("EMS"));
+            // EF warns that e.g. Equipment (not filtered) requires EquipmentStatus (filtered). This is deliberate: an active
+            // record can never reference a deactivated catalog row (deactivation is blocked while active dependents exist),
+            // and queries that must show history use IncludingInactive(). See docs/CATALOGS.md.
+            options.ConfigureWarnings(w => w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
             options.AddInterceptors(
                 sp.GetRequiredService<AuditSaveChangesInterceptor>(),
                 sp.GetRequiredService<SlowQueryLoggingInterceptor>());

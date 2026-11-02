@@ -9,6 +9,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<EquipmentLocationType> builder)
         {
             builder.ToTable("EquipmentLocationTypes");
+            builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.EquipmentLocationTypeId);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
             builder.Property(x => x.Code).HasMaxLength(20).IsUnicode(false).IsRequired(false);

@@ -9,6 +9,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<FailureCategory> builder)
         {
             builder.ToTable("FailureCategories");
+            builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.FailureCategoryId);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
             builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();

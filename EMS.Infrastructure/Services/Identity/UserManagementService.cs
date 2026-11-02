@@ -592,7 +592,7 @@ public sealed class UserManagementService : IUserManagementService
     private async Task EnsureDepartmentExistsAsync(long? departmentId, CancellationToken cancellationToken)
     {
         if (departmentId.HasValue &&
-            !await _dbContext.SupportingDepartments.AnyAsync(
+            !await _dbContext.SupportingDepartments.IncludingInactive().AnyAsync(
                 x => x.SupportingDepartmentId == departmentId.Value,
                 cancellationToken))
         {

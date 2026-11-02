@@ -16,8 +16,11 @@ namespace EMS.Infrastructure.Repositories
 
         public async Task<Equipment?> GetDetailsAsync(long id, CancellationToken cancellationToken = default)
         {
+            // The catalog rows an equipment refers to (status, model, brand, ...) may have been deactivated since:
+            // lift the soft-delete filter so the equipment is not dropped from the result by the join.
             return await _context.Set<Equipment>()
                 .AsNoTracking()
+                .IncludingInactive()
                 .Include(x => x.EquipmentModel)
                 .ThenInclude(x => x!.Brand)
                 .Include(x => x.EquipmentModel)

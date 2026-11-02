@@ -54,7 +54,7 @@ namespace EMS.Infrastructure.Repositories
             Expression<Func<T, bool>> predicate,
             CancellationToken cancellationToken = default)
         {
-            return await _dbSet.AnyAsync(predicate, cancellationToken);
+            return await _dbSet.IncludingInactive().AnyAsync(predicate, cancellationToken);
         }
 
         public virtual async Task AddAsync(T entity, CancellationToken cancellationToken = default)

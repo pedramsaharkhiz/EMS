@@ -9,6 +9,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<EquipmentCategory> builder)
         {
             builder.ToTable("EquipmentCategories");
+            builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.EquipmentCategoryId);
             builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
             builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
