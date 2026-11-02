@@ -1,19 +1,16 @@
 using EMS.Application.Dtos.Widget;
-using FluentValidation;
+using EMS.Application.Services.Widget;
+using EMS.Application.Validators.Catalog;
 
 namespace EMS.Application.Validators.Widget
 {
-    public class UpdateWidgetDtoValidator : AbstractValidator<WidgetUpdateDto>
+    // A positive id, Title (max length) and Code (max length) rules come from the base class.
+    public sealed class UpdateWidgetDtoValidator : CatalogUpdateValidator<WidgetUpdateDto>
     {
-        public UpdateWidgetDtoValidator()
-        {
-            RuleFor(x => x.WidgetId).GreaterThan(0).WithMessage("شناسه __LABEL__ باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان __LABEL__ نمی‌تواند بیشتر از 100 کاراکتر باشد.");
 //#if (HasCode)
-            RuleFor(x => x.Code)
-                .MaximumLength(20).When(x => !string.IsNullOrEmpty(x.Code))
-                .WithMessage("کد __LABEL__ نمی‌تواند بیشتر از 20 کاراکتر باشد.");
+        public UpdateWidgetDtoValidator() : base(WidgetService.EntityLabel, x => x.WidgetId, x => x.Code) { }
+//#else
+        public UpdateWidgetDtoValidator() : base(WidgetService.EntityLabel, x => x.WidgetId) { }
 //#endif
-        }
     }
 }

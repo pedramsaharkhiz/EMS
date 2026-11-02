@@ -15,7 +15,8 @@ namespace EMS.Application.Services.EquipmentCategory
         public EquipmentCategoryService(IEquipmentCategoryRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "دسته‌بندی";
+        public const string EntityLabel = "دسته‌بندی";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این دسته‌بندی دارای نوع تجهیز فعال است و قابل غیرفعال‌سازی نیست. ابتدا نوع‌های آن را غیرفعال کنید.";
         protected override Expression<Func<EquipmentCategoryEntity, long>> IdSelector => x => x.EquipmentCategoryId;
 

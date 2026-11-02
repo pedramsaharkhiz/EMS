@@ -1,4 +1,5 @@
-﻿using EMS.Domain.Entities;
+﻿using EMS.Domain;
+using EMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,7 +12,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.ToTable("SupportingDepartments");
             builder.HasSoftDeleteFilter();
             builder.HasKey(x => x.SupportingDepartmentId);
-            builder.Property(x => x.Title).HasMaxLength(100).IsRequired();
+            builder.Property(x => x.Title).HasMaxLength(CatalogConstraints.TitleMaxLength).IsRequired();
             // Optimistic concurrency without a new column: an update fails if the row was modified by someone else after it was read.
             builder.Property(x => x.ModifiedDateTime).IsConcurrencyToken();
             builder.HasIndex(x => x.Title).IsUnique().HasFilter("[IsActive] = 1").HasDatabaseName("UX_SupportingDepartments_Title");

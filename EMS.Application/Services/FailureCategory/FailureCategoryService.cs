@@ -15,7 +15,8 @@ namespace EMS.Application.Services.FailureCategory
         public FailureCategoryService(IFailureCategoryRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "دسته‌بندی خرابی";
+        public const string EntityLabel = "دسته‌بندی خرابی";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این دسته‌بندی دارای نوع خرابی فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<FailureCategoryEntity, long>> IdSelector => x => x.FailureCategoryId;
 

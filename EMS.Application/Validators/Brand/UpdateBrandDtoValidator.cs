@@ -1,16 +1,12 @@
-﻿using EMS.Application.Dtos.Brand;
-using EMS.Application.Dtos.EquipmentCategory;
+using EMS.Application.Dtos.Brand;
+using EMS.Application.Services.Brand;
+using EMS.Application.Validators.Catalog;
 using FluentValidation;
 
-namespace EMS.Application.Validators.EquipmentCategory
+namespace EMS.Application.Validators.Brand
 {
-    public class UpdateBrandDtoValidator : AbstractValidator<BrandUpdateDto>
+    public sealed class UpdateBrandDtoValidator : CatalogUpdateValidator<BrandUpdateDto>
     {
-        public UpdateBrandDtoValidator()
-        {
-            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان برند نمی‌تواند بیشتر از 100 کاراکتر باشد.");
-            RuleFor(x => x.BrandId).GreaterThan(0).WithMessage("شناسه  'برند' باید بزرگتر از صفر باشد.");
-
-        }
+        public UpdateBrandDtoValidator() : base(BrandService.EntityLabel, x => x.BrandId, x => x.Code) { }
     }
 }

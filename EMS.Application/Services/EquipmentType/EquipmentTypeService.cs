@@ -19,7 +19,8 @@ namespace EMS.Application.Services.EquipmentType
             _categories = categories;
         }
 
-        protected override string Label => "نوع تجهیز";
+        public const string EntityLabel = "نوع تجهیز";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<EquipmentTypeEntity, long>> IdSelector => x => x.EquipmentTypeId;
 

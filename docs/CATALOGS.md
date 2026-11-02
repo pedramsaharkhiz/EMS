@@ -9,10 +9,13 @@
 | `CatalogService<...>` | `EMS.Application/Services` | صفحه‌بندی، مرتب‌سازی، فیلتر عنوان، یکتایی عنوان، حذف و بازگردانی، بررسی وابسته‌ها، `rowVersion`، audit و کد خطا |
 | `CatalogRepository<T>` | `EMS.Infrastructure/Repositories` | خواندن با شناسه، کوئری فعال/غیرفعال، بررسی عنوان. هر repository فقط `HasActiveDependentsAsync` را می‌نویسد |
 | `ICatalogEntity` | `EMS.Domain/Interfaces` | علامت‌گذاری entity (دارای `Title`) |
+| validatorهای عمومی | `EMS.Application/Validators/Catalog` | قواعد مشترک list و create و update (هر validator یک خط) |
+| `CatalogConstraints` | `EMS.Domain` | حداکثر طول `Title` و `Code`، مشترک بین ستون دیتابیس و validatorها |
+| `BaseEntityConvention` | `EMS.Infrastructure/Persistence/Conventions` | ستون‌های مشترک `IsActive` و `CreatedByUserId` و `CreatedDateTime` برای همه‌ی entityها |
 | `SoftDelete` | `EMS.Infrastructure/Persistence` | فیلتر سراسری EF برای حذف منطقی |
 | کنترلر | `EMS.Presentation/Controllers` | نازک و صریح: هر action یک خط به سرویس |
 
-DTOها و validatorها **برای هر entity جدا** می‌مانند، چون نام فیلدها بخشی از قرارداد API است (`brandId` در برابر `equipmentStatusId`).
+DTOها **برای هر entity جدا** می‌مانند، چون نام فیلدها بخشی از قرارداد API است (`brandId` در برابر `equipmentStatusId`). validatorها هم کلاس جدا دارند، ولی هرکدام یک خط است و قواعد مشترک (طول عنوان و کد، شناسه‌ی مثبت، محدوده‌ی صفحه‌بندی و جهت مرتب‌سازی) را از کلاس پایه می‌گیرند.
 
 ### قواعدی که همه‌ی کاتالوگ‌ها دارند
 - عنوان بین رکوردهای **فعال** یکتاست (بدون حساسیت به حروف). رکورد غیرفعال عنوانش را اشغال نمی‌کند. ایندکس یکتا روی دیتابیس هم فیلتردار است (`WHERE IsActive = 1`).
@@ -49,18 +52,18 @@ dotnet new ems-catalog -n Manufacturer --Label "سازنده"
 dotnet new ems-catalog -n Category --Label "دسته‌بندی" --Plural Categories --HasCode false
 ```
 
-۱۶ فایل ساخته می‌شود: entity، تنظیمات EF، repository و interface، ۵ DTO، ۳ validator، سرویس و interface و کنترلر. `Plural` برای نام جدول و گروه permission است (پیش‌فرض: نام + `s`).
+۱۶ فایل ساخته می‌شود: entity، تنظیمات EF، repository و interface، ۵ DTO، ۳ validator (یک‌خطی)، سرویس و interface و کنترلر. `Plural` برای نام جدول و گروه permission است (پیش‌فرض: نام + `s`).
 
 ### ۲. مراحل دستی
 
-1. **Permission:** در `EMS.Application/Common/Security/Permissions.cs` یک کلاس `Manufacturers` با چهار ثابت `View/Create/Update/Delete` اضافه کنید (الگوی کلاس‌های موجود) و هر چهار را در `Permissions.All` بیاورید. تا این کار را نکنید build نمی‌شود (کنترلر به آن ارجاع دارد)، و تست `PermissionCatalogTests` فراموشی `All` را می‌گیرد.
+1. **Permission:** در `EMS.Application/Common/Security/Permissions.cs` یک کلاس `Manufacturers` با چهار ثابت `View/Create/Update/Delete` اضافه کنید (الگوی کلاس‌های موجود). `Permissions.All` خودکار از روی ثابت‌ها ساخته می‌شود و جای دیگری ثبت لازم نیست. تا این کار را نکنید build نمی‌شود (کنترلر به آن ارجاع دارد).
 2. **Migration:**
 
    ```bash
    dotnet ef migrations add AddManufacturer --project EMS.Infrastructure --startup-project EMS.Presentation
    ```
 
-   (بررسی اینکه چیزی جا نمانده: `dotnet ef migrations has-pending-model-changes ...`)
+   اگر فراموش کنید، تست `SchemaDriftTests` شکست می‌خورد (مدل EF را با آخرین migration مقایسه می‌کند).
 3. **وابسته‌ها:** اگر رکورد دیگری به این کاتالوگ ارجاع می‌دهد، `HasActiveDependentsAsync` را در repository پر کنید (پیش‌فرض template فقط `false` برمی‌گرداند) و متن `DependentsMessage` را در سرویس بنویسید.
 4. **والد (اختیاری):** اگر به کاتالوگ دیگری وابسته است، repository والد را به سازنده‌ی سرویس بدهید و از `RequireParentAsync` در `BeforeCreateAsync` و `BeforeUpdateAsync` استفاده کنید (نمونه: `EquipmentTypeService`).
 5. **فیلتر لیست یا ستون مرتب‌سازی اضافه:** `ApplyFilters` و `ConfigureSorting` را در سرویس بنویسید.

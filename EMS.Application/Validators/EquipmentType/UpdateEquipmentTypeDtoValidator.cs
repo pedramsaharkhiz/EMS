@@ -1,16 +1,15 @@
-﻿using EMS.Application.Dtos.EquipmentType;
+using EMS.Application.Dtos.EquipmentType;
+using EMS.Application.Services.EquipmentType;
+using EMS.Application.Validators.Catalog;
 using FluentValidation;
 
-namespace EMS.Application.Validators.EquipmentCategory
+namespace EMS.Application.Validators.EquipmentType
 {
-    public class UpdateEquipmentTypeDtoValidator : AbstractValidator<EquipmentTypeUpdateDto>
+    public sealed class UpdateEquipmentTypeDtoValidator : CatalogUpdateValidator<EquipmentTypeUpdateDto>
     {
-        public UpdateEquipmentTypeDtoValidator()
+        public UpdateEquipmentTypeDtoValidator() : base(EquipmentTypeService.EntityLabel, x => x.EquipmentTypeId, x => x.Code)
         {
-            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان نوع تجهیزات نمی‌تواند بیشتر از 100 کاراکتر باشد.");
-            RuleFor(x => x.EquipmentCategoryId).GreaterThan(0).WithMessage("شناسه گروه بندی تجهیزات 'نوع تجهیزات' باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.EquipmentTypeId).GreaterThan(0).WithMessage("شناسه  'نوع تجهیزات' باید بزرگتر از صفر باشد.");
-
+            RuleFor(x => x.EquipmentCategoryId).GreaterThan(0).WithMessage("شناسه دسته‌بندی تجهیزات باید بزرگتر از صفر باشد.");
         }
     }
 }

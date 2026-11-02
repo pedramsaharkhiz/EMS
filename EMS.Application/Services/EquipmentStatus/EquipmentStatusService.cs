@@ -15,7 +15,8 @@ namespace EMS.Application.Services.EquipmentStatus
         public EquipmentStatusService(IEquipmentStatusRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "وضعیت تجهیز";
+        public const string EntityLabel = "وضعیت تجهیز";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این وضعیت توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<EquipmentStatusEntity, long>> IdSelector => x => x.EquipmentStatusId;
 

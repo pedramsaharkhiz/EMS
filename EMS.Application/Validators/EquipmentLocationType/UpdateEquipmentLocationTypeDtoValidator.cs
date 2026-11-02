@@ -1,16 +1,12 @@
-﻿using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.EquipmentLocationType;
+using EMS.Application.Services.EquipmentLocationType;
+using EMS.Application.Validators.Catalog;
 using FluentValidation;
 
 namespace EMS.Application.Validators.EquipmentLocationType
 {
-    public class UpdateEquipmentLocationTypeDtoValidator : AbstractValidator<EquipmentLocationTypeUpdateDto>
+    public sealed class UpdateEquipmentLocationTypeDtoValidator : CatalogUpdateValidator<EquipmentLocationTypeUpdateDto>
     {
-        public UpdateEquipmentLocationTypeDtoValidator() 
-        {
-            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان نوع محل تجهیزات نمی‌تواند بیشتر از 100 کاراکتر باشد.");
-            RuleFor(x => x.EquipmentLocationTypeId).GreaterThan(0).WithMessage("شناسه  'نوع محل تجهیزات' باید بزرگتر از صفر باشد.");
-
-        }
+        public UpdateEquipmentLocationTypeDtoValidator() : base(EquipmentLocationTypeService.EntityLabel, x => x.EquipmentLocationTypeId, x => x.Code) { }
     }
 }

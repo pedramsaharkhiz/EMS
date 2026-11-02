@@ -20,7 +20,8 @@ namespace EMS.Application.Services.SupportingDepartment
             _cities = cities;
         }
 
-        protected override string Label => "دپارتمان پشتیبانی";
+        public const string EntityLabel = "دپارتمان پشتیبانی";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
 

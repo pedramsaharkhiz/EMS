@@ -1,17 +1,10 @@
 using EMS.Application.Dtos.Widget;
-using FluentValidation;
+using EMS.Application.Validators.Catalog;
 
 namespace EMS.Application.Validators.Widget
 {
-    public class WidgetListRequestDtoValidator : AbstractValidator<WidgetListRequestDto>
+    public sealed class WidgetListRequestDtoValidator : CatalogListRequestValidator<WidgetListRequestDto>
     {
-        public WidgetListRequestDtoValidator()
-        {
-            RuleFor(x => x.PageNumber).GreaterThanOrEqualTo(1).WithMessage("شماره صفحه باید حداقل 1 باشد.");
-            RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("اندازه صفحه باید بین 1 تا 100 باشد.");
-            RuleFor(x => x.SortDirection)
-                .Must(x => string.IsNullOrWhiteSpace(x) || x.Equals("asc", StringComparison.OrdinalIgnoreCase) || x.Equals("desc", StringComparison.OrdinalIgnoreCase))
-                .WithMessage("جهت مرتب‌سازی باید asc یا desc باشد.");
-        }
+        // Paging and sort-direction rules come from the base class; add rules for your own filters here.
     }
 }

@@ -20,7 +20,10 @@ namespace EMS.Application.Services.Widget
         public WidgetService(IWidgetRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "__LABEL__";
+        /// <summary>Persian name of the catalog; also used by its validators.</summary>
+        public const string EntityLabel = "__LABEL__";
+
+        protected override string Label => EntityLabel;
 
         // TODO: say what depends on this catalog (and implement WidgetRepository.HasActiveDependentsAsync to match).
         protected override string DependentsMessage => "این __LABEL__ توسط رکوردهای فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.";

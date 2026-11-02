@@ -21,7 +21,8 @@ namespace EMS.Application.Services.EquipmentModel
             _brands = brands;
         }
 
-        protected override string Label => "مدل تجهیز";
+        public const string EntityLabel = "مدل تجهیز";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این مدل توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<EquipmentModelEntity, long>> IdSelector => x => x.EquipmentModelId;
 

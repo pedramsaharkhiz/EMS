@@ -15,7 +15,8 @@ namespace EMS.Application.Services.Brand
         public BrandService(IBrandRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "برند";
+        public const string EntityLabel = "برند";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این برند دارای مدل تجهیز فعال است و قابل غیرفعال‌سازی نیست. ابتدا مدل‌های آن را غیرفعال کنید.";
         protected override Expression<Func<BrandEntity, long>> IdSelector => x => x.BrandId;
 

@@ -15,7 +15,8 @@ namespace EMS.Application.Services.EquipmentLocationType
         public EquipmentLocationTypeService(IEquipmentLocationTypeRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
             : base(repository, unitOfWork, audit) { }
 
-        protected override string Label => "نوع محل تجهیز";
+        public const string EntityLabel = "نوع محل تجهیز";
+        protected override string Label => EntityLabel;
         protected override string DependentsMessage => "این نوع مکان توسط تجهیز فعال استفاده می‌شود و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<EquipmentLocationTypeEntity, long>> IdSelector => x => x.EquipmentLocationTypeId;
 

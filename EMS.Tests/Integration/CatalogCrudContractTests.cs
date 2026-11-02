@@ -222,6 +222,98 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.BadRequest, (await UpdateAsync(c, id, Title("VerE"), rowVersion: "garbage")).StatusCode);
         }
 
+        // ------------------------------------------------------------------------------- validation rules
+
+        private static HashSet<string> ErrorFields(JsonElement problem) =>
+            problem.GetProperty("errors").EnumerateObject().Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task An_oversized_title_is_rejected_on_create_and_update_but_the_maximum_length_is_accepted(string name)
+        {
+            var c = CatalogCase.Get(name);
+
+            var tooLong = await c.CreateBody(this, new string('a', 101));
+            var create = await SendAsync(HttpMethod.Post, c.Route, tooLong, bearer: await AdminAsync());
+            Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
+            Assert.Contains("Title", ErrorFields(await ReadJsonAsync(create)));
+
+            var (id, _) = await CreateAsync(c, new string('b', 100) + "");   // exactly the maximum is fine
+            var update = await UpdateAsync(c, id, new string('c', 101));
+            Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
+            Assert.Contains("Title", ErrorFields(await ReadJsonAsync(update)));
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task An_update_with_a_non_positive_id_is_a_validation_error_on_the_id_field(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var response = await UpdateAsync(c, 0, Title("Id"));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(char.ToUpperInvariant(c.IdProperty[0]) + c.IdProperty[1..], ErrorFields(await ReadJsonAsync(response)));
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task An_invalid_sort_direction_is_a_validation_error(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var response = await SendAsync(HttpMethod.Get, $"{c.Route}?sortDirection=sideways", bearer: await AdminAsync());
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("SortDirection", ErrorFields(await ReadJsonAsync(response)));
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task A_code_longer_than_its_column_is_a_validation_error_for_every_coded_catalog_it_used_to_be_unchecked_for_brands_and_models(string name)
+        {
+            var c = CatalogCase.Get(name);
+            if (!c.HasCode)
+                return;
+
+            var body = await c.CreateBody(this, Title("Code"));
+            body["code"] = new string('x', 21);
+            var create = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
+            Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
+            Assert.Contains("Code", ErrorFields(await ReadJsonAsync(create)));
+
+            var (id, _) = await CreateAsync(c, Title("Code2"));
+            var update = await UpdateAsync(c, id, title: null, code: new string('y', 21));
+            Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
+            Assert.Contains("Code", ErrorFields(await ReadJsonAsync(update)));
+
+            // the maximum itself is accepted
+            Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, title: null, code: new string('z', 20))).StatusCode);
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task Validation_messages_name_the_field_and_the_catalog(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var page = await SendAsync(HttpMethod.Get, $"{c.Route}?pageSize=101", bearer: await AdminAsync());
+            var pageMessage = (await ReadJsonAsync(page)).GetProperty("errors").GetProperty("PageSize")[0].GetString();
+            Assert.Contains("اندازه صفحه", pageMessage);        // the message used to be a fragment without a subject
+
+            var update = await UpdateAsync(c, 0, Title("Msg"));
+            var idMessage = (await ReadJsonAsync(update)).GetProperty("errors").EnumerateObject().First().Value[0].GetString();
+            Assert.Contains("شناسه", idMessage);
+        }
+
+        [Theory]
+        [InlineData("EquipmentType")]
+        [InlineData("EquipmentModel")]
+        [InlineData("SupportingDepartment")]
+        public async Task A_non_positive_parent_id_is_a_validation_error_on_create(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var body = await c.CreateBody(this, Title("Par"));
+            var parentKey = body.Keys.First(k => k.EndsWith("Id", StringComparison.Ordinal));
+            body[parentKey] = 0;
+
+            var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(char.ToUpperInvariant(parentKey[0]) + parentKey[1..], ErrorFields(await ReadJsonAsync(response)));
+        }
+
         // ------------------------------------------------------------------------------- behaviour fixed by the refactoring
 
         [Theory, MemberData(nameof(Cases))]
