@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.EquipmentCategory;
@@ -18,9 +19,11 @@ namespace EMS.Application.Services.EquipmentLocationType
     {
         private readonly IEquipmentLocationTypeRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditEventLogger _audit;
 
-        public EquipmentLocationTypeService(IEquipmentLocationTypeRepository repository, IUnitOfWork unitOfWork)
+        public EquipmentLocationTypeService(IEquipmentLocationTypeRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
         {
+            _audit = audit;
             _repository = repository;
             _unitOfWork = unitOfWork;
         }
@@ -76,6 +79,7 @@ namespace EMS.Application.Services.EquipmentLocationType
             };
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Created("EquipmentLocationType", entity.EquipmentLocationTypeId);
             return MapToDetailsDto(entity);
         }
 
@@ -97,6 +101,7 @@ namespace EMS.Application.Services.EquipmentLocationType
             entity.Code = code;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Updated("EquipmentLocationType", entity.EquipmentLocationTypeId);
             return MapToDetailsDto(entity);
         }
 
@@ -109,6 +114,7 @@ namespace EMS.Application.Services.EquipmentLocationType
             entity.IsActive = false;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Deleted("EquipmentLocationType", entity.EquipmentLocationTypeId);
             return true;
         }
 

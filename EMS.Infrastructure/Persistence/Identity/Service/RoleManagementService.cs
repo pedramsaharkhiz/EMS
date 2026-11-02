@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.Role;
 using EMS.Application.Interfaces.Auth;
@@ -13,13 +14,16 @@ public sealed class RoleManagementService : IRoleManagementService
 {
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly EMSDbContext _dbContext;
+    private readonly IAuditEventLogger _audit;
 
     public RoleManagementService(
         RoleManager<ApplicationRole> roleManager,
-        EMSDbContext dbContext)
+        EMSDbContext dbContext,
+        IAuditEventLogger audit)
     {
         _roleManager = roleManager;
         _dbContext = dbContext;
+        _audit = audit;
     }
 
     public async Task<PagedResult<RoleListItemDto>> GetPagedAsync(
@@ -140,6 +144,8 @@ public sealed class RoleManagementService : IRoleManagementService
                 FormatIdentityErrors(result));
         }
 
+        _audit.Created("Role", role.Id);
+
         return await MapAsync(role, cancellationToken);
     }
 
@@ -184,6 +190,8 @@ public sealed class RoleManagementService : IRoleManagementService
                 FormatIdentityErrors(result));
         }
 
+        _audit.Updated("Role", role.Id);
+
         return await MapAsync(role, cancellationToken);
     }
 
@@ -218,6 +226,8 @@ public sealed class RoleManagementService : IRoleManagementService
             throw new BadRequestException(
                 FormatIdentityErrors(result));
         }
+
+        _audit.Deleted("Role", id);
 
         return true;
     }

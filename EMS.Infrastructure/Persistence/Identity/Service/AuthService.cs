@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using Azure.Core;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.RefreshToken;
@@ -26,9 +27,11 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
         private readonly EMSDbContext _dbContext;
         private readonly JwtOptions _jwtOptions;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ISecurityEventLogger _securityLog;
 
-        public AuthService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<ApplicationRole> roleManager, ITokenService tokenService, EMSDbContext dbContext, IOptions<JwtOptions> jwtOptions, IHttpContextAccessor httpContextAccessor)
+        public AuthService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, RoleManager<ApplicationRole> roleManager, ITokenService tokenService, EMSDbContext dbContext, IOptions<JwtOptions> jwtOptions, IHttpContextAccessor httpContextAccessor, ISecurityEventLogger securityLog)
         {
+            _securityLog = securityLog;
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
@@ -41,14 +44,34 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == request.UserName, cancellationToken);
-            if (user is null || !user.IsActive)
+            // The client always receives the same generic message (no user enumeration);
+            // the precise reason is only written to the security log.
+            if (user is null)
+            {
+                _securityLog.LoginFailed(request.UserName, LoginFailureReason.UnknownUser);
                 throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+            }
+
+            if (!user.IsActive)
+            {
+                _securityLog.LoginFailed(request.UserName, LoginFailureReason.InactiveUser, user.Id);
+                throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+            }
 
             var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
             if (!signInResult.Succeeded)
+            {
+                var lockedOut = signInResult.IsLockedOut || await _userManager.IsLockedOutAsync(user);
+                _securityLog.LoginFailed(
+                    request.UserName,
+                    lockedOut ? LoginFailureReason.LockedOut : LoginFailureReason.InvalidPassword,
+                    user.Id);
                 throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+            }
 
-            return await BuildAuthResponseAsync(user, cancellationToken);
+            var response = await BuildAuthResponseAsync(user, cancellationToken);
+            _securityLog.LoginSucceeded(user.Id, user.UserName ?? request.UserName);
+            return response;
         }
 
         public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenRequestDto request, CancellationToken cancellationToken = default)
@@ -57,11 +80,25 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             var tokenEntity = await _dbContext.UserRefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == refreshTokenHash, cancellationToken);
 
             if (tokenEntity is null || !tokenEntity.IsActive || !tokenEntity.IsValid)
+            {
+                // A token that was already revoked being presented again is a strong signal of replay/theft.
+                var reason = tokenEntity switch
+                {
+                    null => RefreshRejectionReason.TokenNotFound,
+                    { IsRevoked: true } => RefreshRejectionReason.TokenReuseDetected,
+                    { IsExpired: true } => RefreshRejectionReason.TokenExpired,
+                    _ => RefreshRejectionReason.TokenInactive
+                };
+                _securityLog.RefreshRejected(reason, tokenEntity?.UserId);
                 throw new UnauthorizedAccessException("رفرش توکن نامعتبر است.");
+            }
 
             var user = await _userManager.FindByIdAsync(tokenEntity.UserId.ToString());
             if (user is null || !user.IsActive)
+            {
+                _securityLog.RefreshRejected(RefreshRejectionReason.UserInvalid, tokenEntity.UserId);
                 throw new UnauthorizedAccessException("کاربر نامعتبر است.");
+            }
 
             var now = DateTime.UtcNow;
             tokenEntity.RevokedDateTime = now;
@@ -86,6 +123,8 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
+            _securityLog.RefreshSucceeded(user.Id);
+
             return new AuthResponseDto
             {
                 UserId = user.Id,
@@ -109,6 +148,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
 
             tokenEntity.RevokedDateTime = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync(cancellationToken);
+            _securityLog.RefreshTokenRevoked(tokenEntity.UserId);
         }
 
         public async Task<long> RegisterAsync(RegisterUserRequestDto request, CancellationToken cancellationToken = default)
@@ -133,6 +173,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             if (!result.Succeeded)
                 throw new BadRequestException(string.Join(" | ", result.Errors.Select(x => x.Description)));
 
+            _securityLog.UserRegistered(user.Id, request.UserName);
             return user.Id;
         }
 

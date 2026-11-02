@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.EquipmentCategory;
@@ -19,9 +20,11 @@ namespace EMS.Application.Services.SupportingDepartment
         private readonly ISupportingDepartmentRepository _repository;
         private readonly IRepository<City> _cityRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditEventLogger _audit;
 
-        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IRepository<City> cityRepository, IUnitOfWork unitOfWork)
+        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IRepository<City> cityRepository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
         {
+            _audit = audit;
             _repository = repository;
             _cityRepository = cityRepository;
             _unitOfWork = unitOfWork;
@@ -84,6 +87,7 @@ namespace EMS.Application.Services.SupportingDepartment
             };
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Created("SupportingDepartment", entity.SupportingDepartmentId);
             return MapToDetailsDto(entity);
         }
 
@@ -111,6 +115,7 @@ namespace EMS.Application.Services.SupportingDepartment
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Updated("SupportingDepartment", entity.SupportingDepartmentId);
             return MapToDetailsDto(entity);
         }
 
@@ -123,6 +128,7 @@ namespace EMS.Application.Services.SupportingDepartment
             entity.IsActive = false;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Deleted("SupportingDepartment", entity.SupportingDepartmentId);
             return true;
         }
 

@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.EquipmentCategory;
@@ -18,9 +19,11 @@ namespace EMS.Application.Services.EquipmentType
         private readonly IEquipmentTypeRepository _repository;
         private readonly IEquipmentCategoryRepository _repositoryCategory;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditEventLogger _audit;
 
-        public EquipmentTypeService(IEquipmentTypeRepository repository, IUnitOfWork unitOfWork, IEquipmentCategoryRepository repositoryCategory)
+        public EquipmentTypeService(IEquipmentTypeRepository repository, IUnitOfWork unitOfWork, IEquipmentCategoryRepository repositoryCategory, IAuditEventLogger audit)
         {
+            _audit = audit;
             _repository = repository;
             _unitOfWork = unitOfWork;
             _repositoryCategory = repositoryCategory;
@@ -94,6 +97,7 @@ namespace EMS.Application.Services.EquipmentType
 
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Created("EquipmentType", entity.EquipmentTypeId);
 
             return MapToDetailsDto(entity);
         }
@@ -125,6 +129,7 @@ namespace EMS.Application.Services.EquipmentType
 
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Updated("EquipmentType", entity.EquipmentTypeId);
 
             return MapToDetailsDto(entity);
         }
@@ -139,6 +144,7 @@ namespace EMS.Application.Services.EquipmentType
             _repository.Update(entity);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Deleted("EquipmentType", entity.EquipmentTypeId);
 
             return true;
         }

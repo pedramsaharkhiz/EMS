@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.User;
 using EMS.Application.Dtos.UserRole;
@@ -16,15 +17,18 @@ public sealed class UserRoleAssignmentService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly EMSDbContext _dbContext;
+    private readonly IAuditEventLogger _audit;
 
     public UserRoleAssignmentService(
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
-        EMSDbContext dbContext)
+        EMSDbContext dbContext,
+        IAuditEventLogger audit)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _dbContext = dbContext;
+        _audit = audit;
     }
 
     // ---------------------------------------------------------
@@ -112,6 +116,10 @@ public sealed class UserRoleAssignmentService
             await FindUserAsync(userId, cancellationToken));
 
         await transaction.CommitAsync(cancellationToken);
+
+        _audit.Operation(
+            "RolesSet", "User", userId,
+            $"roleIds=[{string.Join(",", requestedRoleIds.OrderBy(x => x))}]");
     }
 
     public async Task AddRoleToUserAsync(
@@ -150,6 +158,8 @@ public sealed class UserRoleAssignmentService
         var user = await FindUserAsync(userId, cancellationToken);
 
         await _userManager.UpdateSecurityStampAsync(user);
+
+        _audit.Operation("RoleAssigned", "User", userId, $"roleId={roleId}");
     }
 
     public async Task RemoveRoleFromUserAsync(
@@ -174,6 +184,8 @@ public sealed class UserRoleAssignmentService
         var user = await FindUserAsync(userId, cancellationToken);
 
         await _userManager.UpdateSecurityStampAsync(user);
+
+        _audit.Operation("RoleRemoved", "User", userId, $"roleId={roleId}");
     }
 
     // ---------------------------------------------------------
@@ -339,6 +351,10 @@ public sealed class UserRoleAssignmentService
         }
 
         await transaction.CommitAsync(cancellationToken);
+
+        _audit.Operation(
+            "RoleUsersSet", "Role", roleId,
+            $"userIds=[{string.Join(",", requestedUserIds.OrderBy(x => x))}]");
     }
 
     public async Task AddUserToRoleAsync(

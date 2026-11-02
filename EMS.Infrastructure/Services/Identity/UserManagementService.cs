@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.User;
 using EMS.Application.Extensions;
@@ -14,13 +15,16 @@ public sealed class UserManagementService : IUserManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly EMSDbContext _dbContext;
+    private readonly IAuditEventLogger _audit;
 
     public UserManagementService(
         UserManager<ApplicationUser> userManager,
-        EMSDbContext dbContext)
+        EMSDbContext dbContext,
+        IAuditEventLogger audit)
     {
         _userManager = userManager;
         _dbContext = dbContext;
+        _audit = audit;
     }
 
     public async Task<PagedResult<UserListItemDto>> GetPagedAsync(UserListRequestDto request, CancellationToken cancellationToken = default)
@@ -403,6 +407,8 @@ public sealed class UserManagementService : IUserManagementService
                 FormatIdentityErrors(result));
         }
 
+        _audit.Created("User", user.Id);
+
         return MapDetail(user);
     }
 
@@ -458,8 +464,12 @@ public sealed class UserManagementService : IUserManagementService
                 FormatIdentityErrors(result));
         }
 
+        _audit.Updated("User", user.Id);
+
         if (!user.IsActive)
         {
+            _audit.Operation("UserDeactivated", "User", user.Id);
+
             await RevokeRefreshTokensAsync(
                 user.Id,
                 cancellationToken);
@@ -499,6 +509,8 @@ public sealed class UserManagementService : IUserManagementService
             id,
             cancellationToken);
 
+        _audit.Deleted("User", id);
+
         return true;
     }
 
@@ -532,6 +544,9 @@ public sealed class UserManagementService : IUserManagementService
         await RevokeRefreshTokensAsync(
             id,
             cancellationToken);
+
+        // Only the fact that the password changed is logged, never the password.
+        _audit.Operation("PasswordReset", "User", id);
     }
 
     private async Task EnsureUniqueBusinessFieldsAsync(string personnelCode, string? nationalCode, long? exceptUserId, CancellationToken cancellationToken)
@@ -605,6 +620,7 @@ public sealed class UserManagementService : IUserManagementService
         if (tokens.Count > 0)
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
+            _audit.Operation("RefreshTokensRevoked", "User", userId, $"count={tokens.Count}");
         }
     }
 

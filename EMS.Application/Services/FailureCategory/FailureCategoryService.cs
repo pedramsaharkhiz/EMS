@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Logging;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.FailureCategory;
@@ -16,9 +17,11 @@ namespace EMS.Application.Services.FailureCategory
     {
         private readonly IFailureCategoryRepository _repository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAuditEventLogger _audit;
 
-        public FailureCategoryService(IFailureCategoryRepository repository, IUnitOfWork unitOfWork)
+        public FailureCategoryService(IFailureCategoryRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
         {
+            _audit = audit;
             _repository = repository;
             _unitOfWork = unitOfWork;
         }
@@ -65,6 +68,7 @@ namespace EMS.Application.Services.FailureCategory
             };
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Created("FailureCategory", entity.FailureCategoryId);
             return MapToDetailsDto(entity);
         }
 
@@ -83,6 +87,7 @@ namespace EMS.Application.Services.FailureCategory
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Updated("FailureCategory", entity.FailureCategoryId);
             return MapToDetailsDto(entity);
         }
 
@@ -95,6 +100,7 @@ namespace EMS.Application.Services.FailureCategory
             entity.IsActive = false;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+            _audit.Deleted("FailureCategory", entity.FailureCategoryId);
             return true;
         }
 
