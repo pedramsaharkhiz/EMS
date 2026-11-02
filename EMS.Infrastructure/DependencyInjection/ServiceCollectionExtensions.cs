@@ -22,6 +22,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using EMS.Application.Validators.User;
@@ -40,11 +41,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ISecurityEventLogger, SecurityEventLogger>();
         services.AddScoped<IAuditEventLogger, AuditEventLogger>();
+        services.Configure<AuditTrailOptions>(configuration.GetSection(AuditTrailOptions.SectionName));
         services.AddScoped<AuditSaveChangesInterceptor>();
+        var slowQueryThresholdMs = configuration.GetValue("Logging:SlowQueryThresholdMs", 500);
+        services.AddSingleton(sp => new SlowQueryLoggingInterceptor(
+            sp.GetRequiredService<ILogger<SlowQueryLoggingInterceptor>>(), slowQueryThresholdMs));
         services.AddDbContext<EMSDbContext>((sp, options) =>
         {
             options.UseSqlServer(configuration.GetConnectionString("EMS"));
-            options.AddInterceptors(sp.GetRequiredService<AuditSaveChangesInterceptor>());
+            options.AddInterceptors(
+                sp.GetRequiredService<AuditSaveChangesInterceptor>(),
+                sp.GetRequiredService<SlowQueryLoggingInterceptor>());
         });
 
         services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
