@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Application/">
+    <Project Path="EMS.Application/EMS.Application.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="EMS.Domain/EMS.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="EMS.Infrastructure/EMS.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="EMS.Presentation/EMS.Presentation.csproj" Id="00d3f4c6-8ef6-4ce4-9837-b619ba855573" />
+  </Folder>
+</Solution>

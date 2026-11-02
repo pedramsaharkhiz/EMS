@@ -1,0 +1,68 @@
+﻿using EMS.Domain.Entities;
+using EMS.Infrastructure.Persistence.Identity;
+using EMS.Infrastructure.Persistence.Interceptors;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace EMS.Infrastructure.Persistence
+{
+    public class EMSDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, long, ApplicationUserClaim, ApplicationUserRole, ApplicationUserLogin, ApplicationRoleClaim, ApplicationUserToken>
+    {
+        private readonly AuditSaveChangesInterceptor _auditableInterceptor;
+
+        public EMSDbContext(
+            DbContextOptions<EMSDbContext> options,
+            AuditSaveChangesInterceptor auditableInterceptor)
+            : base(options)
+        {
+            _auditableInterceptor = auditableInterceptor;
+        }
+        public DbSet<Province> Provinces => Set<Province>();
+        public DbSet<City> Cities => Set<City>();
+        public DbSet<SupportingDepartment> SupportingDepartments => Set<SupportingDepartment>();
+        public DbSet<Skill> Skills => Set<Skill>();
+        public DbSet<TechnicianSkill> TechnicianSkills => Set<TechnicianSkill>();
+        public DbSet<Zone> Zones => Set<Zone>();
+        public DbSet<OrganizationManagement> OrganizationManagements => Set<OrganizationManagement>();
+        public DbSet<Field> Fields => Set<Field>();
+        public DbSet<OrganizationType> OrganizationTypes => Set<OrganizationType>();
+        public DbSet<Organization> Organizations => Set<Organization>();
+        public DbSet<OrganizationStructure> OrganizationStructures => Set<OrganizationStructure>();
+        public DbSet<Employee> Employees => Set<Employee>();
+
+        public DbSet<EquipmentCategory> EquipmentCategories => Set<EquipmentCategory>();
+        public DbSet<EquipmentType> EquipmentTypes => Set<EquipmentType>();
+        public DbSet<Brand> Brands => Set<Brand>();
+        public DbSet<EquipmentModel> EquipmentModels => Set<EquipmentModel>();
+        public DbSet<EquipmentStatus> EquipmentStatuses => Set<EquipmentStatus>();
+        public DbSet<EquipmentLocationType> EquipmentLocationTypes => Set<EquipmentLocationType>();
+        public DbSet<Equipment> Equipments => Set<Equipment>();
+        public DbSet<EquipmentLocationHistory> EquipmentLocationHistories => Set<EquipmentLocationHistory>();
+
+        public DbSet<FailureCategory> FailureCategories => Set<FailureCategory>();
+        public DbSet<FailureType> FailureTypes => Set<FailureType>();
+        public DbSet<ReportType> ReportTypes => Set<ReportType>();
+        public DbSet<FailureReport> FailureReports => Set<FailureReport>();
+        public DbSet<TechnicianAssignmentStatus> TechnicianAssignmentStatuses => Set<TechnicianAssignmentStatus>();
+        public DbSet<TechnicianAssignment> TechnicianAssignments => Set<TechnicianAssignment>();
+        public DbSet<ActionEntity> ActionEntities => Set<ActionEntity>();
+        public DbSet<TechnicianAssignmentAction> TechnicianAssignmentActions => Set<TechnicianAssignmentAction>();
+        public DbSet<FailureReportAction> FailureReportActions => Set<FailureReportAction>();
+
+        public DbSet<Table> Tables => Set<Table>();
+        public DbSet<EntityAttachment> EntityAttachments => Set<EntityAttachment>();
+        public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+
+
+
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+            builder.ApplyConfigurationsFromAssembly(typeof(EMSDbContext).Assembly);
+        }
+    }
+}
