@@ -4,6 +4,8 @@ using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Interfaces.EquipmentCategory;
 using EMS.Application.Interfaces.Brand;
+using EMS.Application.Common.Security;
+using EMS.Presentation.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EMS.Application.Dtos.Brand;
@@ -18,7 +20,7 @@ namespace EMS.Presentation.Controllers
             _service = service;
         }
 
-        [Authorize]
+        [Permission(Permissions.Brands.View)]
         [HttpGet]
         public async Task<ActionResult<PagedResult<BrandListItemDto>>> GetAllList([FromQuery] BrandListRequestDto request, CancellationToken cancellationToken) 
         { 
@@ -26,7 +28,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.Brands.View)]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<BrandDetailDto>> GetById(long id, CancellationToken cancellationToken)
         {
@@ -36,7 +38,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.Brands.Create)]
         [HttpPost]
         public async Task<ActionResult<BrandDetailDto>> Create([FromBody] BrandCreateDto request, CancellationToken cancellationToken)
         {
@@ -44,7 +46,7 @@ namespace EMS.Presentation.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.BrandId }, result);
         }
 
-        [Authorize]
+        [Permission(Permissions.Brands.Update)]
         //[HttpPut("{id:long}")]
         [HttpPut]
         public async Task<ActionResult<BrandDetailDto>> Update([FromBody] BrandUpdateDto request, CancellationToken cancellationToken)
@@ -55,7 +57,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.Brands.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {

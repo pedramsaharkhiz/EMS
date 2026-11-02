@@ -201,6 +201,73 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task Catalog_endpoints_require_their_own_permission_and_each_denial_is_logged_with_the_permission_name()
+        {
+            var admin = await LoginAsync(AdminUserName, AdminPassword);
+            await CreateUserAsync(admin.AccessToken, "brandless1", "Passw0rd!x");
+            var plain = await LoginAsync("brandless1", "Passw0rd!x");
+
+            var corrList = NewCorrelationId("it-brand-list");
+            var corrCreate = NewCorrelationId("it-brand-create");
+            var list = await SendAsync(HttpMethod.Get, "/api/Brand", correlationId: corrList, bearer: plain.AccessToken);
+            var create = await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "Denied", code = "DN" }, corrCreate, plain.AccessToken);
+
+            Assert.Equal(HttpStatusCode.Forbidden, list.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, create.StatusCode);
+            Assert.Contains(Sink.ForCorrelation(corrList), e => CapturingSink.SourceContext(e) == "EMS.Security"
+                                                               && CapturingSink.PropertyText(e, "RequiredPermission") == "Brands.View"
+                                                               && CapturingSink.PropertyText(e, "UserId") == plain.UserId.ToString());
+            Assert.Contains(Sink.ForCorrelation(corrCreate), e => CapturingSink.SourceContext(e) == "EMS.Security"
+                                                                 && CapturingSink.PropertyText(e, "RequiredPermission") == "Brands.Create"
+                                                                 && CapturingSink.PropertyText(e, "Method") == "POST");
+
+            // Nothing was created by the denied request.
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+                Assert.False(await db.Brands.AnyAsync(b => b.Title == "Denied"));
+            }
+
+            // The administrator holds every permission (granted by the seeder) and is not blocked.
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Get, "/api/Brand", bearer: admin.AccessToken)).StatusCode);
+            var created = await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "Allowed", code = "AL" }, bearer: admin.AccessToken);
+            Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task A_role_with_only_the_View_permission_can_list_but_creating_is_denied_and_logged()
+        {
+            var admin = await LoginAsync(AdminUserName, AdminPassword);
+            var userId = await CreateUserAsync(admin.AccessToken, "viewer1", "Passw0rd!x");
+
+            var roleResponse = await SendAsync(HttpMethod.Post, "/api/Role", new { name = "BrandViewers" }, bearer: admin.AccessToken);
+            Assert.True(roleResponse.IsSuccessStatusCode, await roleResponse.Content.ReadAsStringAsync());
+            var roleJson = await ReadJsonAsync(roleResponse);
+            var roleId = roleJson.TryGetProperty("roleId", out var rid) ? rid.GetInt64() : roleJson.GetProperty("id").GetInt64();
+
+            var assign = await SendAsync(HttpMethod.Post, "/api/Role/AssignPermissions",
+                new { roleName = "BrandViewers", permissions = new[] { "Brands.View" } }, bearer: admin.AccessToken);
+            Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
+
+            var setRoles = await SendAsync(HttpMethod.Put, $"/api/Users/{userId}/roles", new { roleIds = new[] { roleId } }, bearer: admin.AccessToken);
+            Assert.Equal(HttpStatusCode.NoContent, setRoles.StatusCode);
+
+            // A fresh login picks up the new role's permissions.
+            var viewer = await LoginAsync("viewer1", "Passw0rd!x");
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Get, "/api/Brand", bearer: viewer.AccessToken)).StatusCode);
+
+            var corr = NewCorrelationId("it-viewer-create");
+            var denied = await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "Nope", code = "NO" }, corr, viewer.AccessToken);
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+            Assert.Contains(Sink.ForCorrelation(corr), e => CapturingSink.PropertyText(e, "RequiredPermission") == "Brands.Create");
+
+            // The permission change itself was audited with exactly what was granted.
+            Assert.Contains(Sink.Snapshot(), e => CapturingSink.SourceContext(e) == "EMS.Audit"
+                                                  && CapturingSink.PropertyText(e, "Operation") == "PermissionsChanged"
+                                                  && (CapturingSink.PropertyText(e, "Detail") ?? "").Contains("granted=[Brands.View]"));
+        }
+
+        [Fact]
         public async Task Anonymous_requests_get_401_without_being_reported_as_permission_denials()
         {
             var corr = NewCorrelationId("it-anon");

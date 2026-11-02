@@ -45,6 +45,70 @@ namespace EMS.Application.Common.Security
             public const string ManageUsers = "Roles.ManageUsers";
         }
 
+        public static class Brands
+        {
+            public const string View = "Brands.View";
+            public const string Create = "Brands.Create";
+            public const string Update = "Brands.Update";
+            public const string Delete = "Brands.Delete";
+        }
+
+        public static class EquipmentCategories
+        {
+            public const string View = "EquipmentCategories.View";
+            public const string Create = "EquipmentCategories.Create";
+            public const string Update = "EquipmentCategories.Update";
+            public const string Delete = "EquipmentCategories.Delete";
+        }
+
+        public static class EquipmentLocationTypes
+        {
+            public const string View = "EquipmentLocationTypes.View";
+            public const string Create = "EquipmentLocationTypes.Create";
+            public const string Update = "EquipmentLocationTypes.Update";
+            public const string Delete = "EquipmentLocationTypes.Delete";
+        }
+
+        public static class EquipmentModels
+        {
+            public const string View = "EquipmentModels.View";
+            public const string Create = "EquipmentModels.Create";
+            public const string Update = "EquipmentModels.Update";
+            public const string Delete = "EquipmentModels.Delete";
+        }
+
+        public static class EquipmentStatuses
+        {
+            public const string View = "EquipmentStatuses.View";
+            public const string Create = "EquipmentStatuses.Create";
+            public const string Update = "EquipmentStatuses.Update";
+            public const string Delete = "EquipmentStatuses.Delete";
+        }
+
+        public static class EquipmentTypes
+        {
+            public const string View = "EquipmentTypes.View";
+            public const string Create = "EquipmentTypes.Create";
+            public const string Update = "EquipmentTypes.Update";
+            public const string Delete = "EquipmentTypes.Delete";
+        }
+
+        public static class FailureCategories
+        {
+            public const string View = "FailureCategories.View";
+            public const string Create = "FailureCategories.Create";
+            public const string Update = "FailureCategories.Update";
+            public const string Delete = "FailureCategories.Delete";
+        }
+
+        public static class SupportingDepartments
+        {
+            public const string View = "SupportingDepartments.View";
+            public const string Create = "SupportingDepartments.Create";
+            public const string Update = "SupportingDepartments.Update";
+            public const string Delete = "SupportingDepartments.Delete";
+        }
+
         public static IReadOnlyList<string> All => new List<string> 
         { 
             Equipments.View,
@@ -66,7 +130,39 @@ namespace EMS.Application.Common.Security
             Roles.Update,
             Roles.Delete,
             Roles.ManagePermissions,
-            Roles.ManageUsers
+            Roles.ManageUsers,
+            Brands.View,
+            Brands.Create,
+            Brands.Update,
+            Brands.Delete,
+            EquipmentCategories.View,
+            EquipmentCategories.Create,
+            EquipmentCategories.Update,
+            EquipmentCategories.Delete,
+            EquipmentLocationTypes.View,
+            EquipmentLocationTypes.Create,
+            EquipmentLocationTypes.Update,
+            EquipmentLocationTypes.Delete,
+            EquipmentModels.View,
+            EquipmentModels.Create,
+            EquipmentModels.Update,
+            EquipmentModels.Delete,
+            EquipmentStatuses.View,
+            EquipmentStatuses.Create,
+            EquipmentStatuses.Update,
+            EquipmentStatuses.Delete,
+            EquipmentTypes.View,
+            EquipmentTypes.Create,
+            EquipmentTypes.Update,
+            EquipmentTypes.Delete,
+            FailureCategories.View,
+            FailureCategories.Create,
+            FailureCategories.Update,
+            FailureCategories.Delete,
+            SupportingDepartments.View,
+            SupportingDepartments.Create,
+            SupportingDepartments.Update,
+            SupportingDepartments.Delete
         };
     }
 }

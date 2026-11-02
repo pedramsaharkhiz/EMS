@@ -4,6 +4,8 @@ using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Interfaces.EquipmentCategory;
 using EMS.Application.Interfaces.EquipmentType;
+using EMS.Application.Common.Security;
+using EMS.Presentation.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,7 +19,7 @@ namespace EMS.Presentation.Controllers
             _service = service;
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentTypes.View)]
         [HttpGet]
         public async Task<ActionResult<PagedResult<EquipmentTypeListItemDto>>> GetAllList([FromQuery] EquipmentTypeListRequestDto request, CancellationToken cancellationToken) 
         { 
@@ -25,7 +27,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentTypes.View)]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<EquipmentTypeDetailDto>> GetById(long id, CancellationToken cancellationToken)
         {
@@ -35,7 +37,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentTypes.Create)]
         [HttpPost]
         public async Task<ActionResult<EquipmentTypeDetailDto>> Create([FromBody] EquipmentTypeCreateDto request, CancellationToken cancellationToken)
         {
@@ -43,7 +45,7 @@ namespace EMS.Presentation.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.EquipmentTypeId }, result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentTypes.Update)]
         //[HttpPut("{id:long}")]
         [HttpPut]
         public async Task<ActionResult<EquipmentTypeDetailDto>> Update([FromBody] EquipmentTypeUpdateDto request, CancellationToken cancellationToken)
@@ -54,7 +56,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentTypes.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {

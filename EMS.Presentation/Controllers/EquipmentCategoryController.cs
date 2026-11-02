@@ -3,6 +3,8 @@ using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Interfaces.EquipmentCategory;
+using EMS.Application.Common.Security;
+using EMS.Presentation.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +18,7 @@ namespace EMS.Presentation.Controllers
             _service = service;
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentCategories.View)]
         [HttpGet]
         public async Task<ActionResult<PagedResult<EquipmentCategoryListItemDto>>> GetAllList([FromQuery] EquipmentCategoryListRequestDto request, CancellationToken cancellationToken) 
         { 
@@ -24,7 +26,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentCategories.View)]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<EquipmentCategoryDetailDto>> GetById(long id, CancellationToken cancellationToken)
         {
@@ -34,7 +36,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentCategories.Create)]
         [HttpPost]
         public async Task<ActionResult<EquipmentCategoryDetailDto>> Create([FromBody] EquipmentCategoryCreateDto request, CancellationToken cancellationToken)
         {
@@ -42,7 +44,7 @@ namespace EMS.Presentation.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.EquipmentCategoryId }, result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentCategories.Update)]
         //[HttpPut("{id:long}")]
         [HttpPut]
         public async Task<ActionResult<EquipmentCategoryDetailDto>> Update([FromBody] EquipmentCategoryUpdateDto request, CancellationToken cancellationToken)
@@ -53,7 +55,7 @@ namespace EMS.Presentation.Controllers
             return Ok(result);
         }
 
-        [Authorize]
+        [Permission(Permissions.EquipmentCategories.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {
