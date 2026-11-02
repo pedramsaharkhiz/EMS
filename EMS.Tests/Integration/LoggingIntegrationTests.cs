@@ -100,7 +100,15 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
             Assert.Contains(Sink.ForCorrelation(corrOk), e => Rendered(e).Contains("Refresh token rotated"));
 
-            // 2. the already-used token is presented again => replay
+            // 2a. presented again immediately: indistinguishable from a duplicate/concurrent request => warning, not theft
+            var corrDup = NewCorrelationId("it-refresh-dup");
+            var dup = await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = login.RefreshToken }, corrDup);
+            Assert.Equal(HttpStatusCode.Unauthorized, dup.StatusCode);
+            Assert.Contains(Sink.ForCorrelation(corrDup), e => e.Level == LogEventLevel.Warning && Rendered(e).Contains("ConcurrentUse"));
+            Assert.DoesNotContain(Sink.ForCorrelation(corrDup), e => Rendered(e).Contains("TokenReuseDetected"));
+
+            // 2b. the already-used token is presented again much later => replay
+            await AgeRevokedTokensAsync(TimeSpan.FromMinutes(5));
             var corrReplay = NewCorrelationId("it-refresh-replay");
             var replay = await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = login.RefreshToken }, corrReplay);
             Assert.Equal(HttpStatusCode.Unauthorized, replay.StatusCode);
@@ -113,6 +121,15 @@ namespace EMS.Tests.Integration
             var junk = await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = "does-not-exist" }, corrJunk);
             Assert.Equal(HttpStatusCode.Unauthorized, junk.StatusCode);
             Assert.Contains(Sink.ForCorrelation(corrJunk), e => e.Level == LogEventLevel.Warning && Rendered(e).Contains("TokenNotFound"));
+        }
+
+        private async Task AgeRevokedTokensAsync(TimeSpan age)
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+            foreach (var token in await db.UserRefreshTokens.Where(x => x.RevokedDateTime != null).ToListAsync())
+                token.RevokedDateTime = DateTime.UtcNow - age;
+            await db.SaveChangesAsync();
         }
 
         [Fact]

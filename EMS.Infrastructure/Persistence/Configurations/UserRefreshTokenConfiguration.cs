@@ -17,7 +17,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.TokenHash).HasMaxLength(128).IsUnicode(false).IsRequired();
             builder.Property(x => x.ExpiresDateTime).IsRequired();
-            builder.Property(x => x.RevokedDateTime).IsRequired(false);
+            // Concurrency token: a refresh token can be consumed by exactly one request (UPDATE ... WHERE RevokedDateTime IS NULL).
+            builder.Property(x => x.RevokedDateTime).IsRequired(false).IsConcurrencyToken();
             builder.Property(x => x.CreatedByIp).HasMaxLength(45).IsUnicode(false).IsRequired();
             builder.Property(x => x.RevokedByIp).HasMaxLength(45).IsUnicode(false).IsRequired(false);
 

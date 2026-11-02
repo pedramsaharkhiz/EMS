@@ -19,7 +19,12 @@ namespace EMS.Application.Common.Logging
         /// <summary>Token row exists but is flagged inactive.</summary>
         TokenInactive,
         /// <summary>The owning user is missing or deactivated.</summary>
-        UserInvalid
+        UserInvalid,
+        /// <summary>
+        /// The same refresh token was used twice at (almost) the same time, e.g. two browser tabs or a client retry.
+        /// Only one request can win; the others are rejected, but this is not treated as token theft.
+        /// </summary>
+        ConcurrentUse
     }
 
     /// <summary>

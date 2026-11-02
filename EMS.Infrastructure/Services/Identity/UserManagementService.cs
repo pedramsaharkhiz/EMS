@@ -603,24 +603,37 @@ public sealed class UserManagementService : IUserManagementService
 
     private async Task RevokeRefreshTokensAsync(long userId, CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
-
-        var tokens = await _dbContext.UserRefreshTokens
-            .Where(x =>
-                x.UserId == userId &&
-                x.RevokedDateTime == null &&
-                x.ExpiresDateTime > now)
-            .ToListAsync(cancellationToken);
-
-        foreach (var token in tokens)
+        for (var attempt = 0; ; attempt++)
         {
-            token.RevokedDateTime = now;
-        }
+            var now = DateTime.UtcNow;
 
-        if (tokens.Count > 0)
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            _audit.Operation("RefreshTokensRevoked", "User", userId, $"count={tokens.Count}");
+            var tokens = await _dbContext.UserRefreshTokens
+                .Where(x =>
+                    x.UserId == userId &&
+                    x.RevokedDateTime == null &&
+                    x.ExpiresDateTime > now)
+                .ToListAsync(cancellationToken);
+
+            foreach (var token in tokens)
+            {
+                token.RevokedDateTime = now;
+            }
+
+            if (tokens.Count == 0)
+                return;
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                _audit.Operation("RefreshTokensRevoked", "User", userId, $"count={tokens.Count}");
+                return;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < 5)
+            {
+                // A concurrent request already revoked some of these tokens; re-read and revoke what is left.
+                foreach (var entry in _dbContext.ChangeTracker.Entries<EMS.Domain.Entities.UserRefreshToken>().ToList())
+                    entry.State = EntityState.Detached;
+            }
         }
     }
 

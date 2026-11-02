@@ -20,6 +20,15 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
 {
     public class AuthService : IAuthService
     {
+        /// <summary>
+        /// A revoked refresh token presented again within this window is a concurrent/duplicate request
+        /// (two tabs, a retry), not a replay of a stolen token.
+        /// </summary>
+        private static readonly TimeSpan ConcurrentRefreshGrace = TimeSpan.FromSeconds(10);
+
+        /// <summary>How many times a sign-in is retried when concurrent requests of the same user collide.</summary>
+        private const int MaxConcurrencyRetries = 5;
+
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
@@ -85,6 +94,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
                 var reason = tokenEntity switch
                 {
                     null => RefreshRejectionReason.TokenNotFound,
+                    { IsRevoked: true, RevokedDateTime: { } revokedAt } when DateTime.UtcNow - revokedAt < ConcurrentRefreshGrace => RefreshRejectionReason.ConcurrentUse,
                     { IsRevoked: true } => RefreshRejectionReason.TokenReuseDetected,
                     { IsExpired: true } => RefreshRejectionReason.TokenExpired,
                     _ => RefreshRejectionReason.TokenInactive
@@ -116,7 +126,16 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             };
 
             _dbContext.UserRefreshTokens.Add(newTokenEntity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Another request consumed this refresh token between our read and our write: only one may win.
+                _securityLog.RefreshRejected(RefreshRejectionReason.ConcurrentUse, tokenEntity.UserId);
+                throw new UnauthorizedAccessException("رفرش توکن نامعتبر است.");
+            }
 
             var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
             var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
@@ -146,7 +165,15 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
                 return;
 
             tokenEntity.RevokedDateTime = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Already revoked by a concurrent request: the desired end state has been reached.
+                return;
+            }
             _securityLog.RefreshTokenRevoked(tokenEntity.UserId);
         }
 
@@ -190,28 +217,43 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
-            var now = DateTime.UtcNow;
-            var activeTokens = await _dbContext.UserRefreshTokens.Where(x => x.UserId == user.Id && x.RevokedDateTime == null && x.ExpiresDateTime > now).ToListAsync(cancellationToken);
-            foreach (var token in activeTokens)
+            string refreshToken;
+            DateTime refreshTokenExpiresAt;
+            for (var attempt = 0; ; attempt++)
             {
-                token.RevokedDateTime = now;
-                token.RevokedByIp = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                var now = DateTime.UtcNow;
+                var activeTokens = await _dbContext.UserRefreshTokens.Where(x => x.UserId == user.Id && x.RevokedDateTime == null && x.ExpiresDateTime > now).ToListAsync(cancellationToken);
+                foreach (var token in activeTokens)
+                {
+                    token.RevokedDateTime = now;
+                    token.RevokedByIp = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                }
+
+                refreshToken = _tokenService.GenerateRefreshToken();
+                refreshTokenExpiresAt = now.AddDays(_jwtOptions.RefreshTokenExpirationDays);
+                var refreshTokenEntity = new UserRefreshToken
+                {
+                    UserId = user.Id,
+                    TokenHash = ComputeSha256Hash(refreshToken),
+                    CreatedDateTime = now,
+                    ExpiresDateTime = refreshTokenExpiresAt,
+                    CreatedByIp = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    CreatedByUserId = user.Id
+                };
+
+                _dbContext.UserRefreshTokens.Add(refreshTokenEntity);
+                try
+                {
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    break;
+                }
+                catch (DbUpdateConcurrencyException) when (attempt < MaxConcurrencyRetries)
+                {
+                    // A concurrent sign-in/refresh of the same user revoked one of the tokens we were revoking.
+                    // Start over with fresh state (bounded retries); the result is the same set of revoked tokens plus ours.
+                    _dbContext.ChangeTracker.Clear();
+                }
             }
-
-            var refreshToken = _tokenService.GenerateRefreshToken();
-            var refreshTokenExpiresAt = now.AddDays(_jwtOptions.RefreshTokenExpirationDays);
-            var refreshTokenEntity = new UserRefreshToken
-            {
-                UserId = user.Id,
-                TokenHash = ComputeSha256Hash(refreshToken),
-                CreatedDateTime = now,
-                ExpiresDateTime = refreshTokenExpiresAt,
-                CreatedByIp = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                CreatedByUserId = user.Id
-            };
-
-            _dbContext.UserRefreshTokens.Add(refreshTokenEntity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return new AuthResponseDto
             {
