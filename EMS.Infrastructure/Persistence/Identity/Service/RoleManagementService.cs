@@ -15,15 +15,18 @@ public sealed class RoleManagementService : IRoleManagementService
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly EMSDbContext _dbContext;
     private readonly IAuditEventLogger _audit;
+    private readonly ISecurityStampInvalidator _stampInvalidator;
 
     public RoleManagementService(
         RoleManager<ApplicationRole> roleManager,
         EMSDbContext dbContext,
-        IAuditEventLogger audit)
+        IAuditEventLogger audit,
+        ISecurityStampInvalidator stampInvalidator)
     {
         _roleManager = roleManager;
         _dbContext = dbContext;
         _audit = audit;
+        _stampInvalidator = stampInvalidator;
     }
 
     public async Task<PagedResult<RoleListItemDto>> GetPagedAsync(
@@ -179,6 +182,8 @@ public sealed class RoleManagementService : IRoleManagementService
                 "این نام نقش قبلاً ثبت شده است.");
         }
 
+        var accessChanges = role.IsActive != request.IsActive || !string.Equals(role.Name, name, StringComparison.Ordinal);
+
         role.Name = name;
         role.IsActive = request.IsActive;
 
@@ -189,6 +194,10 @@ public sealed class RoleManagementService : IRoleManagementService
             throw new BadRequestException(
                 FormatIdentityErrors(result));
         }
+
+        // Deactivating/reactivating/renaming a role changes what its users may do: invalidate their tokens.
+        if (accessChanges)
+            await _stampInvalidator.InvalidateRoleUsersAsync(role.Id, cancellationToken);
 
         _audit.Updated("Role", role.Id);
 

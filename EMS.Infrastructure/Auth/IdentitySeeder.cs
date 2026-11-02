@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Security;
+using EMS.Application.Interfaces.Auth;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -15,15 +16,18 @@ public class IdentitySeeder : IIdentitySeeder
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<IdentitySeeder> _logger;
+    private readonly ISecurityStampInvalidator _stampInvalidator;
 
     public IdentitySeeder(
         RoleManager<ApplicationRole> roleManager,
         UserManager<ApplicationUser> userManager,
-        ILogger<IdentitySeeder> logger)
+        ILogger<IdentitySeeder> logger,
+        ISecurityStampInvalidator stampInvalidator)
     {
         _roleManager = roleManager;
         _userManager = userManager;
         _logger = logger;
+        _stampInvalidator = stampInvalidator;
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
@@ -54,6 +58,23 @@ public class IdentitySeeder : IIdentitySeeder
             _logger.LogInformation("Identity seed: created role {RoleName}", adminRoleName);
         }
 
+        // Deactivating a role now really removes its permissions from its users. Never leave the system without
+        // an active administrator role, otherwise nobody could manage users and roles any more.
+        if (!adminRole.IsActive)
+        {
+            adminRole.IsActive = true;
+            var reactivateResult = await _roleManager.UpdateAsync(adminRole);
+            if (!reactivateResult.Succeeded)
+            {
+                _logger.LogError("Identity seed failed: could not re-activate role {RoleName}: {Errors}",
+                    adminRoleName, string.Join(" | ", reactivateResult.Errors.Select(x => x.Code)));
+                throw new Exception(string.Join(" | ", reactivateResult.Errors.Select(x => x.Description)));
+            }
+
+            await _stampInvalidator.InvalidateRoleUsersAsync(adminRole.Id, cancellationToken);
+            _logger.LogWarning("Identity seed: role {RoleName} was inactive and has been re-activated", adminRoleName);
+        }
+
         var existingClaims = await _roleManager.GetClaimsAsync(adminRole);
         var addedPermissions = 0;
         foreach (var permission in Permissions.All)
@@ -72,7 +93,11 @@ public class IdentitySeeder : IIdentitySeeder
         }
 
         if (addedPermissions > 0)
+        {
             _logger.LogInformation("Identity seed: added {AddedPermissions} permission(s) to role {RoleName}", addedPermissions, adminRoleName);
+            // Administrators already holding a token must pick up the new permissions.
+            await _stampInvalidator.InvalidateRoleUsersAsync(adminRole.Id, cancellationToken);
+        }
 
         var adminUser = await _userManager.FindByNameAsync(superAdminUserName);
         if (adminUser is null)

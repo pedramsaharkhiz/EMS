@@ -118,9 +118,8 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             _dbContext.UserRefreshTokens.Add(newTokenEntity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var permissions = await GetPermissionsAsync(user);
-            var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName);
+            var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
+            var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
             _securityLog.RefreshSucceeded(user.Id);
@@ -187,9 +186,8 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
 
         private async Task<AuthResponseDto> BuildAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            var permissions = await GetPermissionsAsync(user);
-            var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName);
+            var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
+            var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
             var now = DateTime.UtcNow;
@@ -229,22 +227,36 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             };
         }
 
-        private async Task<IEnumerable<string>> GetPermissionsAsync(ApplicationUser user)
+        /// <summary>
+        /// Roles and permissions the user effectively holds right now. Only active assignments of active roles count:
+        /// removing a role from a user or deactivating a role is a soft change (IsActive = false), and
+        /// UserManager.GetRolesAsync would still report such roles.
+        /// </summary>
+        private async Task<(List<string> Roles, List<string> Permissions)> GetActiveAccessAsync(long userId, CancellationToken cancellationToken)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            var permissions = new List<string>();
+            var activeRoles = await (
+                from userRole in _dbContext.UserRoles
+                join role in _dbContext.Roles on userRole.RoleId equals role.Id
+                where userRole.UserId == userId && userRole.IsActive && role.IsActive
+                select new { role.Id, role.Name })
+                .ToListAsync(cancellationToken);
 
-            foreach (var roleName in roles)
-            {
-                var role = await _roleManager.FindByNameAsync(roleName);
-                if (role is null)
-                    continue;
+            var roleIds = activeRoles.Select(r => r.Id).ToList();
+            var permissions = roleIds.Count == 0
+                ? new List<string>()
+                : await _dbContext.RoleClaims
+                    .Where(c => roleIds.Contains(c.RoleId) && c.ClaimType == "permission" && c.ClaimValue != null)
+                    .Select(c => c.ClaimValue!)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
 
-                var claims = await _roleManager.GetClaimsAsync(role);
-                permissions.AddRange(claims.Where(x => x.Type == "permission").Select(x => x.Value));
-            }
+            var roleNames = activeRoles
+                .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+                .Select(r => r.Name!)
+                .Distinct()
+                .ToList();
 
-            return permissions.Distinct().ToList();
+            return (roleNames, permissions);
         }
     }
 }

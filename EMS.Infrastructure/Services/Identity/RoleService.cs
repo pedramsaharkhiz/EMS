@@ -14,10 +14,12 @@ namespace EMS.Infrastructure.Services.Identity
     {
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly IAuditEventLogger _audit;
-        public RoleService(RoleManager<ApplicationRole> roleManager, IAuditEventLogger audit)
+        private readonly ISecurityStampInvalidator _stampInvalidator;
+        public RoleService(RoleManager<ApplicationRole> roleManager, IAuditEventLogger audit, ISecurityStampInvalidator stampInvalidator)
         {
             _roleManager = roleManager;
             _audit = audit;
+            _stampInvalidator = stampInvalidator;
         }
 
         public async Task CreateRoleAsync(string roleName, CancellationToken cancellationToken = default)
@@ -58,6 +60,9 @@ namespace EMS.Infrastructure.Services.Identity
             // Permission changes are security-relevant: record exactly which permissions were granted / revoked.
             var granted = newPermissions.Where(p => !previousPermissions.Contains(p)).OrderBy(p => p).ToList();
             var revoked = previousPermissions.Where(p => !newPermissions.Contains(p)).OrderBy(p => p).ToList();
+            // Users of this role hold the old permissions in their access tokens: invalidate those tokens.
+            await _stampInvalidator.InvalidateRoleUsersAsync(role.Id, cancellationToken);
+
             _audit.Operation(
                 "PermissionsChanged", "Role", role.Id,
                 $"total={newPermissions.Count} granted=[{string.Join(",", granted)}] revoked=[{string.Join(",", revoked)}]");

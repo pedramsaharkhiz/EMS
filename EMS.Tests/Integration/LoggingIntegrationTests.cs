@@ -13,71 +13,9 @@ namespace EMS.Tests.Integration
     /// <summary>
     /// End-to-end checks: real HTTP requests through the real pipeline, asserting on the log events produced.
     /// </summary>
-    public class LoggingIntegrationTests : IClassFixture<EmsApiFactory>
+    public class LoggingIntegrationTests : ApiTestBase
     {
-        // Test credentials: the default administrator that the project's own IdentitySeeder creates.
-        private const string AdminUserName = "admin";
-        private const string AdminPassword = "Admin@123456";
-        private const string GenericLoginError = "نام کاربری یا کلمه عبور نامعتبر است.";
-
-        private readonly EmsApiFactory _factory;
-        private readonly HttpClient _client;
-        private static int _counter;
-
-        public LoggingIntegrationTests(EmsApiFactory factory)
-        {
-            _factory = factory;
-            _client = factory.CreateClient();
-        }
-
-        private CapturingSink Sink => _factory.Sink;
-
-        private static string NewCorrelationId(string prefix) => $"{prefix}-{Interlocked.Increment(ref _counter):D4}-{Guid.NewGuid():N}"[..40];
-
-        private static string Rendered(LogEvent e) => e.RenderMessage();
-
-        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body = null, string? correlationId = null, string? bearer = null)
-        {
-            var request = new HttpRequestMessage(method, url);
-            if (body is not null)
-                request.Content = JsonContent.Create(body);
-            if (correlationId is not null)
-                request.Headers.Add("X-Correlation-ID", correlationId);
-            if (bearer is not null)
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
-            return await _client.SendAsync(request);
-        }
-
-        private async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response)
-        {
-            using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            return doc.RootElement.Clone();
-        }
-
-        private async Task<(string AccessToken, string RefreshToken, long UserId)> LoginAsync(string userName, string password, string? correlationId = null)
-        {
-            var response = await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { userName, password }, correlationId);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var json = await ReadJsonAsync(response);
-            return (json.GetProperty("accessToken").GetString()!, json.GetProperty("refreshToken").GetString()!, json.GetProperty("userId").GetInt64());
-        }
-
-        private async Task<long> CreateUserAsync(string adminToken, string userName, string password)
-        {
-            var response = await SendAsync(HttpMethod.Post, "/api/Users", new
-            {
-                userName,
-                password,
-                firstName = "Test",
-                lastName = "User",
-                personnelCode = "PC-" + userName
-            }, bearer: adminToken);
-            Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
-            var json = await ReadJsonAsync(response);
-            return json.TryGetProperty("userId", out var id) ? id.GetInt64() : json.GetProperty("id").GetInt64();
-        }
-
-        // ---------------------------------------------------------------------------------
+        public LoggingIntegrationTests(EmsApiFactory factory) : base(factory) { }
 
         [Fact]
         public async Task Failed_login_for_unknown_user_returns_a_generic_401_and_logs_the_real_reason_as_a_security_warning()

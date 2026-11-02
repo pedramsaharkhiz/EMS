@@ -10,5 +10,6 @@ namespace EMS.Application.Common.Security
         IReadOnlyCollection<string> Roles,
         IReadOnlyCollection<string> Permissions,
         string? FirstName = null,
-        string? LastName = null);
+        string? LastName = null,
+        string? SecurityStamp = null);
 }

@@ -27,6 +27,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using EMS.Application.Validators.User;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 namespace EMS.Infrastructure.DependencyInjection;
 
@@ -91,6 +93,37 @@ public static class ServiceCollectionExtensions
             };
             options.Events = new JwtBearerEvents
             {
+                // The signature/lifetime are already valid here. Re-check the user's *current* state so that
+                // deactivation and role/permission changes take effect immediately, not when the token expires.
+                OnTokenValidated = async context =>
+                {
+                    var userIdText = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                                     ?? context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                    var stamp = context.Principal?.FindFirst(TokenService.SecurityStampClaimType)?.Value;
+
+                    if (!long.TryParse(userIdText, out var userId))
+                    {
+                        context.HttpContext.RequestServices.GetRequiredService<ISecurityEventLogger>()
+                            .AuthenticationFailed("token without a valid user id");
+                        context.Fail("Invalid user id.");
+                        return;
+                    }
+
+                    var validator = context.HttpContext.RequestServices.GetRequiredService<IAccessTokenValidator>();
+                    var result = await validator.ValidateAsync(userId, stamp, context.HttpContext.RequestAborted);
+                    if (result == AccessTokenValidationResult.Valid)
+                        return;
+
+                    var reason = result switch
+                    {
+                        AccessTokenValidationResult.UserNotFoundOrInactive => "user is inactive or no longer exists",
+                        AccessTokenValidationResult.StampMismatch => "access changed since the token was issued (roles, permissions or password); refresh required",
+                        _ => "token has no security stamp; sign in again"
+                    };
+                    context.HttpContext.RequestServices.GetRequiredService<ISecurityEventLogger>()
+                        .AuthenticationFailed(reason);
+                    context.Fail(reason);
+                },
                 // Fires only when a token was presented but rejected (expired, bad signature, ...).
                 // The token itself is never logged.
                 OnAuthenticationFailed = context =>
@@ -123,6 +156,8 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddScoped<IAccessTokenValidator, AccessTokenValidator>();
+        services.AddScoped<ISecurityStampInvalidator, SecurityStampInvalidator>();
 
         // "ready" health check: verifies that the database is reachable.
         services.AddHealthChecks()

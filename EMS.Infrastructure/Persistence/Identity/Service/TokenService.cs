@@ -16,6 +16,8 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
 {
     public class TokenService : ITokenService
     {
+        public const string SecurityStampClaimType = "sstamp";
+
         private readonly JwtOptions _jwtOptions;
         private readonly UserManager<ApplicationUser> _userManager;
 
@@ -34,7 +36,9 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
                 new(ClaimTypes.Name, user.UserName ?? string.Empty),
                 new(ClaimTypes.Email, user.Email ?? string.Empty),
                 new("firstName", user.FirstName ?? string.Empty),
-                new("lastName", user.LastName ?? string.Empty)
+                new("lastName", user.LastName ?? string.Empty),
+                // Lets the API reject this token as soon as the user is deactivated or their roles/permissions change.
+                new(SecurityStampClaimType, user.SecurityStamp ?? string.Empty)
             };
 
             if (user.Roles is not null && user.Roles.Count > 0)
