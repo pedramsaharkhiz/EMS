@@ -1,4 +1,6 @@
 ﻿using EMS.Application.Common.Interfaces;
+using EMS.Application.Common.Logging;
+using EMS.Infrastructure.Logging;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Mapping;
 using EMS.Application.Validators.RefreshToken;
@@ -36,6 +38,8 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ISecurityEventLogger, SecurityEventLogger>();
+        services.AddScoped<IAuditEventLogger, AuditEventLogger>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         services.AddDbContext<EMSDbContext>((sp, options) =>
         {
@@ -76,7 +80,29 @@ public static class ServiceCollectionExtensions
                 ValidIssuer = jwtOptions.Issuer,
                 ValidAudience = jwtOptions.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
-                ClockSkew = TimeSpan.Zero 
+                ClockSkew = TimeSpan.Zero
+            };
+            options.Events = new JwtBearerEvents
+            {
+                // Fires only when a token was presented but rejected (expired, bad signature, ...).
+                // The token itself is never logged.
+                OnAuthenticationFailed = context =>
+                {
+                    var reason = context.Exception switch
+                    {
+                        SecurityTokenExpiredException => "token expired",
+                        SecurityTokenInvalidSignatureException => "invalid signature",
+                        SecurityTokenInvalidAudienceException => "invalid audience",
+                        SecurityTokenInvalidIssuerException => "invalid issuer",
+                        _ => context.Exception.GetType().Name
+                    };
+
+                    context.HttpContext.RequestServices
+                        .GetRequiredService<ISecurityEventLogger>()
+                        .AuthenticationFailed(reason);
+
+                    return Task.CompletedTask;
+                }
             };
         });
 
@@ -90,6 +116,10 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
+        // "ready" health check: verifies that the database is reachable.
+        services.AddHealthChecks()
+            .AddDbContextCheck<EMSDbContext>("database", tags: new[] { "ready" });
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 
@@ -105,7 +135,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRoleManagementService, RoleManagementService>();
         services.AddScoped<IUserRoleAssignmentService, UserRoleAssignmentService>();
