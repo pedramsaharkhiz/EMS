@@ -4,6 +4,7 @@ using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Presentation.Middlewares;
+using EMS.Presentation.Security;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
@@ -30,6 +31,16 @@ try
         .Enrich.FromLogContext()
         .Enrich.WithProperty("Application", "EMS.API")
         .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName));
+
+    // Security headers come from appsettings (Security:Headers); a malformed configuration stops start-up instead of
+    // silently running without protection.
+    builder.Services.AddOptions<SecurityHeadersOptions>()
+        .Bind(builder.Configuration.GetSection(SecurityHeadersOptions.SectionName))
+        .Validate(options => options.Validate() is null, "Security:Headers configuration is invalid.")
+        .ValidateOnStart();
+
+    // Do not advertise the server software ("Server: Kestrel") unless configured otherwise.
+    builder.WebHost.ConfigureServerHeaderFromConfiguration();
 
     // Add services to the container.
     builder.Services.AddFluentValidationAutoValidation();
@@ -93,6 +104,12 @@ try
 
     var app = builder.Build();
 
+    var headerOptions = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<SecurityHeadersOptions>>().Value;
+    if (headerOptions.Enabled && headerOptions.Values.Count == 0)
+        Log.Warning("Security headers are enabled but none are configured under {Section}:Values", SecurityHeadersOptions.SectionName);
+    if (!headerOptions.Enabled)
+        Log.Warning("Security headers are DISABLED ({Section}:Enabled = false)", SecurityHeadersOptions.SectionName);
+
     Log.Information(
         "Starting EMS API in {EnvironmentName} environment (logs directory: {LogsDirectory})",
         app.Environment.EnvironmentName,
@@ -101,6 +118,9 @@ try
     // Configure the HTTP request pipeline.
     // Order matters: correlation id first (so everything below is tagged with it), then request logging
     // (sees the final status code), then the exception middleware (turns exceptions into responses).
+    // Very first, so that every response (errors, 401/403, CORS pre-flights) carries the security headers.
+    app.UseMiddleware<SecurityHeadersMiddleware>();
+
     app.UseMiddleware<CorrelationIdMiddleware>();
 
     app.UseSerilogRequestLogging(options =>

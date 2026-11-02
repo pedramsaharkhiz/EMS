@@ -16,6 +16,7 @@ using EMS.Infrastructure.Repositories;
 using EMS.Infrastructure.Services.Identity;
 using EMS.Infrastructure.Services.User;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -70,6 +71,45 @@ public static class ServiceCollectionExtensions
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5; }
         ).AddEntityFrameworkStores<EMSDbContext>().AddDefaultTokenProviders();
+
+        // Cookie attributes of the Identity cookie schemes come from appsettings (Security:Cookies), not from library defaults
+        // (defaults would be: SameAsRequest, SameSite=Lax, 14 days sliding).
+        services.Configure<CookieSecurityOptions>(configuration.GetSection(CookieSecurityOptions.SectionName));
+        foreach (var scheme in new[]
+        {
+            IdentityConstants.ApplicationScheme,
+            IdentityConstants.ExternalScheme,
+            IdentityConstants.TwoFactorRememberMeScheme,
+            IdentityConstants.TwoFactorUserIdScheme
+        })
+        {
+            services.AddOptions<CookieAuthenticationOptions>(scheme)
+                .Configure<IOptions<CookieSecurityOptions>>((cookie, security) =>
+                {
+                    var settings = security.Value;
+                    cookie.Cookie.HttpOnly = settings.HttpOnly;
+                    cookie.Cookie.SecurePolicy = settings.SecurePolicy;
+                    cookie.Cookie.SameSite = settings.SameSite;
+                });
+        }
+
+        services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
+            .Configure<IOptions<CookieSecurityOptions>>((cookie, security) =>
+            {
+                cookie.ExpireTimeSpan = TimeSpan.FromMinutes(security.Value.ExpireMinutes);
+                cookie.SlidingExpiration = security.Value.SlidingExpiration;
+                // This is an API: answer 401/403 instead of redirecting to a login page.
+                cookie.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                };
+                cookie.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                };
+            });
 
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? throw new InvalidOperationException("Jwt settings not found.");
 
