@@ -370,7 +370,7 @@ public sealed class UserManagementService : IUserManagementService
         if (existingUser is not null)
         {
             throw new ConflictException(
-                "این نام کاربری قبلاً ثبت شده است.");
+                "این نام کاربری قبلاً ثبت شده است.", ErrorCodes.UserNameTaken);
         }
 
         await EnsureUniqueBusinessFieldsAsync(
@@ -404,7 +404,7 @@ public sealed class UserManagementService : IUserManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         _audit.Created("User", user.Id);
@@ -433,7 +433,7 @@ public sealed class UserManagementService : IUserManagementService
             existingByName.Id != id)
         {
             throw new ConflictException(
-                "این نام کاربری قبلاً ثبت شده است.");
+                "این نام کاربری قبلاً ثبت شده است.", ErrorCodes.UserNameTaken);
         }
 
         await EnsureUniqueBusinessFieldsAsync(
@@ -461,7 +461,7 @@ public sealed class UserManagementService : IUserManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         _audit.Updated("User", user.Id);
@@ -501,7 +501,7 @@ public sealed class UserManagementService : IUserManagementService
             if (!result.Succeeded)
             {
                 throw new BadRequestException(
-                    FormatIdentityErrors(result));
+                    FormatIdentityErrors(result), ErrorCodes.IdentityError);
             }
         }
 
@@ -524,7 +524,7 @@ public sealed class UserManagementService : IUserManagementService
         if (user is null)
         {
             throw new NotFoundException(
-                "کاربر موردنظر پیدا نشد.");
+                "کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
         }
 
         var token =
@@ -538,7 +538,7 @@ public sealed class UserManagementService : IUserManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         await RevokeRefreshTokensAsync(
@@ -565,7 +565,7 @@ public sealed class UserManagementService : IUserManagementService
         if (await personnelQuery.AnyAsync(cancellationToken))
         {
             throw new ConflictException(
-                "این کد پرسنلی قبلاً ثبت شده است.");
+                "این کد پرسنلی قبلاً ثبت شده است.", ErrorCodes.PersonnelCodeTaken);
         }
 
         var national = NormalizeOptional(nationalCode);
@@ -584,7 +584,7 @@ public sealed class UserManagementService : IUserManagementService
             if (await nationalQuery.AnyAsync(cancellationToken))
             {
                 throw new ConflictException(
-                    "این کد ملی قبلاً ثبت شده است.");
+                    "این کد ملی قبلاً ثبت شده است.", ErrorCodes.NationalCodeTaken);
             }
         }
     }
@@ -597,7 +597,7 @@ public sealed class UserManagementService : IUserManagementService
                 cancellationToken))
         {
             throw new BadRequestException(
-                "دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.");
+                "دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.", ErrorCodes.DepartmentNotFound);
         }
     }
 

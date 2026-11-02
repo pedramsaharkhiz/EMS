@@ -1,17 +1,15 @@
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
+using EMS.Presentation.Errors;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
-using System.Text.Json;
 
 namespace EMS.Presentation.Middlewares
 {
     /// <summary>
-    /// Converts exceptions into the API's JSON error responses and logs them at a level that matches
-    /// their meaning: expected client errors are not noisy, security-relevant ones go to the security
+    /// Converts exceptions into the API's error responses (see <see cref="ApiProblem"/>) and logs them at a level that
+    /// matches their meaning: expected client errors are not noisy, security-relevant ones go to the security
     /// category, unexpected failures are logged as errors with the full exception.
-    /// The response bodies keep their historical shape; <c>correlationId</c> is an additive field.
     /// </summary>
     public class GlobalExceptionMiddleware
     {
@@ -54,9 +52,10 @@ namespace EMS.Presentation.Middlewares
                     context.Request.Method, context.Request.Path.Value,
                     ex.Errors.Count(), ex.Errors.Select(e => e.PropertyName).Distinct().ToArray());
 
-                var errors = ex.Errors.Select(x => new { x.PropertyName, x.ErrorMessage });
-                await WriteAsync(context, HttpStatusCode.BadRequest,
-                    new { message = "Validation failed.", errors, correlationId = context.TraceIdentifier });
+                var errors = ex.Errors
+                    .GroupBy(e => e.PropertyName)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+                await ApiProblem.WriteAsync(context, ApiProblem.Validation(context, errors));
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -65,26 +64,23 @@ namespace EMS.Presentation.Middlewares
                     context.Request.Method, context.Request.Path.Value,
                     context.Connection.RemoteIpAddress?.ToString(), LogSanitizer.Sanitize(ex.Message, 200));
 
-                await WriteAsync(context, HttpStatusCode.Unauthorized,
-                    new { message = ex.Message, correlationId = context.TraceIdentifier });
+                var code = (ex as UnauthorizedAppException)?.Code ?? ErrorCodes.Unauthorized;
+                await ApiProblem.WriteAsync(context, StatusCodes.Status401Unauthorized, code, ex.Message);
             }
             catch (NotFoundException ex)
             {
                 LogClientError(context, ex);
-                await WriteAsync(context, HttpStatusCode.NotFound,
-                    new { message = ex.Message, correlationId = context.TraceIdentifier });
+                await ApiProblem.WriteAsync(context, StatusCodes.Status404NotFound, ex.Code, ex.Message);
             }
             catch (ConflictException ex)
             {
                 LogClientError(context, ex);
-                await WriteAsync(context, HttpStatusCode.Conflict,
-                    new { message = ex.Message, correlationId = context.TraceIdentifier });
+                await ApiProblem.WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message);
             }
             catch (BadRequestException ex)
             {
                 LogClientError(context, ex);
-                await WriteAsync(context, HttpStatusCode.BadRequest,
-                    new { message = ex.Message, correlationId = context.TraceIdentifier });
+                await ApiProblem.WriteAsync(context, StatusCodes.Status400BadRequest, ex.Code, ex.Message);
             }
             catch (Exception ex)
             {
@@ -103,8 +99,9 @@ namespace EMS.Presentation.Middlewares
                         context.Request.Method, context.Request.Path.Value, correlationId);
                 }
 
-                await WriteAsync(context, HttpStatusCode.InternalServerError,
-                    new { message = "خطای داخلی سرور رخ داده است.", correlationId });
+                // Never leak internal details: a fixed message plus the correlation id to quote to support.
+                await ApiProblem.WriteAsync(context, StatusCodes.Status500InternalServerError,
+                    ErrorCodes.InternalError, "خطای داخلی سرور رخ داده است.");
             }
         }
 
@@ -114,16 +111,6 @@ namespace EMS.Presentation.Middlewares
                 "{ExceptionType} for {Method} {Path}: {Message}",
                 ex.GetType().Name, context.Request.Method, context.Request.Path.Value,
                 LogSanitizer.Sanitize(ex.Message, 300));
-        }
-
-        private static async Task WriteAsync(HttpContext context, HttpStatusCode statusCode, object body)
-        {
-            if (context.Response.HasStarted)
-                return;
-
-            context.Response.StatusCode = (int)statusCode;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(body));
         }
     }
 }

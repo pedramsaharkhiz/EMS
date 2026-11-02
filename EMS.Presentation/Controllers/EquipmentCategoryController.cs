@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Models;
+﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Models;
 using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
@@ -32,7 +33,7 @@ namespace EMS.Presentation.Controllers
         {
             var result = await _service.GetByIdAsync(id, cancellationToken);
             if (result is null)
-                return NotFound(new { message = "دسته‌بندی موردنظر پیدا نشد." });
+                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
             return Ok(result);
         }
 
@@ -51,7 +52,7 @@ namespace EMS.Presentation.Controllers
         {
             var result = await _service.UpdateAsync(request, cancellationToken);
             if (result is null)
-                return NotFound(new { message = "دسته‌بندی موردنظر پیدا نشد." });
+                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
             return Ok(result);
         }
 
@@ -61,7 +62,7 @@ namespace EMS.Presentation.Controllers
         {
             var deleted = await _service.DeleteAsync(id, cancellationToken);
             if (!deleted)
-                return NotFound(new { message = "دسته‌بندی موردنظر پیدا نشد." });
+                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
             return NoContent();
         }
     }

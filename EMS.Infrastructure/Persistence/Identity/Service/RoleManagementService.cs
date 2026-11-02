@@ -122,7 +122,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             throw new BadRequestException(
-                "نام نقش الزامی است.");
+                "نام نقش الزامی است.", ErrorCodes.RoleNameRequired);
         }
 
         var name = request.Name.Trim();
@@ -130,7 +130,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (await _roleManager.FindByNameAsync(name) is not null)
         {
             throw new ConflictException(
-                "این نقش قبلاً ثبت شده است.");
+                "این نقش قبلاً ثبت شده است.", ErrorCodes.RoleNameTaken);
         }
 
         var role = new ApplicationRole
@@ -144,7 +144,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         _audit.Created("Role", role.Id);
@@ -168,7 +168,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             throw new BadRequestException(
-                "نام نقش الزامی است.");
+                "نام نقش الزامی است.", ErrorCodes.RoleNameRequired);
         }
 
         var name = request.Name.Trim();
@@ -179,7 +179,7 @@ public sealed class RoleManagementService : IRoleManagementService
             existingRole.Id != id)
         {
             throw new ConflictException(
-                "این نام نقش قبلاً ثبت شده است.");
+                "این نام نقش قبلاً ثبت شده است.", ErrorCodes.RoleNameTaken);
         }
 
         var accessChanges = role.IsActive != request.IsActive || !string.Equals(role.Name, name, StringComparison.Ordinal);
@@ -192,7 +192,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         // Deactivating/reactivating/renaming a role changes what its users may do: invalidate their tokens.
@@ -225,7 +225,7 @@ public sealed class RoleManagementService : IRoleManagementService
         {
             throw new ConflictException(
                 "این نقش هنوز به کاربران اختصاص دارد. " +
-                "ابتدا انتساب‌های آن را حذف کنید یا نقش را غیرفعال کنید.");
+                "ابتدا انتساب‌های آن را حذف کنید یا نقش را غیرفعال کنید.", ErrorCodes.RoleInUse);
         }
 
         var result = await _roleManager.DeleteAsync(role);
@@ -233,7 +233,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result));
+                FormatIdentityErrors(result), ErrorCodes.IdentityError);
         }
 
         _audit.Deleted("Role", id);

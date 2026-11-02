@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Models;
+﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.Role;
 using EMS.Application.Dtos.User;
@@ -52,10 +53,7 @@ public sealed class RoleController : BaseApiController
 
         if (role is null)
         {
-            return NotFound(new
-            {
-                message = "نقش یافت نشد."
-            });
+            throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
         return Ok(role);
@@ -86,10 +84,7 @@ public sealed class RoleController : BaseApiController
 
         if (role is null)
         {
-            return NotFound(new
-            {
-                message = "نقش یافت نشد."
-            });
+            throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
         return Ok(role);
@@ -105,10 +100,7 @@ public sealed class RoleController : BaseApiController
 
         if (!deleted)
         {
-            return NotFound(new
-            {
-                message = "نقش یافت نشد."
-            });
+            throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
         return NoContent();

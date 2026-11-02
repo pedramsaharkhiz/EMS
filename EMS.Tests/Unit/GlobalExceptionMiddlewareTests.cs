@@ -14,23 +14,32 @@ namespace EMS.Tests.Unit
     {
         public static IEnumerable<object[]> ClientErrors() => new[]
         {
-            new object[] { new NotFoundException("not here"), 404, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware" },
-            new object[] { new ConflictException("duplicate"), 409, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware" },
-            new object[] { new BadRequestException("bad"), 400, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware" },
-            new object[] { new UnauthorizedAccessException("denied"), 401, LogLevel.Warning, "EMS.Security" },
+            new object[] { new NotFoundException("not here"), 404, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "not_found" },
+            new object[] { new NotFoundException("no such brand", ErrorCodes.ParentNotFound), 404, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "parent_not_found" },
+            new object[] { new ConflictException("duplicate"), 409, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "conflict" },
+            new object[] { new ConflictException("duplicate title", ErrorCodes.DuplicateTitle), 409, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "duplicate_title" },
+            new object[] { new BadRequestException("bad"), 400, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "bad_request" },
+            new object[] { new UnauthorizedAccessException("denied"), 401, LogLevel.Warning, "EMS.Security", "unauthorized" },
+            new object[] { new UnauthorizedAppException("bad login", ErrorCodes.InvalidCredentials), 401, LogLevel.Warning, "EMS.Security", "invalid_credentials" },
         };
 
         [Theory]
         [MemberData(nameof(ClientErrors))]
         public async Task Maps_expected_errors_keeping_the_response_contract_and_logs_at_the_right_level(
-            Exception exception, int expectedStatus, LogLevel expectedLevel, string expectedCategory)
+            Exception exception, int expectedStatus, LogLevel expectedLevel, string expectedCategory, string expectedCode)
         {
             var (context, logs) = await RunAsync(exception);
 
             Assert.Equal(expectedStatus, context.Response.StatusCode);
+            Assert.Equal("application/problem+json", context.Response.ContentType);
             var body = await ReadBodyAsync(context);
             Assert.Equal(exception.Message, body.GetProperty("message").GetString());
+            Assert.Equal(exception.Message, body.GetProperty("detail").GetString());   // RFC 7807 member = legacy member
             Assert.Equal("trace-12345678", body.GetProperty("correlationId").GetString());
+            Assert.Equal(expectedStatus, body.GetProperty("status").GetInt32());
+            Assert.Equal(expectedCode, body.GetProperty("code").GetString());
+            Assert.StartsWith("https://", body.GetProperty("type").GetString());
+            Assert.Equal("/api/sample", body.GetProperty("instance").GetString());
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(expectedLevel, entry.Level);
@@ -46,9 +55,12 @@ namespace EMS.Tests.Unit
 
             Assert.Equal(400, context.Response.StatusCode);
             var body = await ReadBodyAsync(context);
-            Assert.Equal("Validation failed.", body.GetProperty("message").GetString());
-            Assert.Equal(2, body.GetProperty("errors").GetArrayLength());
-            Assert.Equal("UserName", body.GetProperty("errors")[0].GetProperty("PropertyName").GetString());
+            Assert.Equal("validation_failed", body.GetProperty("code").GetString());
+            Assert.Equal("One or more validation errors occurred.", body.GetProperty("title").GetString());
+            Assert.Equal("اطلاعات ارسالی نامعتبر است.", body.GetProperty("message").GetString());
+            var errors = body.GetProperty("errors");
+            Assert.Equal("required", errors.GetProperty("UserName")[0].GetString());   // field -> messages (same shape MVC uses)
+            Assert.Equal("too short", errors.GetProperty("Password")[0].GetString());
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(LogLevel.Information, entry.Level);
@@ -64,7 +76,9 @@ namespace EMS.Tests.Unit
             Assert.Equal(500, context.Response.StatusCode);
             var body = await ReadBodyAsync(context);
             Assert.Equal("trace-12345678", body.GetProperty("correlationId").GetString());
+            Assert.Equal("internal_error", body.GetProperty("code").GetString());
             Assert.DoesNotContain("secret internal detail", body.GetProperty("message").GetString());
+            Assert.DoesNotContain("secret internal detail", body.GetProperty("detail").GetString());
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(LogLevel.Error, entry.Level);
@@ -120,6 +134,7 @@ namespace EMS.Tests.Unit
         {
             var logs = new ListLoggerFactory();
             var context = new DefaultHttpContext { TraceIdentifier = "trace-12345678" };
+            context.Request.Path = "/api/sample";
             context.Response.Body = new MemoryStream();
             context.RequestAborted = requestAborted;
 

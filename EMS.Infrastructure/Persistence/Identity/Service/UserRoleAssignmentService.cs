@@ -76,7 +76,7 @@ public sealed class UserRoleAssignmentService
         if (validRoleIds.Count != requestedRoleIds.Count)
         {
             throw new BadRequestException(
-                "یک یا چند نقش وجود ندارد یا غیرفعال است.");
+                "یک یا چند نقش وجود ندارد یا غیرفعال است.", ErrorCodes.RolesInvalid);
         }
 
         var existingRelations = await _dbContext.UserRoles
@@ -300,7 +300,7 @@ public sealed class UserRoleAssignmentService
         if (validUserIds.Count != requestedUserIds.Count)
         {
             throw new BadRequestException(
-                "یک یا چند کاربر وجود ندارد یا غیرفعال است.");
+                "یک یا چند کاربر وجود ندارد یا غیرفعال است.", ErrorCodes.UsersInvalid);
         }
 
         var existingRelations = await _dbContext.UserRoles
@@ -394,13 +394,13 @@ public sealed class UserRoleAssignmentService
 
         if (user is null)
         {
-            throw new NotFoundException("کاربر یافت نشد.");
+            throw new NotFoundException("کاربر یافت نشد.", ErrorCodes.UserNotFound);
         }
 
         if (!user.IsActive)
         {
             throw new BadRequestException(
-                "امکان تغییر نقش کاربر غیرفعال وجود ندارد.");
+                "امکان تغییر نقش کاربر غیرفعال وجود ندارد.", ErrorCodes.UserInactive);
         }
 
         return user;
@@ -417,13 +417,13 @@ public sealed class UserRoleAssignmentService
 
         if (role is null)
         {
-            throw new NotFoundException("نقش یافت نشد.");
+            throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
         if (!role.IsActive)
         {
             throw new BadRequestException(
-                "نقش غیرفعال است و قابل انتساب نیست.");
+                "نقش غیرفعال است و قابل انتساب نیست.", ErrorCodes.RoleInactive);
         }
 
         return role;

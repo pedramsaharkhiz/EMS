@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Models;
+﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.User;
 using EMS.Application.Dtos.UserRole;
@@ -38,10 +39,7 @@ public sealed class UsersController : BaseApiController
 
         if (user is null)
         {
-            return NotFound(new
-            {
-                message = "کاربر موردنظر پیدا نشد."
-            });
+            throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
         }
 
         return Ok(user);
@@ -66,10 +64,7 @@ public sealed class UsersController : BaseApiController
 
         if (user is null)
         {
-            return NotFound(new
-            {
-                message = "کاربر موردنظر پیدا نشد."
-            });
+            throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
         }
 
         return Ok(user);
@@ -95,10 +90,7 @@ public sealed class UsersController : BaseApiController
 
         if (!deleted)
         {
-            return NotFound(new
-            {
-                message = "کاربر موردنظر پیدا نشد."
-            });
+            throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
         }
 
         return NoContent();

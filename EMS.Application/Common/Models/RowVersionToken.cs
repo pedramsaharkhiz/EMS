@@ -24,7 +24,7 @@ namespace EMS.Application.Common.Models
             if (!long.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out var ticks) ||
                 ticks < 0 || ticks > DateTime.MaxValue.Ticks)
             {
-                throw new BadRequestException("مقدار rowVersion نامعتبر است.");
+                throw new BadRequestException("مقدار rowVersion نامعتبر است.", ErrorCodes.InvalidRowVersion);
             }
 
             expectedModifiedDateTime = ticks == 0 ? null : new DateTime(ticks, DateTimeKind.Unspecified);

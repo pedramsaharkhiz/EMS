@@ -3,6 +3,7 @@ using EMS.Application.Common.Logging;
 using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
+using EMS.Presentation.Errors;
 using EMS.Presentation.Middlewares;
 using EMS.Presentation.Security;
 using FluentValidation.AspNetCore;
@@ -72,6 +73,21 @@ try
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        })
+        // Model-validation failures (FluentValidation, malformed JSON) use the same error document as every other error.
+        .ConfigureApiBehaviorOptions(options =>
+        {
+            options.InvalidModelStateResponseFactory = actionContext =>
+            {
+                var errors = actionContext.ModelState
+                    .Where(entry => entry.Value is { Errors.Count: > 0 })
+                    .ToDictionary(
+                        entry => entry.Key,
+                        entry => entry.Value!.Errors
+                            .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? "مقدار نامعتبر است." : error.ErrorMessage)
+                            .ToArray());
+                return new ApiProblemResult(ApiProblem.Validation(actionContext.HttpContext, errors));
+            };
         });
 
     // OpenAPI Service
@@ -160,6 +176,12 @@ try
     });
 
     app.UseMiddleware<GlobalExceptionMiddleware>();
+
+    // Responses that have an error status but no body (401/403 from authentication/authorization, 404 for an unknown
+    // route, 405, ...) get the same error document. Responses that already carry a body are left alone.
+    app.UseStatusCodePages(statusContext => ApiProblem.WriteAsync(
+        statusContext.HttpContext,
+        ApiProblem.ForStatus(statusContext.HttpContext, statusContext.HttpContext.Response.StatusCode)));
 
     if (app.Environment.IsDevelopment())
     {

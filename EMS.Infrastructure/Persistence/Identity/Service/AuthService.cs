@@ -58,13 +58,13 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             if (user is null)
             {
                 _securityLog.LoginFailed(request.UserName, LoginFailureReason.UnknownUser);
-                throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+                throw new UnauthorizedAppException("نام کاربری یا کلمه عبور نامعتبر است.", ErrorCodes.InvalidCredentials);
             }
 
             if (!user.IsActive)
             {
                 _securityLog.LoginFailed(request.UserName, LoginFailureReason.InactiveUser, user.Id);
-                throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+                throw new UnauthorizedAppException("نام کاربری یا کلمه عبور نامعتبر است.", ErrorCodes.InvalidCredentials);
             }
 
             var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
@@ -75,7 +75,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
                     request.UserName,
                     lockedOut ? LoginFailureReason.LockedOut : LoginFailureReason.InvalidPassword,
                     user.Id);
-                throw new UnauthorizedAccessException("نام کاربری یا کلمه عبور نامعتبر است.");
+                throw new UnauthorizedAppException("نام کاربری یا کلمه عبور نامعتبر است.", ErrorCodes.InvalidCredentials);
             }
 
             var response = await BuildAuthResponseAsync(user, cancellationToken);
@@ -100,14 +100,14 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
                     _ => RefreshRejectionReason.TokenInactive
                 };
                 _securityLog.RefreshRejected(reason, tokenEntity?.UserId);
-                throw new UnauthorizedAccessException("رفرش توکن نامعتبر است.");
+                throw new UnauthorizedAppException("رفرش توکن نامعتبر است.", ErrorCodes.InvalidRefreshToken);
             }
 
             var user = await _userManager.FindByIdAsync(tokenEntity.UserId.ToString());
             if (user is null || !user.IsActive)
             {
                 _securityLog.RefreshRejected(RefreshRejectionReason.UserInvalid, tokenEntity.UserId);
-                throw new UnauthorizedAccessException("کاربر نامعتبر است.");
+                throw new UnauthorizedAppException("کاربر نامعتبر است.", ErrorCodes.InvalidUser);
             }
 
             var now = DateTime.UtcNow;
@@ -134,7 +134,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
             {
                 // Another request consumed this refresh token between our read and our write: only one may win.
                 _securityLog.RefreshRejected(RefreshRejectionReason.ConcurrentUse, tokenEntity.UserId);
-                throw new UnauthorizedAccessException("رفرش توکن نامعتبر است.");
+                throw new UnauthorizedAppException("رفرش توکن نامعتبر است.", ErrorCodes.InvalidRefreshToken);
             }
 
             var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
@@ -181,7 +181,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
         {
             var exists = await _userManager.Users.AnyAsync(x => x.UserName == request.UserName, cancellationToken);
             if (exists)
-                throw new ConflictException("کاربری با این نام کاربری قبلاً ثبت شده است.");
+                throw new ConflictException("کاربری با این نام کاربری قبلاً ثبت شده است.", ErrorCodes.UserNameTaken);
 
             var user = new ApplicationUser
             {
@@ -197,7 +197,7 @@ namespace EMS.Infrastructure.Persistence.Identity.Service
 
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
-                throw new BadRequestException(string.Join(" | ", result.Errors.Select(x => x.Description)));
+                throw new BadRequestException(string.Join(" | ", result.Errors.Select(x => x.Description)), ErrorCodes.IdentityError);
 
             _securityLog.UserRegistered(user.Id, request.UserName);
             return user.Id;

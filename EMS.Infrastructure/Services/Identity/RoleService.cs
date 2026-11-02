@@ -26,7 +26,7 @@ namespace EMS.Infrastructure.Services.Identity
         {
             var exists = await _roleManager.RoleExistsAsync(roleName);
             if (exists)
-                throw new ConflictException("نقش قبلاً ثبت شده است.");
+                throw new ConflictException("نقش قبلاً ثبت شده است.", ErrorCodes.RoleNameTaken);
             var role = new ApplicationRole
             {
                 Name = roleName,
@@ -35,7 +35,7 @@ namespace EMS.Infrastructure.Services.Identity
             };
             var result = await _roleManager.CreateAsync(role);
             if (!result.Succeeded)
-                throw new BadRequestException(string.Join(" | ", result.Errors.Select(x => x.Description)));
+                throw new BadRequestException(string.Join(" | ", result.Errors.Select(x => x.Description)), ErrorCodes.IdentityError);
 
             _audit.Created("Role", role.Id);
         }
@@ -44,7 +44,7 @@ namespace EMS.Infrastructure.Services.Identity
         {
             var role = await _roleManager.FindByNameAsync(roleName);
             if (role is null)
-                throw new NotFoundException("نقش یافت نشد.");
+                throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
             var existingClaims = await _roleManager.GetClaimsAsync(role);
             var previousPermissions = existingClaims.Where(x => x.Type == "permission").Select(x => x.Value).ToHashSet();
             foreach (var claim in existingClaims.Where(x => x.Type == "permission"))
@@ -72,7 +72,7 @@ namespace EMS.Infrastructure.Services.Identity
         {
             var role = await _roleManager.FindByNameAsync(roleName);
             if (role is null)
-                throw new NotFoundException("نقش یافت نشد.");
+                throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
             var claims = await _roleManager.GetClaimsAsync(role);
             return claims.Where(x => x.Type == "permission").Select(x => x.Value).ToList();
         }
