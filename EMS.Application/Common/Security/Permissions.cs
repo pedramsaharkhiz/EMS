@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace EMS.Application.Common.Security
@@ -109,60 +110,18 @@ namespace EMS.Application.Common.Security
             public const string Delete = "SupportingDepartments.Delete";
         }
 
-        public static IReadOnlyList<string> All => new List<string> 
-        { 
-            Equipments.View,
-            Equipments.Create,
-            Equipments.Update,
-            Equipments.Delete,
-            Equipments.Assign,
-            FailureReports.View,
-            FailureReports.Create,
-            FailureReports.Update,
-            FailureReports.Delete,
-            Users.View,
-            Users.Create,
-            Users.Update,
-            Users.Delete,
-            Users.ManageRoles,
-            Roles.View,
-            Roles.Create,
-            Roles.Update,
-            Roles.Delete,
-            Roles.ManagePermissions,
-            Roles.ManageUsers,
-            Brands.View,
-            Brands.Create,
-            Brands.Update,
-            Brands.Delete,
-            EquipmentCategories.View,
-            EquipmentCategories.Create,
-            EquipmentCategories.Update,
-            EquipmentCategories.Delete,
-            EquipmentLocationTypes.View,
-            EquipmentLocationTypes.Create,
-            EquipmentLocationTypes.Update,
-            EquipmentLocationTypes.Delete,
-            EquipmentModels.View,
-            EquipmentModels.Create,
-            EquipmentModels.Update,
-            EquipmentModels.Delete,
-            EquipmentStatuses.View,
-            EquipmentStatuses.Create,
-            EquipmentStatuses.Update,
-            EquipmentStatuses.Delete,
-            EquipmentTypes.View,
-            EquipmentTypes.Create,
-            EquipmentTypes.Update,
-            EquipmentTypes.Delete,
-            FailureCategories.View,
-            FailureCategories.Create,
-            FailureCategories.Update,
-            FailureCategories.Delete,
-            SupportingDepartments.View,
-            SupportingDepartments.Create,
-            SupportingDepartments.Update,
-            SupportingDepartments.Delete
-        };
+        /// <summary>
+        /// Every permission, discovered from the constants of the nested groups above, so a new group or a new constant
+        /// can never be forgotten in a hand-written list. Sorted for a stable order.
+        /// </summary>
+        public static IReadOnlyList<string> All { get; } = Discover();
+
+        private static List<string> Discover() =>
+            typeof(Permissions).GetNestedTypes(BindingFlags.Public)
+                .SelectMany(group => group.GetFields(BindingFlags.Public | BindingFlags.Static))
+                .Where(field => field.IsLiteral && field.FieldType == typeof(string))
+                .Select(field => (string)field.GetRawConstantValue()!)
+                .OrderBy(permission => permission, StringComparer.Ordinal)
+                .ToList();
     }
 }

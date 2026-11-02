@@ -15,21 +15,33 @@ namespace EMS.Tests.Unit
     /// </summary>
     public class PermissionCatalogTests
     {
-        private static IEnumerable<string> DeclaredPermissionConstants() =>
-            typeof(Permissions).GetNestedTypes(BindingFlags.Public)
-                .SelectMany(t => t.GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy))
+        [Fact]
+        public void All_is_discovered_from_every_group_without_duplicates_and_is_sorted()
+        {
+            var groups = typeof(Permissions).GetNestedTypes(BindingFlags.Public);
+            var constants = groups
+                .SelectMany(g => g.GetFields(BindingFlags.Public | BindingFlags.Static))
                 .Where(f => f.IsLiteral && f.FieldType == typeof(string))
-                .Select(f => (string)f.GetRawConstantValue()!);
+                .Select(f => (string)f.GetRawConstantValue()!)
+                .ToList();
+
+            Assert.Equal(constants.Count, Permissions.All.Count);                          // nothing missing
+            Assert.Equal(Permissions.All.Count, Permissions.All.Distinct().Count());       // a copy-pasted value would collide here
+            Assert.Equal(Permissions.All.OrderBy(p => p, StringComparer.Ordinal), Permissions.All);
+            Assert.True(groups.Length >= 12);
+            Assert.Contains(Permissions.Brands.View, Permissions.All);
+            Assert.Contains(Permissions.Roles.ManagePermissions, Permissions.All);
+        }
 
         [Fact]
-        public void Every_declared_permission_is_registered_in_All_exactly_once()
+        public void Every_permission_belongs_to_the_group_that_declares_it()
         {
-            var declared = DeclaredPermissionConstants().ToList();
-            var all = Permissions.All;
-
-            Assert.Empty(declared.Except(all));            // declared but forgotten in All => no policy => always 403
-            Assert.Empty(all.Except(declared));            // listed in All but not declared
-            Assert.Equal(all.Count, all.Distinct().Count());
+            // "Brands.View" must live in class Permissions.Brands: a wrong prefix would grant the wrong policy name.
+            foreach (var group in typeof(Permissions).GetNestedTypes(BindingFlags.Public))
+            {
+                foreach (var field in group.GetFields(BindingFlags.Public | BindingFlags.Static).Where(f => f.IsLiteral && f.FieldType == typeof(string)))
+                    Assert.StartsWith(group.Name + ".", (string)field.GetRawConstantValue()!);
+            }
         }
 
         [Fact]
