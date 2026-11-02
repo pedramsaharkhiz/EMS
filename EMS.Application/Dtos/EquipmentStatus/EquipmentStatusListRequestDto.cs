@@ -3,9 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using EMS.Application.Common.Catalog;
 namespace EMS.Application.Dtos.EquipmentStatus
 {
-    public class EquipmentStatusListRequestDto : PagedRequest
+    public class EquipmentStatusListRequestDto : PagedRequest, ICatalogListRequest
     {
         public string? Title { get; set; }
         public string? Code { get; set; }

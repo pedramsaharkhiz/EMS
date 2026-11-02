@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EMS.Application.Dtos.EquipmentCategory
+using EMS.Application.Common.Catalog;
+namespace EMS.Application.Dtos.EquipmentType
 {
-    public class EquipmentTypeCreateDto
+    public class EquipmentTypeCreateDto : ICatalogCreateRequest
     {
         public long EquipmentCategoryId { get; set; }
         public string Title { get; set; } = string.Empty;

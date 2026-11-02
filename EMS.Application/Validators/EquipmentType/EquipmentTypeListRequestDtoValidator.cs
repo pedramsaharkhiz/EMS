@@ -1,4 +1,4 @@
-﻿using EMS.Application.Dtos.EquipmentCategory;
+﻿using EMS.Application.Dtos.EquipmentType;
 using FluentValidation;
 
 namespace EMS.Application.Validators.EquipmentCategory

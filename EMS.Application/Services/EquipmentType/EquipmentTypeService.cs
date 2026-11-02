@@ -1,200 +1,81 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
-using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
-using EMS.Application.Extensions;
-using EMS.Application.Interfaces.EquipmentCategory;
+using EMS.Application.Dtos.EquipmentType;
 using EMS.Application.Interfaces.EquipmentType;
-using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Linq.Expressions;
+using EquipmentTypeEntity = EMS.Domain.Entities.EquipmentType;
 
 namespace EMS.Application.Services.EquipmentType
 {
-    public class EquipmentTypeService : IEquipmentTypeService
+    /// <summary>Catalog "نوع تجهیز". All CRUD behaviour comes from <see cref="CatalogService{TEntity, TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>.</summary>
+    public sealed class EquipmentTypeService
+        : CatalogService<EquipmentTypeEntity, EquipmentTypeCreateDto, EquipmentTypeUpdateDto, EquipmentTypeDetailDto, EquipmentTypeListItemDto, EquipmentTypeListRequestDto>, IEquipmentTypeService
     {
-        private readonly IEquipmentTypeRepository _repository;
-        private readonly IEquipmentCategoryRepository _repositoryCategory;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IAuditEventLogger _audit;
-
-        public EquipmentTypeService(IEquipmentTypeRepository repository, IUnitOfWork unitOfWork, IEquipmentCategoryRepository repositoryCategory, IAuditEventLogger audit)
+        private readonly IEquipmentCategoryRepository _categories;
+        public EquipmentTypeService(IEquipmentTypeRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, IEquipmentCategoryRepository categories)
+            : base(repository, unitOfWork, audit)
         {
-            _audit = audit;
-            _repository = repository;
-            _unitOfWork = unitOfWork;
-            _repositoryCategory = repositoryCategory;
+            _categories = categories;
         }
 
-        public async Task<PagedResult<EquipmentTypeListItemDto>> GetPagedAsync(EquipmentTypeListRequestDto request, CancellationToken cancellationToken = default)
+        protected override string Label => "نوع تجهیز";
+        protected override string DependentsMessage => "این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
+        protected override Expression<Func<EquipmentTypeEntity, long>> IdSelector => x => x.EquipmentTypeId;
+
+        protected override Expression<Func<EquipmentTypeEntity, EquipmentTypeListItemDto>> ListItem =>
+            x => new EquipmentTypeListItemDto { EquipmentTypeId = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, Title = x.Title, Code = x.Code!, IsActive = x.IsActive };
+
+        protected override void ConfigureSorting(SortBuilder<EquipmentTypeEntity> sort) =>
+            sort.By("title", x => x.Title).By("code", x => x.Code).By("equipmentcategoryid", x => x.EquipmentCategoryId);
+
+        protected override IQueryable<EquipmentTypeEntity> ApplyFilters(IQueryable<EquipmentTypeEntity> query, EquipmentTypeListRequestDto request)
         {
-            var query = _repository.Query(asNoTracking: true);
-
-            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
-            var wantActive = request.IsActive ?? true;
-            query = query.Where(x => x.IsActive == wantActive);
-
-            if (!string.IsNullOrWhiteSpace(request.Title))
-            {
-                var search = request.Title.Trim();
-                query = query.Where(x => x.Title.Contains(search));
-            }
-
             if (!string.IsNullOrWhiteSpace(request.Code))
             {
                 var search = request.Code.Trim();
-                query = query.Where(x => x.Code.Contains(search));
+                query = query.Where(x => x.Code!.Contains(search));
             }
 
             if (request.EquipmentCategoryId.HasValue)
             {
-                var search = request.EquipmentCategoryId.Value;
-                query = query.Where(x => x.EquipmentCategoryId == search);
+                var equipmentCategoryId = request.EquipmentCategoryId.Value;
+                query = query.Where(x => x.EquipmentCategoryId == equipmentCategoryId);
             }
-
-            query = ApplySorting(query, request.SortBy, request.SortDirection);
-
-            var projectedQuery = query.Select(x => new EquipmentTypeListItemDto
-            {
-                EquipmentTypeId = x.EquipmentTypeId,
-                EquipmentCategoryId = x.EquipmentCategoryId,
-                Title = x.Title,
-                Code = x.Code,
-                IsActive = x.IsActive,
-            });
-
-            return await projectedQuery.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+            return query;
         }
 
-        public async Task<EquipmentTypeDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+        protected override async Task BeforeCreateAsync(EquipmentTypeCreateDto request, CancellationToken cancellationToken)
         {
-            var entity = await _repository.GetByIdAsync(id, asNoTracking: true, cancellationToken);
-            if (entity is null)
-                return null;
-
-            return MapToDetailsDto(entity);
+            await RequireParentAsync(_categories, request.EquipmentCategoryId, x => x.EquipmentCategoryId, "دسته‌بندی تجهیزات", mustBeActive: true, cancellationToken);
         }
 
-        public async Task<EquipmentTypeDetailDto> CreateAsync(EquipmentTypeCreateDto request, CancellationToken cancellationToken = default)
+        protected override async Task BeforeUpdateAsync(EquipmentTypeEntity entity, EquipmentTypeUpdateDto request, CancellationToken cancellationToken)
         {
-            var title = request.Title.Trim();
-
-            var existCategory = await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == request.EquipmentCategoryId, cancellationToken);
-            if (!existCategory)
-                throw new NotFoundException("دسته‌بندی تجهیزات یافت نشد.");
-
-            if (!await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == request.EquipmentCategoryId && x.IsActive, cancellationToken))
-                throw new BadRequestException("دسته‌بندی تجهیزات انتخاب‌شده غیرفعال است.");
-
-            var duplicateExists = await _repository.ExistsByTitleAsync(title, cancellationToken: cancellationToken);
-            if (duplicateExists)
-                throw new ConflictException("نوع تجهیز دیگری با این عنوان وجود دارد.");
-
-            var entity = new EMS.Domain.Entities.EquipmentType
-            {
-                EquipmentCategoryId = request.EquipmentCategoryId,
-                Title = title,
-                Code = request.Code
-            };
-
-            await _repository.AddAsync(entity, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Created("EquipmentType", entity.EquipmentTypeId);
-
-            return MapToDetailsDto(entity);
+            // A parent must be active when it is being changed or when this record is being re-activated.
+            var reactivating = !entity.IsActive && request.IsActive;
+            var equipmentCategoryId = request.EquipmentCategoryId ?? entity.EquipmentCategoryId;
+            await RequireParentAsync(_categories, equipmentCategoryId, x => x.EquipmentCategoryId, "دسته‌بندی تجهیزات", mustBeActive: equipmentCategoryId != entity.EquipmentCategoryId || reactivating, cancellationToken);
         }
 
-        public async Task<EquipmentTypeDetailDto?> UpdateAsync(EquipmentTypeUpdateDto request, CancellationToken cancellationToken = default)
+        protected override EquipmentTypeEntity NewEntity(EquipmentTypeCreateDto request, string title) =>
+            new() { Title = title, Code = Normalize(request.Code), EquipmentCategoryId = request.EquipmentCategoryId };
+
+        protected override void ApplyUpdate(EquipmentTypeEntity entity, EquipmentTypeUpdateDto request)
         {
-            var entity = await _repository.GetByIdAsync(request.EquipmentTypeId, asNoTracking: false, cancellationToken);
-            if (entity is null)
-                return null;
-
-            if (request.EquipmentCategoryId.HasValue)
-            {
-                var existCategory = await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == request.EquipmentCategoryId.Value, cancellationToken);
-                if (!existCategory)
-                    throw new NotFoundException("دسته‌بندی تجهیزات یافت نشد.");
-            }
-
-            // The category must be active when it is being changed or when this record is being re-activated.
-            var targetCategoryId = request.EquipmentCategoryId ?? entity.EquipmentCategoryId;
-            if ((targetCategoryId != entity.EquipmentCategoryId || (!entity.IsActive && request.IsActive)) &&
-                !await _repositoryCategory.ExistsAsync(x => x.EquipmentCategoryId == targetCategoryId && x.IsActive, cancellationToken))
-                throw new BadRequestException("دسته‌بندی تجهیزات انتخاب‌شده غیرفعال است.");
-
-            var title = request.Title?.Length > 1 ? request.Title.Trim() : entity.Title;
-            var code = request.Code?.Length > 1 ? request.Code.Trim() : entity.Code;
-
-            var duplicateExists = await _repository.ExistsByTitleAsync(title, exceptId: request.EquipmentTypeId, cancellationToken: cancellationToken);
-            if (duplicateExists)
-                throw new ConflictException("دسته‌بندی دیگری با این عنوان وجود دارد.");
-
-            entity.Title = title;
-            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
-                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
-
-            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.EquipmentTypeId, cancellationToken))
-                throw new ConflictException("این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
-
-            entity.IsActive = request.IsActive;
-            entity.Code = code;
-            entity.EquipmentCategoryId = request.EquipmentCategoryId.HasValue ? request.EquipmentCategoryId.Value : entity.EquipmentCategoryId;
-
-            _repository.Update(entity);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Updated("EquipmentType", entity.EquipmentTypeId);
-
-            return MapToDetailsDto(entity);
+            entity.EquipmentCategoryId = request.EquipmentCategoryId ?? entity.EquipmentCategoryId;
+            entity.Code = Keep(request.Code, entity.Code);
         }
 
-        public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default)
-        {
-            var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
-            if (entity is null)
-                return false;
-
-            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
-                throw new ConflictException("این نوع تجهیز دارای مدل یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
-
-            entity.IsActive = false;
-            _repository.Update(entity);
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Deleted("EquipmentType", entity.EquipmentTypeId);
-
-            return true;
-        }
-
-        private static IQueryable<EMS.Domain.Entities.EquipmentType> ApplySorting(IQueryable<EMS.Domain.Entities.EquipmentType> query, string? sortBy, string? sortDirection)
-        {
-            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-            var normalizedSortBy = sortBy?.Trim().ToLowerInvariant();
-
-            return normalizedSortBy switch
-            {
-                "title" => isDescending ? query.OrderByDescending(x => x.Title) : query.OrderBy(x => x.Title),
-                "code" => isDescending ? query.OrderByDescending(x => x.Code) : query.OrderBy(x => x.Code),
-                "equipmentcategoryid" => isDescending ? query.OrderByDescending(x => x.EquipmentCategoryId) : query.OrderBy(x => x.EquipmentCategoryId),
-                "createddatetime" => isDescending ? query.OrderByDescending(x => x.CreatedDateTime) : query.OrderBy(x => x.CreatedDateTime),
-                _ => isDescending ? query.OrderByDescending(x => x.EquipmentTypeId) : query.OrderBy(x => x.EquipmentTypeId)
-            };
-        }
-
-        private static EquipmentTypeDetailDto MapToDetailsDto(EMS.Domain.Entities.EquipmentType entity)
-        {
-            return new EquipmentTypeDetailDto
+        protected override EquipmentTypeDetailDto ToDetail(EquipmentTypeEntity entity) =>
+            new()
             {
                 EquipmentTypeId = entity.EquipmentTypeId,
                 EquipmentCategoryId = entity.EquipmentCategoryId,
                 Title = entity.Title,
-                Code = entity.Code,
+                Code = entity.Code!,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
-        }
     }
 }

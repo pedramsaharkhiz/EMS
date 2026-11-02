@@ -1,35 +1,15 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EMS.Infrastructure.Repositories
 {
-    public class SupportingDepartmentRepository : Repository<SupportingDepartment>, ISupportingDepartmentRepository
+    public class SupportingDepartmentRepository : CatalogRepository<SupportingDepartment>, ISupportingDepartmentRepository
     {
         public SupportingDepartmentRepository(EMSDbContext context) : base(context) { }
 
-        public async Task<SupportingDepartment?> GetByIdAsync(long id, bool asNoTracking = true, CancellationToken cancellationToken = default)
-        {
-            IQueryable<SupportingDepartment> query = asNoTracking ? _dbSet.AsNoTracking() : _dbSet;
-            return await query.FirstOrDefaultAsync(x => x.SupportingDepartmentId == id, cancellationToken);
-        }
-        public async Task<bool> ExistsByTitleAsync(string title, long? exceptId = null, CancellationToken cancellationToken = default)
-        {
-            var normalizedTitle = title.Trim();
-            // Only active records reserve a title: a deactivated record must not block its reuse.
-            var query = _dbSet.Where(x => x.IsActive);
-            query = query.Where(x => x.Title.ToLower() == normalizedTitle.ToLower());
-            if (exceptId.HasValue)
-            {
-                query = query.Where(x => x.SupportingDepartmentId != exceptId.Value);
-            }
-            return await query.AnyAsync(cancellationToken);
-        }
-        public async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
+        public override async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
         {
             return await _context.Users.AnyAsync(x => x.SupportingDepartmentId == id && x.IsActive, cancellationToken) || await _context.Equipments.AnyAsync(x => x.CurrentSupportingDepartmentId == id && x.IsActive, cancellationToken);
         }

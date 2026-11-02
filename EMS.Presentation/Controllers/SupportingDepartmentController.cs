@@ -1,14 +1,8 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
-using EMS.Application.Dtos.SupportingDepartment;
-using EMS.Application.Dtos.RefreshToken;
-using EMS.Application.Interfaces.Auth;
-using EMS.Application.Interfaces.EquipmentCategory;
-using EMS.Application.Interfaces.SupportingDepartment;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.SupportingDepartment;
+using EMS.Application.Interfaces.SupportingDepartment;
 using EMS.Presentation.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
@@ -16,28 +10,21 @@ namespace EMS.Presentation.Controllers
     public class SupportingDepartmentController : BaseApiController
     {
         private readonly ISupportingDepartmentService _service;
-        public SupportingDepartmentController(ISupportingDepartmentService service) 
+
+        public SupportingDepartmentController(ISupportingDepartmentService service)
         {
             _service = service;
         }
 
         [Permission(Permissions.SupportingDepartments.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<SupportingDepartmentListItemDto>>> GetAllList([FromQuery] SupportingDepartmentListRequestDto request, CancellationToken cancellationToken) 
-        { 
-            var result = await _service.GetPagedAsync(request, cancellationToken); 
-            return Ok(result);
-        }
+        public async Task<ActionResult<PagedResult<SupportingDepartmentListItemDto>>> GetAllList([FromQuery] SupportingDepartmentListRequestDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.SupportingDepartments.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<SupportingDepartmentDetailDto>> GetById(long id, CancellationToken cancellationToken)
-        {
-            var result = await _service.GetByIdAsync(id, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("دپارتمان پشتیبانی موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<SupportingDepartmentDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
+            Ok(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.SupportingDepartments.Create)]
         [HttpPost]
@@ -48,23 +35,15 @@ namespace EMS.Presentation.Controllers
         }
 
         [Permission(Permissions.SupportingDepartments.Update)]
-        //[HttpPut("{id:long}")]
         [HttpPut]
-        public async Task<ActionResult<SupportingDepartmentDetailDto>> Update([FromBody] SupportingDepartmentUpdateDto request, CancellationToken cancellationToken)
-        {
-            var result = await _service.UpdateAsync(request, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("دپارتمان پشتیبانی موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<SupportingDepartmentDetailDto>> Update([FromBody] SupportingDepartmentUpdateDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.UpdateAsync(request, cancellationToken));
 
         [Permission(Permissions.SupportingDepartments.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {
-            var deleted = await _service.DeleteAsync(id, cancellationToken);
-            if (!deleted)
-                throw new NotFoundException("دپارتمان پشتیبانی موردنظر پیدا نشد.");
+            await _service.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
     }

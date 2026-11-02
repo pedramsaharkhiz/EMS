@@ -126,6 +126,31 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task Catalog_rules_have_their_own_codes_duplicate_dependents_and_parents()
+        {
+            var admin = await AdminTokenAsync();
+
+            // duplicate title
+            await SendAsync(HttpMethod.Post, "/api/EquipmentCategory", new { title = "EcCatDup" }, bearer: admin);
+            await AssertProblemAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentCategory", new { title = "EcCatDup" }, bearer: admin),
+                HttpStatusCode.Conflict, "duplicate_title");
+
+            // active dependents
+            var category = (await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentCategory", new { title = "EcCatDeps" }, bearer: admin))).GetProperty("equipmentCategoryId").GetInt64();
+            var type = (await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentType", new { equipmentCategoryId = category, title = "EcTypeDeps", code = "T" }, bearer: admin))).GetProperty("equipmentTypeId").GetInt64();
+            await AssertProblemAsync(await SendAsync(HttpMethod.Delete, $"/api/EquipmentCategory/{category}", bearer: admin),
+                HttpStatusCode.Conflict, "has_active_dependents");
+
+            // unknown parent / inactive parent
+            await AssertProblemAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentType", new { equipmentCategoryId = 987654321, title = "EcTypeNoParent", code = "T" }, bearer: admin),
+                HttpStatusCode.NotFound, "parent_not_found");
+            await SendAsync(HttpMethod.Delete, $"/api/EquipmentType/{type}", bearer: admin);
+            await SendAsync(HttpMethod.Delete, $"/api/EquipmentCategory/{category}", bearer: admin);
+            await AssertProblemAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentType", new { equipmentCategoryId = category, title = "EcTypeInactiveParent", code = "T" }, bearer: admin),
+                HttpStatusCode.BadRequest, "parent_inactive");
+        }
+
+        [Fact]
         public async Task The_correlation_id_in_the_body_is_the_one_the_client_sent()
         {
             var corr = NewCorrelationId("it-err");

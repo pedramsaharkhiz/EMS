@@ -1,14 +1,8 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
-using EMS.Application.Dtos.EquipmentStatus;
-using EMS.Application.Dtos.RefreshToken;
-using EMS.Application.Interfaces.Auth;
-using EMS.Application.Interfaces.EquipmentCategory;
-using EMS.Application.Interfaces.EquipmentStatus;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.EquipmentStatus;
+using EMS.Application.Interfaces.EquipmentStatus;
 using EMS.Presentation.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
@@ -16,28 +10,21 @@ namespace EMS.Presentation.Controllers
     public class EquipmentStatusController : BaseApiController
     {
         private readonly IEquipmentStatusService _service;
-        public EquipmentStatusController(IEquipmentStatusService service) 
+
+        public EquipmentStatusController(IEquipmentStatusService service)
         {
             _service = service;
         }
 
         [Permission(Permissions.EquipmentStatuses.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<EquipmentStatusListItemDto>>> GetAllList([FromQuery] EquipmentStatusListRequestDto request, CancellationToken cancellationToken) 
-        { 
-            var result = await _service.GetPagedAsync(request, cancellationToken); 
-            return Ok(result);
-        }
+        public async Task<ActionResult<PagedResult<EquipmentStatusListItemDto>>> GetAllList([FromQuery] EquipmentStatusListRequestDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.EquipmentStatuses.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<EquipmentStatusDetailDto>> GetById(long id, CancellationToken cancellationToken)
-        {
-            var result = await _service.GetByIdAsync(id, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("وضعیت تجهیز موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<EquipmentStatusDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
+            Ok(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.EquipmentStatuses.Create)]
         [HttpPost]
@@ -48,23 +35,15 @@ namespace EMS.Presentation.Controllers
         }
 
         [Permission(Permissions.EquipmentStatuses.Update)]
-        //[HttpPut("{id:long}")]
         [HttpPut]
-        public async Task<ActionResult<EquipmentStatusDetailDto>> Update([FromBody] EquipmentStatusUpdateDto request, CancellationToken cancellationToken)
-        {
-            var result = await _service.UpdateAsync(request, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("وضعیت تجهیز موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<EquipmentStatusDetailDto>> Update([FromBody] EquipmentStatusUpdateDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.UpdateAsync(request, cancellationToken));
 
         [Permission(Permissions.EquipmentStatuses.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {
-            var deleted = await _service.DeleteAsync(id, cancellationToken);
-            if (!deleted)
-                throw new NotFoundException("وضعیت تجهیز موردنظر پیدا نشد.");
+            await _service.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
     }

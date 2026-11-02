@@ -3,9 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using EMS.Application.Common.Catalog;
 namespace EMS.Application.Dtos.FailureCategory
 {
-    public class FailureCategoryListRequestDto : PagedRequest
+    public class FailureCategoryListRequestDto : PagedRequest, ICatalogListRequest
     {
         public string? Title { get; set; }
         //public bool IsActive { get; set; } = true;

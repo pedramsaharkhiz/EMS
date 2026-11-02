@@ -50,6 +50,13 @@ namespace EMS.Infrastructure.Repositories
             return await _dbSet.AnyAsync(predicate, cancellationToken);
         }
 
+        public virtual async Task<bool> ExistsIncludingInactiveAsync(
+            Expression<Func<T, bool>> predicate,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.AnyAsync(predicate, cancellationToken);
+        }
+
         public virtual async Task AddAsync(T entity, CancellationToken cancellationToken = default)
         {
             await _dbSet.AddAsync(entity, cancellationToken);

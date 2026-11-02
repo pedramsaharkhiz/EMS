@@ -1,18 +1,10 @@
-﻿using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.EquipmentModel;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EMS.Application.Interfaces.EquipmentModel
 {
+    /// <summary>CRUD contract of the catalog "مدل تجهیز" (see <see cref="ICatalogService{TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>).</summary>
     public interface IEquipmentModelService
+        : ICatalogService<EquipmentModelCreateDto, EquipmentModelUpdateDto, EquipmentModelDetailDto, EquipmentModelListItemDto, EquipmentModelListRequestDto>
     {
-        Task<PagedResult<EquipmentModelListItemDto>> GetPagedAsync(EquipmentModelListRequestDto request, CancellationToken cancellationToken = default);
-        Task<EquipmentModelDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-        Task<EquipmentModelDetailDto> CreateAsync(EquipmentModelCreateDto request, CancellationToken cancellationToken = default);
-        Task<EquipmentModelDetailDto?> UpdateAsync( EquipmentModelUpdateDto request, CancellationToken cancellationToken = default);
-        Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

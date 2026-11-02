@@ -1,17 +1,10 @@
-﻿using EMS.Application.Common.Models;
 using EMS.Application.Dtos.FailureCategory;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EMS.Application.Interfaces.FailureCategory
 {
+    /// <summary>CRUD contract of the catalog "دسته‌بندی خرابی" (see <see cref="ICatalogService{TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>).</summary>
     public interface IFailureCategoryService
+        : ICatalogService<FailureCategoryCreateDto, FailureCategoryUpdateDto, FailureCategoryDetailDto, FailureCategoryListItemDto, FailureCategoryListRequestDto>
     {
-        Task<PagedResult<FailureCategoryListItemDto>> GetPagedAsync(FailureCategoryListRequestDto request, CancellationToken cancellationToken = default);
-        Task<FailureCategoryDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-        Task<FailureCategoryDetailDto> CreateAsync(FailureCategoryCreateDto request, CancellationToken cancellationToken = default);
-        Task<FailureCategoryDetailDto?> UpdateAsync(FailureCategoryUpdateDto request, CancellationToken cancellationToken = default);
-        Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

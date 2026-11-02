@@ -1,13 +1,8 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
-using EMS.Application.Dtos.RefreshToken;
-using EMS.Application.Interfaces.Auth;
-using EMS.Application.Interfaces.EquipmentCategory;
-using EMS.Application.Interfaces.EquipmentType;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.EquipmentType;
+using EMS.Application.Interfaces.EquipmentType;
 using EMS.Presentation.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
@@ -15,28 +10,21 @@ namespace EMS.Presentation.Controllers
     public class EquipmentTypeController : BaseApiController
     {
         private readonly IEquipmentTypeService _service;
-        public EquipmentTypeController(IEquipmentTypeService service) 
+
+        public EquipmentTypeController(IEquipmentTypeService service)
         {
             _service = service;
         }
 
         [Permission(Permissions.EquipmentTypes.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<EquipmentTypeListItemDto>>> GetAllList([FromQuery] EquipmentTypeListRequestDto request, CancellationToken cancellationToken) 
-        { 
-            var result = await _service.GetPagedAsync(request, cancellationToken); 
-            return Ok(result);
-        }
+        public async Task<ActionResult<PagedResult<EquipmentTypeListItemDto>>> GetAllList([FromQuery] EquipmentTypeListRequestDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.EquipmentTypes.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<EquipmentTypeDetailDto>> GetById(long id, CancellationToken cancellationToken)
-        {
-            var result = await _service.GetByIdAsync(id, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("نوع تجهیز موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<EquipmentTypeDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
+            Ok(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.EquipmentTypes.Create)]
         [HttpPost]
@@ -47,23 +35,15 @@ namespace EMS.Presentation.Controllers
         }
 
         [Permission(Permissions.EquipmentTypes.Update)]
-        //[HttpPut("{id:long}")]
         [HttpPut]
-        public async Task<ActionResult<EquipmentTypeDetailDto>> Update([FromBody] EquipmentTypeUpdateDto request, CancellationToken cancellationToken)
-        {
-            var result = await _service.UpdateAsync(request, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("نوع تجهیز موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<EquipmentTypeDetailDto>> Update([FromBody] EquipmentTypeUpdateDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.UpdateAsync(request, cancellationToken));
 
         [Permission(Permissions.EquipmentTypes.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {
-            var deleted = await _service.DeleteAsync(id, cancellationToken);
-            if (!deleted)
-                throw new NotFoundException("نوع تجهیز موردنظر پیدا نشد.");
+            await _service.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
     }

@@ -3,9 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using EMS.Application.Common.Catalog;
 namespace EMS.Application.Dtos.EquipmentCategory
 {
-    public class EquipmentCategoryListRequestDto : PagedRequest
+    public class EquipmentCategoryListRequestDto : PagedRequest, ICatalogListRequest
     {
         public string? Title { get; set; }
         //public bool IsActive { get; set; } = true;

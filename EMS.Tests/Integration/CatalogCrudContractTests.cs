@@ -36,10 +36,11 @@ namespace EMS.Tests.Integration
             return (json.GetProperty(c.IdProperty).GetInt64(), json);
         }
 
-        private async Task<HttpResponseMessage> UpdateAsync(CatalogCase c, long id, string? title, bool isActive = true, string? rowVersion = null)
+        private async Task<HttpResponseMessage> UpdateAsync(CatalogCase c, long id, string? title, bool isActive = true, string? rowVersion = null, string? code = null)
         {
             var body = new Dictionary<string, object?> { [c.IdProperty] = id, ["isActive"] = isActive };
             if (title is not null) body["title"] = title;
+            if (code is not null) body["code"] = code;
             if (rowVersion is not null) body["rowVersion"] = rowVersion;
             return await SendAsync(HttpMethod.Put, c.Route, body, bearer: await AdminAsync());
         }
@@ -219,6 +220,73 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, Title("VerC"), rowVersion: v1)).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, Title("VerD"))).StatusCode);
             Assert.Equal(HttpStatusCode.BadRequest, (await UpdateAsync(c, id, Title("VerE"), rowVersion: "garbage")).StatusCode);
+        }
+
+        // ------------------------------------------------------------------------------- behaviour fixed by the refactoring
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task A_one_character_title_is_applied_it_used_to_be_silently_ignored(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var (id, _) = await CreateAsync(c, Title("One"));
+
+            // Titles are unique among active records, so pick a random rare single character (retry on the unlikely clash).
+            for (var attempt = 0; attempt < 5; attempt++)
+            {
+                var single = ((char)(0xFB50 + Random.Shared.Next(0, 0x2AF))).ToString();
+                var update = await UpdateAsync(c, id, single);
+                if (update.StatusCode == HttpStatusCode.Conflict)
+                    continue;
+
+                Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+                Assert.Equal(single, (await ReadJsonAsync(update)).GetProperty("title").GetString());
+                return;
+            }
+
+            Assert.Fail("Could not find a free single-character title in 5 attempts.");
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task A_one_character_code_is_applied_it_used_to_be_silently_ignored(string name)
+        {
+            var c = CatalogCase.Get(name);
+            if (!c.HasCode)
+                return;
+
+            var (id, _) = await CreateAsync(c, Title("OneCode"));
+            var update = await UpdateAsync(c, id, title: null, code: "Z");
+
+            Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+            Assert.Equal("Z", (await ReadJsonAsync(update)).GetProperty("code").GetString());
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task A_code_is_trimmed_on_create_like_on_update(string name)
+        {
+            var c = CatalogCase.Get(name);
+            if (!c.HasCode)
+                return;
+
+            var body = await c.CreateBody(this, Title("Trim"));
+            body["code"] = "  ab  ";
+            var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            Assert.Equal("ab", (await ReadJsonAsync(response)).GetProperty("code").GetString());
+        }
+
+        [Theory, MemberData(nameof(Cases))]
+        public async Task A_deactivated_record_does_not_reserve_its_title_not_even_for_a_rename_but_cannot_be_restored_onto_a_taken_title(string name)
+        {
+            var c = CatalogCase.Get(name);
+            var activeTitle = Title("Act");
+            await CreateAsync(c, activeTitle);
+            var (id, _) = await CreateAsync(c, Title("Gone"));
+            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
+
+            // staying inactive, it may carry the same title as an active record
+            Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, activeTitle, isActive: false)).StatusCode);
+            // ...but restoring it would create a duplicate among active records
+            Assert.Equal(HttpStatusCode.Conflict, (await UpdateAsync(c, id, activeTitle, isActive: true)).StatusCode);
         }
 
         // ------------------------------------------------------------------------------- soft delete

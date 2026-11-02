@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EMS.Domain.Entities
 {
-    public class EquipmentLocationType : BaseEntity, IAuditableEntity
+    public class EquipmentLocationType : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long EquipmentLocationTypeId { get; set; }
         public string Title { get; set; } = null!;

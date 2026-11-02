@@ -1,18 +1,10 @@
-﻿using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.SupportingDepartment;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EMS.Application.Interfaces.SupportingDepartment
 {
+    /// <summary>CRUD contract of the catalog "دپارتمان پشتیبانی" (see <see cref="ICatalogService{TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>).</summary>
     public interface ISupportingDepartmentService
+        : ICatalogService<SupportingDepartmentCreateDto, SupportingDepartmentUpdateDto, SupportingDepartmentDetailDto, SupportingDepartmentListItemDto, SupportingDepartmentListRequestDto>
     {
-        Task<PagedResult<SupportingDepartmentListItemDto>> GetPagedAsync(SupportingDepartmentListRequestDto request, CancellationToken cancellationToken = default);
-        Task<SupportingDepartmentDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
-        Task<SupportingDepartmentDetailDto> CreateAsync(SupportingDepartmentCreateDto request, CancellationToken cancellationToken = default);
-        Task<SupportingDepartmentDetailDto?> UpdateAsync( SupportingDepartmentUpdateDto request, CancellationToken cancellationToken = default);
-        Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default);
     }
 }

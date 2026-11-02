@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EMS.Domain.Entities
 {
-    public class FailureCategory : BaseEntity, IAuditableEntity
+    public class FailureCategory : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long FailureCategoryId { get; set; }
         public string Title { get; set; } = null!;

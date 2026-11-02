@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EMS.Domain.Entities
 {
-    public class Brand : BaseEntity, IAuditableEntity
+    public class Brand : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long BrandId { get; set; }
         public string Title { get; set; } = null!;

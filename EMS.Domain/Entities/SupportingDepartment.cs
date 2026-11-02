@@ -6,7 +6,7 @@ using System.Text;
 
 namespace EMS.Domain.Entities
 {
-    public class SupportingDepartment : BaseEntity, IAuditableEntity
+    public class SupportingDepartment : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long SupportingDepartmentId { get; set; }
         public long CityId { get; set; }

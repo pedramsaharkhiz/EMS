@@ -1,164 +1,67 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
-using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.SupportingDepartment;
-using EMS.Application.Extensions;
-using EMS.Application.Interfaces.EquipmentCategory;
 using EMS.Application.Interfaces.SupportingDepartment;
-using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using EMS.Domain.Entities;
+using System.Linq.Expressions;
+using SupportingDepartmentEntity = EMS.Domain.Entities.SupportingDepartment;
 
 namespace EMS.Application.Services.SupportingDepartment
 {
-    public class SupportingDepartmentService : ISupportingDepartmentService
+    /// <summary>Catalog "دپارتمان پشتیبانی". All CRUD behaviour comes from <see cref="CatalogService{TEntity, TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>.</summary>
+    public sealed class SupportingDepartmentService
+        : CatalogService<SupportingDepartmentEntity, SupportingDepartmentCreateDto, SupportingDepartmentUpdateDto, SupportingDepartmentDetailDto, SupportingDepartmentListItemDto, SupportingDepartmentListRequestDto>, ISupportingDepartmentService
     {
-        private readonly ISupportingDepartmentRepository _repository;
-        private readonly IRepository<City> _cityRepository;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IAuditEventLogger _audit;
-
-        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IRepository<City> cityRepository, IUnitOfWork unitOfWork, IAuditEventLogger audit)
+        private readonly IRepository<City> _cities;
+        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, IRepository<City> cities)
+            : base(repository, unitOfWork, audit)
         {
-            _audit = audit;
-            _repository = repository;
-            _cityRepository = cityRepository;
-            _unitOfWork = unitOfWork;
+            _cities = cities;
         }
 
-        public async Task<PagedResult<SupportingDepartmentListItemDto>> GetPagedAsync(SupportingDepartmentListRequestDto request, CancellationToken cancellationToken = default)
+        protected override string Label => "دپارتمان پشتیبانی";
+        protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
+        protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
+
+        protected override Expression<Func<SupportingDepartmentEntity, SupportingDepartmentListItemDto>> ListItem =>
+            x => new SupportingDepartmentListItemDto { SupportingDepartmentId = x.SupportingDepartmentId, CityId = x.CityId, Title = x.Title, IsActive = x.IsActive };
+
+        protected override void ConfigureSorting(SortBuilder<SupportingDepartmentEntity> sort) =>
+            sort.By("title", x => x.Title).By("cityid", x => x.CityId);
+
+        protected override IQueryable<SupportingDepartmentEntity> ApplyFilters(IQueryable<SupportingDepartmentEntity> query, SupportingDepartmentListRequestDto request)
         {
-            var query = _repository.Query(asNoTracking: true);
-
-            // Active records by default; ?isActive=false lists the deactivated ones (so they can be found and restored).
-            var wantActive = request.IsActive ?? true;
-            query = query.Where(x => x.IsActive == wantActive);
-
             if (request.CityId.HasValue)
             {
                 var cityId = request.CityId.Value;
                 query = query.Where(x => x.CityId == cityId);
             }
-
-            if (!string.IsNullOrWhiteSpace(request.Title))
-            {
-                var search = request.Title.Trim();
-                query = query.Where(x => x.Title.Contains(search));
-            }
-
-
-            query = ApplySorting(query, request.SortBy, request.SortDirection);
-            var projectedQuery = query.Select(x => new SupportingDepartmentListItemDto
-            {
-                SupportingDepartmentId = x.SupportingDepartmentId,
-                CityId = x.CityId,
-                Title = x.Title,
-                IsActive = x.IsActive,
-            });
-            return await projectedQuery.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+            return query;
         }
 
-        public async Task<SupportingDepartmentDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+        protected override async Task BeforeCreateAsync(SupportingDepartmentCreateDto request, CancellationToken cancellationToken)
         {
-            var entity = await _repository.GetByIdAsync(id, asNoTracking: true, cancellationToken);
-            if (entity is null)
-                return null;
-            return MapToDetailsDto(entity);
+            await RequireParentAsync(_cities, request.CityId, x => x.CityId, "شهر", mustBeActive: false, cancellationToken);
         }
 
-        public async Task<SupportingDepartmentDetailDto> CreateAsync(SupportingDepartmentCreateDto request, CancellationToken cancellationToken = default)
+        protected override async Task BeforeUpdateAsync(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request, CancellationToken cancellationToken)
         {
-            var cityExists = await _cityRepository.ExistsAsync(x => x.CityId == request.CityId, cancellationToken);
-            if (!cityExists)
-                throw new NotFoundException("شهر یافت نشد.");
-
-            var title = request.Title.Trim();
-
-            var duplicateExists = await _repository.ExistsByTitleAsync(title, cancellationToken: cancellationToken);
-            if (duplicateExists)
-                throw new ConflictException("دپارتمان پشتیبانی دیگری با این عنوان وجود دارد.");
-
-            var entity = new EMS.Domain.Entities.SupportingDepartment
-            {
-                CityId = request.CityId,
-                Title = title,
-            };
-            await _repository.AddAsync(entity, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Created("SupportingDepartment", entity.SupportingDepartmentId);
-            return MapToDetailsDto(entity);
+            // A parent must be active when it is being changed or when this record is being re-activated.
+            var reactivating = !entity.IsActive && request.IsActive;
+            await RequireParentAsync(_cities, request.CityId ?? entity.CityId, x => x.CityId, "شهر", mustBeActive: false, cancellationToken);
         }
 
-        public async Task<SupportingDepartmentDetailDto?> UpdateAsync(SupportingDepartmentUpdateDto request, CancellationToken cancellationToken = default)
+        protected override SupportingDepartmentEntity NewEntity(SupportingDepartmentCreateDto request, string title) =>
+            new() { Title = title, CityId = request.CityId };
+
+        protected override void ApplyUpdate(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request)
         {
-            var entity = await _repository.GetByIdAsync(request.SupportingDepartmentId, asNoTracking: false, cancellationToken);
-            if (entity is null)
-                return null;
-
-            if (request.CityId.HasValue)
-            {
-                var cityExists = await _cityRepository.ExistsAsync(x => x.CityId == request.CityId.Value, cancellationToken);
-                if (!cityExists)
-                    throw new NotFoundException("شهر یافت نشد.");
-            }
-
-            var title = request.Title?.Length > 1 ? request.Title.Trim() : entity.Title;
-
-            var duplicateExists = await _repository.ExistsByTitleAsync(title, exceptId: request.SupportingDepartmentId, cancellationToken: cancellationToken);
-            if (duplicateExists)
-                throw new ConflictException("دپارتمان پشتیبانی دیگری با این عنوان وجود دارد.");
-
-            entity.CityId = request.CityId.HasValue ? request.CityId.Value : entity.CityId;
-            entity.Title = title;
-            if (RowVersionToken.TryParse(request.RowVersion, out var expectedVersion))
-                _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
-
-            if (entity.IsActive && !request.IsActive && await _repository.HasActiveDependentsAsync(entity.SupportingDepartmentId, cancellationToken))
-                throw new ConflictException("این واحد پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
-
-            entity.IsActive = request.IsActive;
-            _repository.Update(entity);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Updated("SupportingDepartment", entity.SupportingDepartmentId);
-            return MapToDetailsDto(entity);
+            entity.CityId = request.CityId ?? entity.CityId;
         }
 
-        public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default)
-        {
-            var entity = await _repository.GetByIdAsync(id, asNoTracking: false, cancellationToken);
-            if (entity is null)
-                return false;
-
-            if (entity.IsActive && await _repository.HasActiveDependentsAsync(id, cancellationToken))
-                throw new ConflictException("این واحد پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.");
-
-            entity.IsActive = false;
-            _repository.Update(entity);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            _audit.Deleted("SupportingDepartment", entity.SupportingDepartmentId);
-            return true;
-        }
-
-        private static IQueryable<EMS.Domain.Entities.SupportingDepartment> ApplySorting(IQueryable<EMS.Domain.Entities.SupportingDepartment> query, string? sortBy, string? sortDirection)
-        {
-            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-            var normalizedSortBy = sortBy?.Trim().ToLowerInvariant();
-            return normalizedSortBy switch
-            {
-                "title" => isDescending ? query.OrderByDescending(x => x.Title) : query.OrderBy(x => x.Title),
-                "cityid" => isDescending ? query.OrderByDescending(x => x.CityId) : query.OrderBy(x => x.CityId),
-                "createddatetime" => isDescending ? query.OrderByDescending(x => x.CreatedDateTime) : query.OrderBy(x => x.CreatedDateTime),
-                _ => isDescending ? query.OrderByDescending(x => x.SupportingDepartmentId) : query.OrderBy(x => x.SupportingDepartmentId)
-            };
-        }
-
-        private static SupportingDepartmentDetailDto MapToDetailsDto(EMS.Domain.Entities.SupportingDepartment entity)
-        {
-            return new SupportingDepartmentDetailDto
+        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) =>
+            new()
             {
                 SupportingDepartmentId = entity.SupportingDepartmentId,
                 CityId = entity.CityId,
@@ -166,6 +69,5 @@ namespace EMS.Application.Services.SupportingDepartment
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
-        }
     }
 }

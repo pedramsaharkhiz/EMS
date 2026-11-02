@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EMS.Application.Dtos.EquipmentCategory
+namespace EMS.Application.Dtos.EquipmentType
 {
     public class EquipmentTypeDetailDto
     {

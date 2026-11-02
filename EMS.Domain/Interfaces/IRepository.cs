@@ -17,6 +17,11 @@ namespace EMS.Domain.Interfaces
             bool asNoTracking = true,
             CancellationToken cancellationToken = default);
 
+        /// <summary>Like ExistsAsync, but also counts deactivated (soft-deleted) records.</summary>
+        Task<bool> ExistsIncludingInactiveAsync(
+            Expression<Func<T, bool>> predicate,
+            CancellationToken cancellationToken = default);
+
         Task<bool> ExistsAsync(
             Expression<Func<T, bool>> predicate,
             CancellationToken cancellationToken = default);

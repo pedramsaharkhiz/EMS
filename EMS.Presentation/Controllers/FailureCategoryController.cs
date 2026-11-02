@@ -1,12 +1,8 @@
-﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
-using EMS.Application.Dtos.FailureCategory;
-using EMS.Application.Dtos.RefreshToken;
-using EMS.Application.Interfaces.Auth;
-using EMS.Application.Interfaces.FailureCategory;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.FailureCategory;
+using EMS.Application.Interfaces.FailureCategory;
 using EMS.Presentation.Extensions;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
@@ -14,28 +10,21 @@ namespace EMS.Presentation.Controllers
     public class FailureCategoryController : BaseApiController
     {
         private readonly IFailureCategoryService _service;
-        public FailureCategoryController(IFailureCategoryService service) 
+
+        public FailureCategoryController(IFailureCategoryService service)
         {
             _service = service;
         }
 
         [Permission(Permissions.FailureCategories.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<FailureCategoryListItemDto>>> GetAllList([FromQuery] FailureCategoryListRequestDto request, CancellationToken cancellationToken) 
-        { 
-            var result = await _service.GetPagedAsync(request, cancellationToken); 
-            return Ok(result);
-        }
+        public async Task<ActionResult<PagedResult<FailureCategoryListItemDto>>> GetAllList([FromQuery] FailureCategoryListRequestDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.FailureCategories.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<FailureCategoryDetailDto>> GetById(long id, CancellationToken cancellationToken)
-        {
-            var result = await _service.GetByIdAsync(id, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<FailureCategoryDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
+            Ok(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.FailureCategories.Create)]
         [HttpPost]
@@ -46,23 +35,15 @@ namespace EMS.Presentation.Controllers
         }
 
         [Permission(Permissions.FailureCategories.Update)]
-        //[HttpPut("{id:long}")]
         [HttpPut]
-        public async Task<ActionResult<FailureCategoryDetailDto>> Update([FromBody] FailureCategoryUpdateDto request, CancellationToken cancellationToken)
-        {
-            var result = await _service.UpdateAsync(request, cancellationToken);
-            if (result is null)
-                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
-            return Ok(result);
-        }
+        public async Task<ActionResult<FailureCategoryDetailDto>> Update([FromBody] FailureCategoryUpdateDto request, CancellationToken cancellationToken) =>
+            Ok(await _service.UpdateAsync(request, cancellationToken));
 
         [Permission(Permissions.FailureCategories.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
         {
-            var deleted = await _service.DeleteAsync(id, cancellationToken);
-            if (!deleted)
-                throw new NotFoundException("دسته‌بندی موردنظر پیدا نشد.");
+            await _service.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
     }
