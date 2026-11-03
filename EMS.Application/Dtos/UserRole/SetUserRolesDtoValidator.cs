@@ -16,6 +16,10 @@ public sealed class SetUserRolesDtoValidator
             .WithMessage("شناسه‌ی نقش باید بزرگ‌تر از صفر باشد.");
 
         RuleFor(x => x.RoleIds)
+            .Must(ids => ids == null || ids.Count <= 1)
+            .WithMessage("هر کاربر فقط یک نقش می‌تواند داشته باشد.");
+
+        RuleFor(x => x.RoleIds)
             .Must(ids => ids == null || ids.Distinct().Count() == ids.Count)
             .WithMessage("شناسه‌ی تکراری نقش مجاز نیست.");
     }

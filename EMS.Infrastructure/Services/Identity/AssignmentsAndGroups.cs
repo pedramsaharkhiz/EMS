@@ -231,6 +231,14 @@ public sealed partial class UserManagementService
                 ids.Distinct().Count() != ids.Count
             );
 
+        if (roleIds is { Count: > 1 })
+        {
+            throw new FluentValidation.ValidationException(new[]
+            {
+                new FluentValidation.Results.ValidationFailure("roleIds", "هر کاربر فقط یک نقش می‌تواند داشته باشد.")
+            });
+        }
+
         if (Invalid(roleIds) || Invalid(skillIds))
         {
             throw new BadRequestException(
@@ -272,13 +280,20 @@ public sealed partial class UserManagementService
                 .Where(x => x.UserId == user.Id)
                 .ToListAsync(ct);
 
-            foreach (var relation in relations)
+            // One active role per user (unique filtered index): deactivate the old assignment and save
+            // before the new one is activated or inserted.
+            foreach (var relation in relations.Where(r => r.IsActive && !roleIds.Contains(r.RoleId)))
             {
-                var active = roleIds.Contains(relation.RoleId);
+                rolesChanged = true;
+                relation.IsActive = false;
+            }
 
-                rolesChanged |= relation.IsActive != active;
+            await _dbContext.SaveChangesAsync(ct);
 
-                relation.IsActive = active;
+            foreach (var relation in relations.Where(r => !r.IsActive && roleIds.Contains(r.RoleId)))
+            {
+                rolesChanged = true;
+                relation.IsActive = true;
             }
 
             var existingIds = relations

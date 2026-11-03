@@ -15,10 +15,8 @@ public sealed class UpdateUserDtoValidator
             .GreaterThan(0).WithMessage("شناسه‌ی مهارت باید بزرگ‌تر از صفر باشد.");
 
         RuleFor(x => x.RoleIds)
-            .Must(x =>
-                x == null ||
-                (x.Count <= 100 && x.Distinct().Count() == x.Count))
-            .WithMessage("حداکثر ۱۰۰ نقش بدون تکرار مجاز است.");
+            .Must(x => x == null || x.Count <= 1)
+            .WithMessage("هر کاربر فقط یک نقش می‌تواند داشته باشد.");
 
         RuleFor(x => x.SkillIds)
             .Must(x =>

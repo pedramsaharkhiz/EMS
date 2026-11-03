@@ -14,6 +14,9 @@ namespace EMS.Infrastructure.Persistence.Identity.Service;
 public sealed class UserRoleAssignmentService
     : IUserRoleAssignmentService
 {
+    public const string SingleRoleMessage = "هر کاربر فقط یک نقش می‌تواند داشته باشد.";
+    public const string AlreadyHasRoleMessage = "این کاربر نقش دیگری دارد. هر کاربر فقط یک نقش می‌تواند داشته باشد؛ نقش فعلی را بردارید یا با تنظیم نقش جایگزین کنید.";
+
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly EMSDbContext _dbContext;
@@ -66,6 +69,14 @@ public sealed class UserRoleAssignmentService
 
         var requestedRoleIds = roleIds.Distinct().ToHashSet();
 
+        if (requestedRoleIds.Count > 1)
+        {
+            throw new FluentValidation.ValidationException(new[]
+            {
+                new FluentValidation.Results.ValidationFailure("roleIds", SingleRoleMessage)
+            });
+        }
+
         var validRoleIds = await _roleManager.Roles
             .Where(role =>
                 requestedRoleIds.Contains(role.Id) &&
@@ -87,10 +98,18 @@ public sealed class UserRoleAssignmentService
             await _dbContext.Database.BeginTransactionAsync(
                 cancellationToken);
 
-        foreach (var relation in existingRelations)
+        // Two steps: the database allows one active role per user, so the old assignment must be deactivated
+        // before the new one is activated or inserted.
+        foreach (var relation in existingRelations.Where(r => !requestedRoleIds.Contains(r.RoleId)))
         {
-            relation.IsActive =
-                requestedRoleIds.Contains(relation.RoleId);
+            relation.IsActive = false;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var relation in existingRelations.Where(r => requestedRoleIds.Contains(r.RoleId)))
+        {
+            relation.IsActive = true;
         }
 
         var existingRoleIds = existingRelations
@@ -135,10 +154,18 @@ public sealed class UserRoleAssignmentService
                 x => x.UserId == userId && x.RoleId == roleId,
                 cancellationToken);
 
+        if (relation is { IsActive: true })
+            return;
+
+        if (await _dbContext.UserRoles.AnyAsync(
+                x => x.UserId == userId && x.RoleId != roleId && x.IsActive,
+                cancellationToken))
+        {
+            throw new ConflictException(AlreadyHasRoleMessage, ErrorCodes.UserAlreadyHasRole);
+        }
+
         if (relation is not null)
         {
-            if (relation.IsActive)
-                return;
 
             relation.IsActive = true;
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -301,6 +328,15 @@ public sealed class UserRoleAssignmentService
         {
             throw new BadRequestException(
                 "یک یا چند کاربر وجود ندارد یا غیرفعال است.", ErrorCodes.UsersInvalid);
+        }
+
+        if (await _dbContext.UserRoles.AnyAsync(
+                x => requestedUserIds.Contains(x.UserId) && x.RoleId != roleId && x.IsActive,
+                cancellationToken))
+        {
+            throw new ConflictException(
+                "حداقل یکی از کاربران انتخاب‌شده نقش دیگری دارد. هر کاربر فقط یک نقش می‌تواند داشته باشد؛ ابتدا نقش فعلی او را بردارید.",
+                ErrorCodes.UserAlreadyHasRole);
         }
 
         var existingRelations = await _dbContext.UserRoles
