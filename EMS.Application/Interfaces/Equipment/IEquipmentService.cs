@@ -1,0 +1,27 @@
+using EMS.Application.Common.Export;
+using EMS.Application.Common.Models;
+using EMS.Application.Dtos.Equipment;
+using EMS.Application.Dtos.EquipmentLocationHistory;
+
+namespace EMS.Application.Interfaces.Equipment
+{
+    public interface IEquipmentService
+    {
+        Task<PagedResult<EquipmentListItemDto>> GetPagedAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
+        Task<EquipmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        Task<EquipmentDetailDto> CreateAsync(EquipmentCreateDto request, CancellationToken cancellationToken = default);
+        Task<EquipmentDetailDto> UpdateAsync(long id, EquipmentUpdateDto request, CancellationToken cancellationToken = default);
+
+        /// <summary>Soft delete: deactivates the equipment (idempotent). Restore with an update with <c>isActive = true</c>.</summary>
+        Task DeleteAsync(long id, CancellationToken cancellationToken = default);
+
+        /// <summary>Changes the location and records it in the history (a move to the current location changes nothing).</summary>
+        Task<EquipmentDetailDto> MoveAsync(long id, EquipmentMoveDto request, CancellationToken cancellationToken = default);
+
+        Task<PagedResult<EquipmentLocationHistoryItemDto>> GetLocationHistoryAsync(long id, EquipmentLocationHistoryRequestDto request, CancellationToken cancellationToken = default);
+        Task<PagedResult<TechnicianItemDto>> GetTechniciansAsync(TechnicianListRequestDto request, CancellationToken cancellationToken = default);
+
+        /// <summary>The Excel file of the equipment that match the same filters as the list.</summary>
+        Task<ExcelFile> ExportAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
+    }
+}

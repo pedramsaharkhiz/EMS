@@ -400,6 +400,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("SerialNumber")
@@ -429,6 +430,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.HasIndex("EquipmentTypeId");
 
                     b.HasIndex("TechnicianUserId");
+
+                    b.HasIndex("YaasCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Equipments_YaasCode")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Equipments", null, t =>
                         {

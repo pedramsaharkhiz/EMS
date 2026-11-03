@@ -38,6 +38,10 @@ namespace EMS.Application.Common.Exceptions
         public const string ProtectedRecord = "protected_record";
         public const string ReservedCode = "reserved_code";
 
+        // equipment
+        public const string DuplicateYaasCode = "duplicate_yaas_code";
+        public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
+
         // exports
         public const string ExportTooLarge = "export_too_large";
         public const string ExportBusy = "export_busy";

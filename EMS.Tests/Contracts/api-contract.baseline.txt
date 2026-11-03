@@ -211,6 +211,387 @@ PUT api/City/{id}
     envelope: success, message, data, meta, error, traceId
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
+GET api/Equipment
+  authorization: Permission:Equipments.View
+  Query: AssetNumber : String
+  Query: CreatedFrom : DateTime?
+  Query: CreatedTo : DateTime?
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: Search : String
+  Query: SerialNumber : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: YaasCode : String
+  Query: brandId : Int64[]
+  Query: categoryId : Int64[]
+  Query: cityId : Int64[]
+  Query: fieldId : Int64[]
+  Query: locationTypeId : Int64[]
+  Query: modelId : Int64[]
+  Query: organizationId : Int64[]
+  Query: organizationManagementId : Int64[]
+  Query: provinceId : Int64[]
+  Query: statusId : Int64[]
+  Query: supportingDepartmentId : Int64[]
+  Query: technicianUserId : Int64[]
+  Query: typeId : Int64[]
+  Query: zoneId : Int64[]
+  response 200: ApiResponse<IReadOnlyList<EquipmentListItemDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+POST api/Equipment
+  authorization: Permission:Equipments.Create
+  body: EquipmentCreateDto
+    YaasCode : String
+    SerialNumber : String
+    AssetNumber : String
+    EquipmentTypeId : Int64?
+    EquipmentModelId : Int64?
+    EquipmentStatusId : Int64
+    CurrentEquipmentLocationTypeId : Int64
+    CurrentOrganizationId : Int64?
+    CurrentSupportingDepartmentId : Int64?
+    TechnicianUserId : Int64?
+    Description : String
+  response 201: ApiResponse<EquipmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Equipment/export
+  authorization: Permission:Equipments.View
+  Query: AssetNumber : String
+  Query: CreatedFrom : DateTime?
+  Query: CreatedTo : DateTime?
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: Search : String
+  Query: SerialNumber : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: YaasCode : String
+  Query: brandId : Int64[]
+  Query: categoryId : Int64[]
+  Query: cityId : Int64[]
+  Query: fieldId : Int64[]
+  Query: locationTypeId : Int64[]
+  Query: modelId : Int64[]
+  Query: organizationId : Int64[]
+  Query: organizationManagementId : Int64[]
+  Query: provinceId : Int64[]
+  Query: statusId : Int64[]
+  Query: supportingDepartmentId : Int64[]
+  Query: technicianUserId : Int64[]
+  Query: typeId : Int64[]
+  Query: zoneId : Int64[]
+  response 200: Byte[]
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Equipment/technicians
+  authorization: Permission:Equipments.View
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: Search : String
+  Query: SortBy : String
+  Query: SortDirection : String
+  response 200: ApiResponse<IReadOnlyList<TechnicianItemDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      FullName : String
+      PersonnelCode : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+DELETE api/Equipment/{id}
+  authorization: Permission:Equipments.Delete
+  Path: id : Int64 (required)
+  response 200: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Equipment/{id}
+  authorization: Permission:Equipments.View
+  Path: id : Int64 (required)
+  response 200: ApiResponse<EquipmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+PUT api/Equipment/{id}
+  authorization: Permission:Equipments.Update
+  body: EquipmentUpdateDto
+    YaasCode : String
+    SerialNumber : String
+    AssetNumber : String
+    EquipmentTypeId : Int64?
+    EquipmentModelId : Int64?
+    EquipmentStatusId : Int64
+    Description : String
+    IsActive : Boolean
+    RowVersion : String
+  Path: id : Int64 (required)
+  response 200: ApiResponse<EquipmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Equipment/{id}/location-history
+  authorization: Permission:Equipments.View
+  Path: id : Int64 (required)
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  response 200: ApiResponse<IReadOnlyList<EquipmentLocationHistoryItemDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      EquipmentLocationTypeId : Int64
+      EquipmentLocationTypeTitle : String
+      OrganizationId : Int64?
+      OrganizationTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      AssignedDateTime : DateTime
+      ChangedByUserId : Int64?
+      ChangedByName : String
+      Description : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+POST api/Equipment/{id}/move
+  authorization: Permission:Equipments.Assign
+  body: EquipmentMoveDto
+    CurrentEquipmentLocationTypeId : Int64
+    CurrentOrganizationId : Int64?
+    CurrentSupportingDepartmentId : Int64?
+    TechnicianUserId : Int64?
+    Description : String
+    RowVersion : String
+  Path: id : Int64 (required)
+  response 200: ApiResponse<EquipmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
 GET api/EquipmentCategory
   authorization: (authenticated)
   Query: IsActive : Boolean?

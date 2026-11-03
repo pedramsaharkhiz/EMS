@@ -44,8 +44,8 @@ private static readonly FilterBuilder<Equipment, EquipmentListRequestDto> Filter
 ```csharp
 public static class EquipmentExport
 {
-    public static readonly ExcelExportDefinition<EquipmentListItemDto> Definition = ExcelExportDefinition
-        .For<EquipmentListItemDto>(name: "Equipment", sheetTitle: "تجهیزات", fileLabel: "تجهیزات")
+    public static readonly ExcelExportDefinition<EquipmentRow> Definition = ExcelExportDefinition
+        .For<EquipmentRow>(name: "Equipment", sheetTitle: "تجهیزات", fileLabel: "تجهیزات")
         .Column(x => x.Id)                                  // عنوان «شناسه» از دیکشنری مشترک
         .Column(x => x.YaasCode, "یاس کد", ExcelCellKind.Text)
         .Column(x => x.StatusTitle, "وضعیت")
@@ -81,4 +81,4 @@ public static class EquipmentExport
 
 ### نوشتن تست برای یک خروجی
 
-تعریف را `Build()` کن (تست می‌کند عنوان‌ها کامل و بدون تکرارند) و فایل را با ClosedXML دوباره بخوان؛ `ExcelExportTests` الگوی کامل است.
+نمونه‌ی واقعی: `EquipmentExport` و `EquipmentTests` (فایل را با ClosedXML دوباره می‌خواند). تعریف را `Build()` کن (تست می‌کند عنوان‌ها کامل و بدون تکرارند) و فایل را با ClosedXML دوباره بخوان؛ `ExcelExportTests` الگوی کامل است.

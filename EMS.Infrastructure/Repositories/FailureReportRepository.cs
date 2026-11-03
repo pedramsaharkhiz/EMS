@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +16,11 @@ namespace EMS.Infrastructure.Repositories
 
         public async Task<FailureReport?> GetDetailsAsync(long id, CancellationToken cancellationToken = default)
         {
+            // The equipment of a report may have been deactivated since: lift the soft-delete filter, otherwise the join to
+            // Equipment would drop the report itself.
             return await _context.Set<FailureReport>()
                 .AsNoTracking()
+                .IncludingInactive()
                 .Include(x => x.Equipment)
                 .Include(x => x.FailureType)
                 .Include(x => x.ReportType)

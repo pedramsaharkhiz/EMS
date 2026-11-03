@@ -219,30 +219,15 @@ namespace EMS.Application.Services
         /// Requires the parent record to exist (404) and, when <paramref name="mustBeActive"/>, to be active (400).
         /// Use it from <see cref="BeforeCreateAsync"/> / <see cref="BeforeUpdateAsync"/>.
         /// </summary>
-        protected static async Task RequireParentAsync<TParent>(
+        protected static Task RequireParentAsync<TParent>(
             IRepository<TParent> repository,
             long id,
             Expression<Func<TParent, long>> key,
             string label,
             bool mustBeActive,
             CancellationToken cancellationToken)
-            where TParent : BaseEntity
-        {
-            var parameter = key.Parameters[0];
-            var matches = Expression.Equal(key.Body, Expression.Constant(id));
-
-            var exists = Expression.Lambda<Func<TParent, bool>>(matches, parameter);
-            if (!await repository.ExistsIncludingInactiveAsync(exists, cancellationToken))
-                throw new NotFoundException($"{label} یافت نشد.", ErrorCodes.ParentNotFound);
-
-            if (!mustBeActive)
-                return;
-
-            var existsAndActive = Expression.Lambda<Func<TParent, bool>>(
-                Expression.AndAlso(matches, Expression.Property(parameter, nameof(BaseEntity.IsActive))), parameter);
-            if (!await repository.ExistsAsync(existsAndActive, cancellationToken))
-                throw new BadRequestException($"{label} انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
-        }
+            where TParent : BaseEntity =>
+            ParentGuard.RequireAsync(repository, id, key, label, mustBeActive, cancellationToken);
 
         private async Task<TEntity> LoadAsync(long id, bool asNoTracking, CancellationToken cancellationToken) =>
             await _repository.GetByIdAsync(id, asNoTracking, cancellationToken)
