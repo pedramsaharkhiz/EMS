@@ -157,7 +157,7 @@ public sealed class UsersController : BaseApiController
             request.NewPassword,
             cancellationToken);
 
-        return Done("رمز عبور با موفقیت تغییر کرد.");
+        return Done("کلمه عبور با موفقیت تغییر کرد.");
     }
 
     // DELETE: /api/Users/10

@@ -1,0 +1,104 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+namespace EMS.Tests.Integration
+{
+    /// <summary>Every message the API sends to the UI (message and error.details) is Persian, also for framework-level failures.</summary>
+    public class PersianMessagesTests : ApiTestBase
+    {
+        public PersianMessagesTests(EmsApiFactory factory) : base(factory) { }
+
+        private static readonly Regex Persian = new(@"[؀-ۿ]");
+        // words that legitimately appear inside Persian sentences
+        private static readonly Regex Latin = new(@"\b(?!asc\b|desc\b|rowVersion\b|application\b|json\b|Content\b|Type\b)[A-Za-z]{3,}\b");
+
+        private async Task AssertPersianAsync(string label, HttpResponseMessage response, HttpStatusCode status)
+        {
+            Assert.True(status == response.StatusCode, $"{label}: expected {(int)status} but got {(int)response.StatusCode}");
+            var json = await ReadJsonAsync(response);
+            Assert.False(json.GetProperty("success").GetBoolean(), label);
+            var texts = new List<string> { json.GetProperty("message").GetString() ?? "" };
+            texts.AddRange(json.GetProperty("error").GetProperty("details").EnumerateArray().Select(d => d.GetProperty("message").GetString() ?? ""));
+            foreach (var text in texts)
+            {
+                Assert.True(Persian.IsMatch(text), $"{label}: '{text}' has no Persian text");
+                Assert.False(Latin.IsMatch(Regex.Replace(text, "«[^»]*»", "")), $"{label}: '{text}' contains English words");   // «…» quotes the client's own input / a field name
+            }
+        }
+
+        private async Task<HttpResponseMessage> RawAsync(HttpMethod method, string url, string? body, string contentType = "application/json")
+        {
+            var request = new HttpRequestMessage(method, url);
+            if (body is not null) request.Content = new StringContent(body, Encoding.UTF8, contentType);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", (await LoginAdminAsync()).AccessToken);
+            return await _client.SendAsync(request);
+        }
+
+        [Fact]
+        public async Task User_validation_messages_are_persian()
+        {
+            var admin = (await LoginAdminAsync()).AccessToken;
+            await AssertPersianAsync("create empty", await SendAsync(HttpMethod.Post, "/api/Users", new { }, bearer: admin), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("create long", await SendAsync(HttpMethod.Post, "/api/Users",
+                new { userName = new string('u', 30), password = "Passw0rd!x", firstName = new string('f', 150), lastName = "", personnelCode = "PC", email = "not-an-email", nationalCode = new string('1', 20), phoneNumber = new string('1', 30) }, bearer: admin), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("update empty", await SendAsync(HttpMethod.Put, "/api/Users/1", new { }, bearer: admin), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("short password", await SendAsync(HttpMethod.Put, "/api/Users/1/password", new { newPassword = "abc" }, bearer: admin), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("empty password", await SendAsync(HttpMethod.Put, "/api/Users/1/password", new { newPassword = "" }, bearer: admin), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Identity_errors_are_persian()
+        {
+            var admin = (await LoginAdminAsync()).AccessToken;
+            foreach (var name in new[] { "a b", "کاربر" })
+                await AssertPersianAsync("username " + name, await SendAsync(HttpMethod.Post, "/api/Users",
+                    new { userName = name, password = "Passw0rd!x", firstName = "A", lastName = "B", personnelCode = "PC-" + name.Length }, bearer: admin), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Login_and_refresh_validation_have_only_persian_messages()
+        {
+            await AssertPersianAsync("login empty", await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { }), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("refresh empty", await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { }), HttpStatusCode.BadRequest);
+            var login = await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { }));
+            Assert.Equal(2, login.GetProperty("error").GetProperty("details").GetArrayLength());   // one message per field, no English duplicate
+        }
+
+        [Fact]
+        public async Task Model_binding_failures_are_persian_and_do_not_leak_internals()
+        {
+            await AssertPersianAsync("empty body", await RawAsync(HttpMethod.Post, "/api/Brand", ""), HttpStatusCode.BadRequest);
+            var malformed = await RawAsync(HttpMethod.Post, "/api/Brand", "{ not json");
+            await AssertPersianAsync("malformed", malformed, HttpStatusCode.BadRequest);
+            var text = await malformed.Content.ReadAsStringAsync();
+            Assert.DoesNotContain("LineNumber", text);
+            Assert.DoesNotContain("BytePositionInLine", text);
+            await AssertPersianAsync("title is a number", await RawAsync(HttpMethod.Post, "/api/Brand", "{\"title\": 5}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("id of wrong type", await RawAsync(HttpMethod.Post, "/api/EquipmentType", "{\"equipmentCategoryId\":\"abc\",\"title\":\"t\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("pageSize=abc", await RawAsync(HttpMethod.Get, "/api/Brand?pageSize=abc", null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("isActive=maybe", await RawAsync(HttpMethod.Get, "/api/Brand?isActive=maybe", null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("brandId=abc", await RawAsync(HttpMethod.Get, "/api/EquipmentModel?brandId=abc", null), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task A_non_json_body_is_a_415_in_the_error_envelope_in_persian()
+        {
+            var response = await RawAsync(HttpMethod.Post, "/api/Brand", "hello", "text/plain");
+            await AssertPersianAsync("415", response, HttpStatusCode.UnsupportedMediaType);
+            Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal("unsupported_media_type", ErrorCodeOf(await ReadJsonAsync(response)));
+        }
+
+        [Fact]
+        public async Task Assigning_an_unknown_permission_is_rejected_in_persian()
+        {
+            var admin = (await LoginAdminAsync()).AccessToken;
+            await CreateRoleAsync(admin, "PmRole", "Brands.View");
+            var response = await SendAsync(HttpMethod.Post, "/api/Role/AssignPermissions", new { roleName = "PmRole", permissions = new[] { "Nope.Nothing" } }, bearer: admin);
+            await AssertPersianAsync("unknown permission", response, HttpStatusCode.BadRequest);
+            Assert.Contains("permissions[0]", (await ReadJsonAsync(response)).GetProperty("error").GetProperty("details")[0].GetProperty("field").GetString());
+        }
+    }
+}

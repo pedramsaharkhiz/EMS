@@ -7,7 +7,7 @@ namespace EMS.Application.Validators.RefreshToken
     {
         public RefreshTokenRequestDtoValidator()
         {
-            RuleFor(x => x.RefreshToken).NotEmpty().WithMessage("'ورود' - رفرش نوکن الزامی است.");
+            RuleFor(x => x.RefreshToken).NotEmpty().WithMessage("رفرش توکن الزامی است.");
         }
     }
     

@@ -58,6 +58,8 @@
 | `not_found` | 404 | مسیر یا رکورد وجود ندارد |
 | `method_not_allowed` | 405 | متد HTTP برای این مسیر مجاز نیست |
 | `conflict` | 409 | تعارض عمومی با وضعیت منبع |
+| `unsupported_media_type` | 415 | بدنه JSON نیست؛ هدر `Content-Type` باید `application/json` باشد |
+| `not_acceptable` | 406 | قالب پاسخ درخواستی پشتیبانی نمی‌شود |
 | `internal_error` | 500 | خطای پیش‌بینی‌نشده‌ی سرور (جزئیاتی نشت نمی‌کند، `traceId` را گزارش کنید) |
 
 ### احراز هویت
@@ -99,3 +101,10 @@
 - خطای قابل انتظار را با `NotFoundException`، `ConflictException` یا `BadRequestException` بیندازید و کد مناسب را از `ErrorCodes` بدهید: `throw new ConflictException("...", ErrorCodes.DuplicateTitle);`. کنترلر نباید بدنه‌ی خطا را خودش بسازد (`ApiErrors` آن را می‌سازد).
 - برای ۴۰۱ از `UnauthorizedAppException` استفاده کنید.
 - کد جدید به `ErrorCodes` و همین جدول اضافه شود.
+
+## زبان پیام‌ها
+همه‌ی `message` و `error.details[].message` فارسی‌اند، از جمله خطاهای خود فریم‌ورک:
+- validatorها `WithMessage` فارسی دارند و برای قاعده‌های بدون پیام، فرهنگ پیش‌فرض FluentValidation روی `fa` است.
+- خطاهای ASP.NET Identity با `PersianIdentityErrorDescriber` فارسی می‌شوند (کدها همان می‌مانند).
+- خطای اتصال مدل (query نامعتبر، JSON خراب یا خالی، نوع اشتباه) در `ApiErrors.FromModelState` فارسی می‌شود و مسیر JSON و شماره خط/بایت به کلاینت نمی‌رسد. خطای کل بدنه یک‌بار با `field: ""` می‌آید.
+- `415` و `406` هم همین پوشش را دارند. تست `PersianMessagesTests` از انگلیسی شدن دوباره جلوگیری می‌کند.

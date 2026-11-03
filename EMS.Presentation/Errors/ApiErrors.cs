@@ -1,7 +1,9 @@
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace EMS.Presentation.Errors
 {
@@ -30,6 +32,46 @@ namespace EMS.Presentation.Errors
             Create(context, ErrorCodes.ValidationFailed, ValidationMessage,
                 errors.SelectMany(e => e.Value.Select(message => new ApiErrorDetail { Field = FieldName(e.Key), Message = message })));
 
+        public const string BodyInvalidMessage = "بدنه‌ی درخواست خالی یا نامعتبر است.";
+        public const string FieldInvalidMessage = "مقدار این فیلد نامعتبر است.";
+
+        private static readonly Regex Persian = new(@"[\u0600-\u06FF]", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Model-binding / validation failures as a 400. MVC's own texts are English and expose internals (JSON path, line and
+        /// byte position, .NET type names), so only Persian messages (ours) are passed on; anything else becomes a generic
+        /// Persian message. Errors about the body as a whole (missing, not JSON) are reported once, without a field.
+        /// </summary>
+        public static ApiResponse<object> FromModelState(HttpContext context, ModelStateDictionary modelState)
+        {
+            var details = new List<ApiErrorDetail>();
+            var bodyReported = false;
+
+            foreach (var (key, entry) in modelState.Where(e => e.Value is { Errors.Count: > 0 }))
+            {
+                var field = FieldName(key);
+                var bodyLevel = field.Length == 0 || field == "request";
+
+                foreach (var error in entry!.Errors)
+                {
+                    var text = error.ErrorMessage;
+                    var framework = error.Exception is not null || string.IsNullOrWhiteSpace(text) || !Persian.IsMatch(text);
+
+                    if (bodyLevel && framework)
+                    {
+                        if (!bodyReported) details.Add(new ApiErrorDetail { Field = string.Empty, Message = BodyInvalidMessage });
+                        bodyReported = true;
+                        continue;
+                    }
+
+                    details.Add(new ApiErrorDetail { Field = field, Message = framework ? FieldInvalidMessage : text });
+                }
+            }
+
+            return Create(context, ErrorCodes.ValidationFailed, ValidationMessage,
+                details.DistinctBy(d => (d.Field, d.Message)));
+        }
+
         /// <summary>The error for a response that has a status code but no body (401/403/404/405 from the framework, ...).</summary>
         public static ApiResponse<object> ForStatus(HttpContext context, int status)
         {
@@ -40,6 +82,8 @@ namespace EMS.Presentation.Errors
                 StatusCodes.Status403Forbidden => (ErrorCodes.Forbidden, "شما به این عملیات دسترسی ندارید."),
                 StatusCodes.Status404NotFound => (ErrorCodes.NotFound, "مسیر یا منبع درخواستی یافت نشد."),
                 StatusCodes.Status405MethodNotAllowed => (ErrorCodes.MethodNotAllowed, "این متد برای مسیر درخواستی مجاز نیست."),
+                StatusCodes.Status406NotAcceptable => (ErrorCodes.NotAcceptable, "قالب پاسخ درخواستی پشتیبانی نمی‌شود؛ پاسخ‌ها application/json هستند."),
+                StatusCodes.Status415UnsupportedMediaType => (ErrorCodes.UnsupportedMediaType, "نوع محتوای درخواست پشتیبانی نمی‌شود؛ هدر Content-Type باید application/json باشد."),
                 StatusCodes.Status409Conflict => (ErrorCodes.Conflict, "درخواست با وضعیت فعلی منبع در تعارض است."),
                 >= 500 => (ErrorCodes.InternalError, "خطای داخلی سرور رخ داده است."),
                 _ => ($"http_{status}", "درخواست قابل پردازش نیست.")

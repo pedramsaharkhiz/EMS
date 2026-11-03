@@ -8,9 +8,9 @@ public sealed class SetUserPasswordDtoValidator
 {
     public SetUserPasswordDtoValidator()
     {
-        RuleFor(x => x.NewPassword)
-            .NotEmpty()
-            .MinimumLength(6)
+                RuleFor(x => x.NewPassword)
+            .NotEmpty().WithMessage("کلمه عبور الزامی است.")
+            .MinimumLength(6).WithMessage("کلمه عبور باید حداقل ۶ کاراکتر باشد.")
             .Matches("[A-Z]")
             .WithMessage("کلمه عبور باید حداقل یک حرف بزرگ انگلیسی داشته باشد.")
             .Matches("[a-z]")
