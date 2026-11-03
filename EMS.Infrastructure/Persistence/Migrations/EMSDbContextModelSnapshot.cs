@@ -2069,6 +2069,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("RoleId");
 
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AspNetUserRoles_UserId_Active")
+                        .HasFilter("[IsActive] = 1");
+
                     b.ToTable("AspNetUserRoles", (string)null);
                 });
 
