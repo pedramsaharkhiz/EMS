@@ -225,6 +225,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRoleManagementService, RoleManagementService>();
         services.AddScoped<IUserRoleAssignmentService, UserRoleAssignmentService>();
+        services.AddOrganizationHierarchy();
+
         return services;
     }
 }

@@ -119,6 +119,11 @@ namespace EMS.Application.Common.Security
 
             public const string Delete = "Skills.Delete";
         }
+        public static class OrganizationHierarchy
+        {
+            public const string View = "OrganizationHierarchy.View";
+        }
+
 
         /// <summary>
         /// Every permission, discovered from the constants of the nested groups above, so a new group or a new constant
