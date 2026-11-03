@@ -7,6 +7,8 @@ using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Infrastructure.Persistence.Seed;
 using EMS.Infrastructure.Options;
+using EMS.Infrastructure.Services.Export;
+using EMS.Application.Common.Export;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
 using EMS.Infrastructure.Security;
@@ -46,6 +48,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditEventLogger, AuditEventLogger>();
         services.Configure<AuditTrailOptions>(configuration.GetSection(AuditTrailOptions.SectionName));
         services.Configure<RefreshTokenCleanupOptions>(configuration.GetSection(RefreshTokenCleanupOptions.SectionName));
+        services.Configure<ExportOptions>(configuration.GetSection(ExportOptions.SectionName));
+        services.AddSingleton<ExportGate>();
+        services.AddScoped<IExcelExporter, ExcelExporter>();
         services.AddHostedService<EMS.Infrastructure.Maintenance.RefreshTokenCleanupBackgroundService>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         var slowQueryThresholdMs = configuration.GetValue("Logging:SlowQueryThresholdMs", 500);

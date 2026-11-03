@@ -38,6 +38,11 @@ namespace EMS.Application.Common.Exceptions
         public const string ProtectedRecord = "protected_record";
         public const string ReservedCode = "reserved_code";
 
+        // exports
+        public const string ExportTooLarge = "export_too_large";
+        public const string ExportBusy = "export_busy";
+        public const string TooManyRequests = "too_many_requests";
+
         // users and roles
         public const string UserNameTaken = "user_name_taken";
         public const string PersonnelCodeTaken = "personnel_code_taken";
@@ -76,6 +81,12 @@ namespace EMS.Application.Common.Exceptions
     public sealed class ConflictException : AppException
     {
         public ConflictException(string message, string? code = null) : base(message, code ?? ErrorCodes.Conflict) { }
+    }
+
+    /// <summary>A 429: the caller must wait and try again (e.g. too many exports running at once).</summary>
+    public sealed class TooManyRequestsException : AppException
+    {
+        public TooManyRequestsException(string message, string? code = null) : base(message, code ?? ErrorCodes.TooManyRequests) { }
     }
 
     public sealed class BadRequestException : AppException

@@ -77,6 +77,11 @@ namespace EMS.Presentation.Middlewares
                 LogClientError(context, ex);
                 await ApiErrors.WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message);
             }
+            catch (TooManyRequestsException ex)
+            {
+                LogClientError(context, ex);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status429TooManyRequests, ex.Code, ex.Message);
+            }
             catch (BadRequestException ex)
             {
                 LogClientError(context, ex);

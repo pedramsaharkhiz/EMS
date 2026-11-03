@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Models;
+using EMS.Application.Common.Export;
+using EMS.Application.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
@@ -37,6 +38,10 @@ namespace EMS.Presentation.Controllers
         /// <summary>200 with <c>data = null</c> (delete).</summary>
         protected ActionResult<ApiResponse<object>> Deleted(string? message = null) =>
             Ok(ApiResponse.Empty(TraceId, message ?? DeletedMessage));
+
+        /// <summary>An Excel download (see <see cref="Conventions.ExcelResponseAttribute"/>): the file name is sent as a UTF-8 Content-Disposition.</summary>
+        protected FileContentResult ExcelDownload(ExcelFile file) =>
+            File(file.Content, ExcelFile.ContentType, file.FileName);
 
         /// <summary>200 with <c>data = null</c> (a command that has nothing to return: assign roles, set a password, ...).</summary>
         protected ActionResult<ApiResponse<object>> Done(string? message = null) =>

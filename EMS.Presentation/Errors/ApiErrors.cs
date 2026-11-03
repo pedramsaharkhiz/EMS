@@ -84,6 +84,7 @@ namespace EMS.Presentation.Errors
                 StatusCodes.Status405MethodNotAllowed => (ErrorCodes.MethodNotAllowed, "این متد برای مسیر درخواستی مجاز نیست."),
                 StatusCodes.Status406NotAcceptable => (ErrorCodes.NotAcceptable, "قالب پاسخ درخواستی پشتیبانی نمی‌شود؛ پاسخ‌ها application/json هستند."),
                 StatusCodes.Status415UnsupportedMediaType => (ErrorCodes.UnsupportedMediaType, "نوع محتوای درخواست پشتیبانی نمی‌شود؛ هدر Content-Type باید application/json باشد."),
+                StatusCodes.Status429TooManyRequests => (ErrorCodes.TooManyRequests, "درخواست‌های زیادی ارسال شده است؛ کمی بعد دوباره تلاش کنید."),
                 StatusCodes.Status409Conflict => (ErrorCodes.Conflict, "درخواست با وضعیت فعلی منبع در تعارض است."),
                 >= 500 => (ErrorCodes.InternalError, "خطای داخلی سرور رخ داده است."),
                 _ => ($"http_{status}", "درخواست قابل پردازش نیست.")
