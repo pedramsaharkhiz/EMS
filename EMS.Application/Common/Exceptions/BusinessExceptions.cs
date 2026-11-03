@@ -14,6 +14,8 @@ namespace EMS.Application.Common.Exceptions
         public const string Forbidden = "forbidden";
         public const string NotFound = "not_found";
         public const string MethodNotAllowed = "method_not_allowed";
+        public const string UnsupportedMediaType = "unsupported_media_type";
+        public const string NotAcceptable = "not_acceptable";
         public const string Conflict = "conflict";
         public const string InternalError = "internal_error";
 

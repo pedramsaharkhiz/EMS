@@ -45,7 +45,7 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken)
         {
             await _service.DeleteAsync(id, cancellationToken);
-            return Deleted();
+            return Deleted("با موفقیت غیرفعال شد.");
         }
     }
 }

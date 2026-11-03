@@ -70,7 +70,27 @@ try
         });
     });
 
-    builder.Services.AddControllers(options => options.Conventions.Add(new ApiResponseConvention()))
+    builder.Services.AddControllers(options =>
+        {
+            options.Conventions.Add(new ApiResponseConvention());
+
+            // Non-nullable properties are not implicitly [Required] (that produced English "The X field is required." next to our
+            // own Persian validator messages); required fields are declared in the FluentValidation validators.
+            options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+
+            // MVC's binding messages (a query string like ?pageSize=abc) are English by default.
+            var binding = options.ModelBindingMessageProvider;
+            binding.SetValueIsInvalidAccessor(value => $"مقدار «{value}» معتبر نیست.");
+            binding.SetAttemptedValueIsInvalidAccessor((value, field) => $"مقدار «{value}» برای «{field}» معتبر نیست.");
+            binding.SetNonPropertyAttemptedValueIsInvalidAccessor(value => $"مقدار «{value}» معتبر نیست.");
+            binding.SetValueMustBeANumberAccessor(field => $"«{field}» باید عدد باشد.");
+            binding.SetNonPropertyValueMustBeANumberAccessor(() => "مقدار باید عدد باشد.");
+            binding.SetMissingBindRequiredValueAccessor(field => $"«{field}» الزامی است.");
+            binding.SetMissingKeyOrValueAccessor(() => "مقدار الزامی است.");
+            binding.SetMissingRequestBodyRequiredValueAccessor(() => ApiErrors.BodyInvalidMessage);
+            binding.SetUnknownValueIsInvalidAccessor(field => $"مقدار «{field}» معتبر نیست.");
+            binding.SetValueMustNotBeNullAccessor(value => $"مقدار «{value}» الزامی است.");
+        })
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -78,17 +98,12 @@ try
         // Model-validation failures (FluentValidation, malformed JSON) use the same error envelope as every other error.
         .ConfigureApiBehaviorOptions(options =>
         {
+            // Without this MVC turns a bare 415 (body is not JSON) into its own English ProblemDetails; UseStatusCodePages
+            // below then writes the error envelope for it instead.
+            options.SuppressMapClientErrors = true;
+
             options.InvalidModelStateResponseFactory = actionContext =>
-            {
-                var errors = actionContext.ModelState
-                    .Where(entry => entry.Value is { Errors.Count: > 0 })
-                    .ToDictionary(
-                        entry => entry.Key,
-                        entry => entry.Value!.Errors
-                            .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? "مقدار نامعتبر است." : error.ErrorMessage)
-                            .ToArray());
-                return new ApiErrorResult(StatusCodes.Status400BadRequest, ApiErrors.Validation(actionContext.HttpContext, errors));
-            };
+                new ApiErrorResult(StatusCodes.Status400BadRequest, ApiErrors.FromModelState(actionContext.HttpContext, actionContext.ModelState));
         });
 
     // OpenAPI Service

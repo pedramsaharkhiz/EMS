@@ -78,7 +78,7 @@ public sealed class UsersController : BaseApiController
     {
         await _users.SetPasswordAsync(id,request.NewPassword,cancellationToken);
 
-        return Done("رمز عبور با موفقیت تغییر کرد.");
+        return Done("کلمه عبور با موفقیت تغییر کرد.");
     }
 
     // DELETE: /api/Users/10

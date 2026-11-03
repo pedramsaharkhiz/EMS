@@ -75,7 +75,7 @@ public static class ServiceCollectionExtensions
             options.Lockout.AllowedForNewUsers = true;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5; }
-        ).AddEntityFrameworkStores<EMSDbContext>().AddDefaultTokenProviders();
+        ).AddErrorDescriber<PersianIdentityErrorDescriber>().AddEntityFrameworkStores<EMSDbContext>().AddDefaultTokenProviders();
 
         // Cookie attributes of the Identity cookie schemes come from appsettings (Security:Cookies), not from library defaults
         // (defaults would be: SameAsRequest, SameSite=Lax, 14 days sliding).
@@ -238,6 +238,8 @@ public static class ServiceCollectionExtensions
         });
         //services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
         services.AddValidatorsFromAssemblyContaining<LoginRequestDtoValidator>();
+        // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).
+        FluentValidation.ValidatorOptions.Global.LanguageManager.Culture = new System.Globalization.CultureInfo("fa");
         return services;
     }
 }
