@@ -212,6 +212,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<long>("ProvinceId")
@@ -224,7 +225,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("CityId");
 
-                    b.HasIndex("ProvinceId");
+                    b.HasIndex("ProvinceId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Cities_ProvinceId_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Cities", (string)null);
                 });
@@ -1242,6 +1246,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1250,6 +1255,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ProvinceId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Provinces_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Provinces", (string)null);
                 });
@@ -1389,11 +1399,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("SupportingDepartmentId");
 
-                    b.HasIndex("CityId");
-
-                    b.HasIndex("Title")
+                    b.HasIndex("CityId", "Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_SupportingDepartments_Title")
+                        .HasDatabaseName("UX_SupportingDepartments_CityId_Title")
                         .HasFilter("[IsActive] = 1");
 
                     b.ToTable("SupportingDepartments", (string)null);

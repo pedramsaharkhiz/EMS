@@ -3,6 +3,7 @@ using EMS.Application.Common.Logging;
 using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
+using EMS.Infrastructure.Persistence.Seed;
 using EMS.Presentation.Errors;
 using EMS.Presentation.Conventions;
 using EMS.Presentation.Middlewares;
@@ -235,6 +236,10 @@ try
     {
         var seeder = scope.ServiceProvider.GetRequiredService<IIdentitySeeder>();
         await seeder.SeedAsync();
+
+        // Optional reference data (Seed:Geography:Enabled): the provinces of Iran with their capitals. Off by default.
+        if (app.Configuration.GetValue<bool>("Seed:Geography:Enabled"))
+            await scope.ServiceProvider.GetRequiredService<IGeographySeeder>().SeedAsync();
     }
 
     app.Run();

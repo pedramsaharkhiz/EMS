@@ -1,10 +1,11 @@
-﻿using EMS.Application.Common.Interfaces;
+using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Infrastructure.Logging;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Validators.RefreshToken;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Identity.Seed;
+using EMS.Infrastructure.Persistence.Seed;
 using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
@@ -218,6 +219,7 @@ public static class ServiceCollectionExtensions
 
 
         services.AddScoped<IIdentitySeeder, IdentitySeeder>();
+        services.AddScoped<IGeographySeeder, GeographySeeder>();
         services.AddScoped<IAuthService, AuthService>(); 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRoleService, RoleService>();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -109,6 +109,22 @@ namespace EMS.Application.Common.Security
             public const string Update = "SupportingDepartments.Update";
             public const string Delete = "SupportingDepartments.Delete";
         }
+        public static class Provinces
+        {
+            public const string View = "Provinces.View";
+            public const string Create = "Provinces.Create";
+            public const string Update = "Provinces.Update";
+            public const string Delete = "Provinces.Delete";
+        }
+
+        public static class Cities
+        {
+            public const string View = "Cities.View";
+            public const string Create = "Cities.Create";
+            public const string Update = "Cities.Update";
+            public const string Delete = "Cities.Delete";
+        }
+
         public static class Skills
         {
             public const string View = "Skills.View";

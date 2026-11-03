@@ -10,6 +10,7 @@ namespace EMS.Application.Validators.SupportingDepartment
         public SupportingDepartmentListRequestDtoValidator() : base()
         {
             RuleFor(x => x.CityId).GreaterThan(0).When(x => x.CityId.HasValue).WithMessage("شناسه شهر باید بزرگتر از صفر باشد.");
+            RuleFor(x => x.ProvinceId).GreaterThan(0).When(x => x.ProvinceId.HasValue).WithMessage("شناسه استان باید بزرگتر از صفر باشد.");
         }
     }
 }

@@ -211,6 +211,41 @@ public override async Task<bool> HasActiveDependentsAsync(long id, CancellationT
 
 وقتی کاتالوگ به کاتالوگ دیگری وابسته است (مثلاً «نوع تجهیز» به «دسته‌بندی تجهیز»)، سرویس repository والد را می‌گیرد و در `BeforeCreateAsync` و `BeforeUpdateAsync` از `RequireParentAsync` استفاده می‌کند. نمونه‌ی کامل: `EquipmentTypeService`. قاعده‌ی ویرایش: والد باید فعال باشد اگر **عوض می‌شود** یا رکورد **بازگردانده می‌شود**.
 
+### یکتایی عنوان فقط در محدوده‌ی والد (استان ← شهر ← دپارتمان)
+
+به‌طور پیش‌فرض عنوان در کل جدول یکتاست. بعضی کاتالوگ‌ها فقط درون والدشان یکتا هستند: «شهر» در هر **استان** و «دپارتمان پشتیبانی» در هر **شهر** (دو شهر می‌توانند هر دو دپارتمان «فناوری اطلاعات» داشته باشند). برای این حالت سه کار لازم است:
+
+1. در سرویس، دو hook را override کن (برای ایجاد و برای ویرایش؛ در ویرایش از والدی استفاده کن که رکورد **بعد از ویرایش** دارد، چون جابه‌جایی بین والدها هم باید بررسی شود):
+   ```csharp
+   protected override Expression<Func<CityEntity, bool>>? TitleScopeForCreate(CityCreateDto request) =>
+       x => x.ProvinceId == request.ProvinceId;
+
+   protected override Expression<Func<CityEntity, bool>>? TitleScopeForUpdate(CityEntity entity, CityUpdateDto request)
+   {
+       var provinceId = request.ProvinceId ?? entity.ProvinceId;
+       return x => x.ProvinceId == provinceId;
+   }
+   ```
+2. در تنظیمات EF ایندکس یکتا را **ترکیبی** کن: `HasIndex(x => new { x.ProvinceId, x.Title }).IsUnique().HasFilter("[IsActive] = 1")` (نام: `UX_Cities_ProvinceId_Title`). این ایندکس جای ایندکس ساده‌ی کلید خارجی را هم می‌گیرد.
+3. اگر جدول قبلاً داده داشته، پیش از `CREATE INDEX` تکراری‌ها را بررسی کن؛ migration `GeographyCatalogs` نمونه است و با پیام خوانا متوقف می‌شود.
+
+در تست‌ها `ScopeKey` در `CatalogCase` (مثلاً `"provinceId"`) به تست‌های عمومی می‌گوید رکوردهای رقیب را زیر **همان والد** بسازند.
+
+### نام والد در DTO (`ToDetailAsync`)
+
+اگر جزئیات باید عنوان والد را هم داشته باشد (مثلاً `provinceTitle` در شهر، `cityTitle` و `provinceTitle` در دپارتمان)، در **لیست** از projection (`x.Province.Title`) استفاده کن و برای **جزئیات** `ToDetailAsync` را override کن: بعد از ایجاد و ویرایش entity فقط کلید خارجی دارد و عنوان والد باید با یک کوئری خوانده شود (نمونه: `CityService` و `SupportingDepartmentService.GetLocationAsync`).
+
+### سلسله‌مراتب جغرافیایی
+
+`Province` ← `City` ← `SupportingDepartment`: هر سه کاتالوگ‌اند و قواعد زیر را دارند.
+
+- غیرفعال‌کردن استان تا وقتی **شهر فعال** دارد، و غیرفعال‌کردن شهر تا وقتی **دپارتمان فعال** دارد، با `409 has_active_dependents` رد می‌شود. پس همیشه ابتدا فرزندان غیرفعال می‌شوند.
+- ایجاد شهر زیر استان غیرفعال (و دپارتمان زیر شهر غیرفعال) با `400 parent_inactive` رد می‌شود؛ استان یا شهر ناموجود `404 parent_not_found` است.
+- بازگرداندن یک شهر/دپارتمان یا جابه‌جاکردنش به والد دیگر، والد فعال می‌خواهد.
+- لیست شهرها با `provinceId` و لیست دپارتمان‌ها با `cityId` و `provinceId` فیلتر می‌شود.
+
+داده‌ی اولیه (اختیاری): با `Seed:Geography:Enabled=true` در `appsettings` هنگام شروع برنامه ۳۱ استان و مرکز هر استان اضافه می‌شود (`GeographySeeder`). عملیات افزایشی و تکرارپذیر است: استان یا شهری که از قبل هست (حتی غیرفعال یا با حروف متفاوت) دست نمی‌خورد. پیش‌فرض خاموش است و بقیه‌ی شهرها از طریق `POST /api/City` اضافه می‌شوند.
+
 ---
 
 ## ۵. حذف منطقی به‌صورت فیلتر سراسری

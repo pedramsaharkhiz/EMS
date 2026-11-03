@@ -65,6 +65,13 @@ namespace EMS.Application.Services
 
         protected abstract TDetail ToDetail(TEntity entity);
 
+        /// <summary>
+        /// Detail used by every endpoint. Override it when the detail carries names of related records (a city's province
+        /// title, ...) that have to be queried; the default is <see cref="ToDetail"/>.
+        /// </summary>
+        protected virtual Task<TDetail> ToDetailAsync(TEntity entity, CancellationToken cancellationToken) =>
+            Task.FromResult(ToDetail(entity));
+
         /// <summary>Creates the entity. <paramref name="title"/> is already trimmed; set the other fields here.</summary>
         protected abstract TEntity NewEntity(TCreate request, string title);
 
@@ -82,6 +89,16 @@ namespace EMS.Application.Services
 
         /// <summary>Validate parents before updating. Optional.</summary>
         protected virtual Task BeforeUpdateAsync(TEntity entity, TUpdate request, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        /// <summary>
+        /// Titles are unique across the whole table by default. Override both to make them unique only within a group, e.g.
+        /// <c>x =&gt; x.CityId == request.CityId</c> for "a department title is unique within its city". The filtered unique
+        /// index in the EF configuration must be composite on the same columns.
+        /// </summary>
+        protected virtual Expression<Func<TEntity, bool>>? TitleScopeForCreate(TCreate request) => null;
+
+        /// <summary>See <see cref="TitleScopeForCreate"/>. Use the group the record will belong to after this update.</summary>
+        protected virtual Expression<Func<TEntity, bool>>? TitleScopeForUpdate(TEntity entity, TUpdate request) => null;
 
         protected virtual string DuplicateMessage => $"{Label} دیگری با این عنوان وجود دارد.";
         protected virtual string NotFoundMessage => $"{Label} موردنظر پیدا نشد.";
@@ -110,7 +127,7 @@ namespace EMS.Application.Services
         public async Task<TDetail> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var entity = await LoadAsync(id, asNoTracking: true, cancellationToken);
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task<TDetail> CreateAsync(TCreate request, CancellationToken cancellationToken = default)
@@ -118,14 +135,14 @@ namespace EMS.Application.Services
             await BeforeCreateAsync(request, cancellationToken);
 
             var title = request.Title.Trim();
-            await EnsureTitleIsFreeAsync(title, exceptId: null, cancellationToken);
+            await EnsureTitleIsFreeAsync(title, exceptId: null, TitleScopeForCreate(request), cancellationToken);
 
             var entity = NewEntity(request, title);
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _audit.Created(typeof(TEntity).Name, _idOf.Value(entity));
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task<TDetail> UpdateAsync(long id, TUpdate request, CancellationToken cancellationToken = default)
@@ -142,7 +159,7 @@ namespace EMS.Application.Services
 
             // Only an active record reserves its title (consistent with the filtered unique index in the database).
             if (request.IsActive)
-                await EnsureTitleIsFreeAsync(title, _idOf.Value(entity), cancellationToken);
+                await EnsureTitleIsFreeAsync(title, _idOf.Value(entity), TitleScopeForUpdate(entity, request), cancellationToken);
 
             entity.Title = title;
             ApplyUpdate(entity, request);
@@ -158,7 +175,7 @@ namespace EMS.Application.Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _audit.Updated(typeof(TEntity).Name, _idOf.Value(entity));
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
@@ -219,9 +236,9 @@ namespace EMS.Application.Services
             await _repository.GetByIdAsync(id, asNoTracking, cancellationToken)
             ?? throw new NotFoundException(NotFoundMessage, ErrorCodes.NotFound);
 
-        private async Task EnsureTitleIsFreeAsync(string title, long? exceptId, CancellationToken cancellationToken)
+        private async Task EnsureTitleIsFreeAsync(string title, long? exceptId, Expression<Func<TEntity, bool>>? scope, CancellationToken cancellationToken)
         {
-            if (await _repository.ExistsByTitleAsync(title, exceptId, cancellationToken))
+            if (await _repository.ExistsByTitleAsync(title, exceptId, scope, cancellationToken))
                 throw new ConflictException(DuplicateMessage, ErrorCodes.DuplicateTitle);
         }
 
