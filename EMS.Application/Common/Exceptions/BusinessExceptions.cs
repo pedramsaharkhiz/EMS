@@ -49,6 +49,7 @@ namespace EMS.Application.Common.Exceptions
         public const string RoleNotFound = "role_not_found";
         public const string RoleInactive = "role_inactive";
         public const string RolesInvalid = "roles_invalid";
+        public const string SkillsInvalid = "skills_invalid";
         public const string RoleInUse = "role_in_use";
         public const string IdentityError = "identity_error";
     }

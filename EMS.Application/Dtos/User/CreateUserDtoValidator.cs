@@ -9,10 +9,10 @@ public sealed class CreateUserDtoValidator
     public CreateUserDtoValidator()
     {
         RuleForEach(x => x.RoleIds)
-            .GreaterThan(0);
+            .GreaterThan(0).WithMessage("شناسه‌ی نقش باید بزرگ‌تر از صفر باشد.");
 
         RuleForEach(x => x.SkillIds)
-            .GreaterThan(0);
+            .GreaterThan(0).WithMessage("شناسه‌ی مهارت باید بزرگ‌تر از صفر باشد.");
 
         RuleFor(x => x.RoleIds)
             .Must(x =>

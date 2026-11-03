@@ -417,8 +417,10 @@ public sealed class SkillService : ISkillService
     {
         if (id <= 0)
         {
-            throw new BadRequestException(
-                "شناسه مهارت باید بزرگتر از صفر باشد.");
+            throw new FluentValidation.ValidationException(new[]
+            {
+                new FluentValidation.Results.ValidationFailure("id", "شناسه مهارت باید بزرگتر از صفر باشد.")
+            });
         }
     }
 

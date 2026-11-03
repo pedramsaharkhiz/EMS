@@ -28,21 +28,21 @@ public sealed class SkillListRequestDtoValidator
     public SkillListRequestDtoValidator()
     {
         RuleFor(x => x.PageNumber)
-            .GreaterThanOrEqualTo(1);
+            .GreaterThanOrEqualTo(1).WithMessage("شماره صفحه باید حداقل 1 باشد.");
 
         RuleFor(x => x.PageSize)
-            .InclusiveBetween(1, 100);
+            .InclusiveBetween(1, 100).WithMessage("اندازه صفحه باید بین 1 تا 100 باشد.");
 
         RuleFor(x => x.SortDirection)
             .Must(x => Normalize(x) is "asc" or "desc" or "dsc")
-            .WithMessage("SortDirection باید asc یا desc باشد.");
+            .WithMessage("جهت مرتب‌سازی باید asc یا desc باشد.");
 
         RuleFor(x => x.GroupBy)
             .Must(x =>
                 string.IsNullOrWhiteSpace(x) ||
                 Normalize(x) is "isactive" or "code" or "hastechnician")
             .WithMessage(
-                "GroupBy باید isActive، code یا hasTechnician باشد.");
+                "گروه‌بندی باید isActive، code یا hasTechnician باشد.");
 
         RuleFor(x => x.SortBy)
             .Must((request, sortBy) =>
@@ -58,34 +58,34 @@ public sealed class SkillListRequestDtoValidator
 
                 return allowed.Contains(Normalize(sortBy));
             })
-            .WithMessage("SortBy برای نوع خروجی انتخاب‌شده معتبر نیست.");
+            .WithMessage("مرتب‌سازی بر اساس این ستون برای نوع خروجی انتخاب‌شده معتبر نیست.");
 
         RuleFor(x => x.Id)
-            .GreaterThan(0)
+            .GreaterThan(0).WithMessage("شناسه باید بزرگ‌تر از صفر باشد.")
             .When(x => x.Id.HasValue);
 
         RuleFor(x => x.TechnicianUserId)
-            .GreaterThan(0)
+            .GreaterThan(0).WithMessage("شناسه‌ی تکنسین باید بزرگ‌تر از صفر باشد.")
             .When(x => x.TechnicianUserId.HasValue);
 
         RuleFor(x => x.Search)
-            .MaximumLength(500);
+            .MaximumLength(500).WithMessage("عبارت جستجو نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.");
 
         RuleFor(x => x.Title)
-            .MaximumLength(100);
+            .MaximumLength(100).WithMessage("عنوان نمی‌تواند بیشتر از ۱۰۰ کاراکتر باشد.");
 
         RuleFor(x => x.Code)
-            .MaximumLength(20);
+            .MaximumLength(20).WithMessage("کد نمی‌تواند بیشتر از ۲۰ کاراکتر باشد.");
 
         RuleFor(x => x.Description)
-            .MaximumLength(500);
+            .MaximumLength(500).WithMessage("توضیحات نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.");
 
         RuleFor(x => x.MinTechnicianCount)
-            .GreaterThanOrEqualTo(0)
+            .GreaterThanOrEqualTo(0).WithMessage("حداقل تعداد تکنسین نمی‌تواند منفی باشد.")
             .When(x => x.MinTechnicianCount.HasValue);
 
         RuleFor(x => x.MaxTechnicianCount)
-            .GreaterThanOrEqualTo(0)
+            .GreaterThanOrEqualTo(0).WithMessage("حداکثر تعداد تکنسین نمی‌تواند منفی باشد.")
             .When(x => x.MaxTechnicianCount.HasValue);
 
         RuleFor(x => x)

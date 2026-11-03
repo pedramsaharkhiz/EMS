@@ -12,7 +12,7 @@ namespace EMS.Tests.Integration
 
         private static readonly Regex Persian = new(@"[؀-ۿ]");
         // words that legitimately appear inside Persian sentences
-        private static readonly Regex Latin = new(@"\b(?!asc\b|desc\b|rowVersion\b|application\b|json\b|Content\b|Type\b)[A-Za-z]{3,}\b");
+        private static readonly Regex Latin = new(@"\b(?!asc\b|desc\b|role\b|skill\b|department\b|isActive\b|code\b|hasTechnician\b|rowVersion\b|application\b|json\b|Content\b|Type\b)[A-Za-z]{3,}\b");
 
         private async Task AssertPersianAsync(string label, HttpResponseMessage response, HttpStatusCode status)
         {
@@ -80,6 +80,19 @@ namespace EMS.Tests.Integration
             await AssertPersianAsync("pageSize=abc", await RawAsync(HttpMethod.Get, "/api/Brand?pageSize=abc", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("isActive=maybe", await RawAsync(HttpMethod.Get, "/api/Brand?isActive=maybe", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("brandId=abc", await RawAsync(HttpMethod.Get, "/api/EquipmentModel?brandId=abc", null), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Skill_and_user_group_validation_messages_are_persian_with_fields()
+        {
+            await AssertPersianAsync("skills list", await RawAsync(HttpMethod.Get, "/api/Skills?pageSize=0&pageNumber=0&id=0&technicianUserId=0&minTechnicianCount=-1&title=" + new string('a', 200), null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("skills groups", await RawAsync(HttpMethod.Get, "/api/Skills/groups?pageSize=0", null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("skill id 0", await RawAsync(HttpMethod.Put, "/api/Skills/0", "{\"title\":\"x\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("users groupBy", await RawAsync(HttpMethod.Get, "/api/Users/groups?groupBy=zzz", null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("user ids 0", await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"nx\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P9\",\"roleIds\":[0],\"skillIds\":[0]}"), HttpStatusCode.BadRequest);
+            var unknown = await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"ny\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P8\",\"skillIds\":[99999]}");
+            await AssertPersianAsync("unknown skill", unknown, HttpStatusCode.BadRequest);
+            Assert.Equal("skills_invalid", ErrorCodeOf(await ReadJsonAsync(unknown)));
         }
 
         [Fact]

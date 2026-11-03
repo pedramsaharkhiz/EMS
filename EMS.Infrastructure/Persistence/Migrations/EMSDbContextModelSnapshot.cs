@@ -1330,6 +1330,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1338,6 +1339,14 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("SkillId");
+
+                    b.HasIndex("Code")
+                        .HasDatabaseName("IX_Skills_Code");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Skills_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Skills", (string)null);
                 });
