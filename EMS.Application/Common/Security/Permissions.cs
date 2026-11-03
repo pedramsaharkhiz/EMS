@@ -109,6 +109,16 @@ namespace EMS.Application.Common.Security
             public const string Update = "SupportingDepartments.Update";
             public const string Delete = "SupportingDepartments.Delete";
         }
+        public static class Skills
+        {
+            public const string View = "Skills.View";
+
+            public const string Create = "Skills.Create";
+
+            public const string Update = "Skills.Update";
+
+            public const string Delete = "Skills.Delete";
+        }
 
         /// <summary>
         /// Every permission, discovered from the constants of the nested groups above, so a new group or a new constant

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EMS.Infrastructure.Persistence.Identity.Service;
 
-public sealed class UserManagementService : IUserManagementService
+public sealed partial class UserManagementService : IUserManagementService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly EMSDbContext _dbContext;
@@ -27,160 +27,21 @@ public sealed class UserManagementService : IUserManagementService
         _audit = audit;
     }
 
-    public async Task<PagedResult<UserListItemDto>> GetPagedAsync(UserListRequestDto request, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<UserListItemDto>> GetPagedAsync(
+        UserListRequestDto request,
+        CancellationToken cancellationToken = default)
     {
-        var pageNumber = Math.Max(1, request.PageNumber); var pageSize = Math.Clamp(request.PageSize, 1, 100); var query = _userManager.Users.AsNoTracking();
+        ValidateListRequest(request, grouped: false);
 
-        // =========================================
-        // 1. فیلتر شناسه کاربر
-        // =========================================
-        if (request.Id.HasValue)
-        {
-            query = query.Where(x => x.Id == request.Id.Value);
-        }
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        // =========================================
-        // 2. فیلتر نام کاربری
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.UserName))
-        {
-            var userName = request.UserName.Trim();
+        var query = BuildUserQuery(request);
 
-            query = query.Where(x =>
-                x.UserName != null &&
-                x.UserName.Contains(userName));
-        }
-
-        // =========================================
-        // 3. فیلتر نام
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.FirstName))
-        {
-            var firstName = request.FirstName.Trim();
-
-            query = query.Where(x =>
-                x.FirstName.Contains(firstName));
-        }
-
-        // =========================================
-        // 4. فیلتر نام خانوادگی
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.LastName))
-        {
-            var lastName = request.LastName.Trim();
-
-            query = query.Where(x =>
-                x.LastName.Contains(lastName));
-        }
-
-        // =========================================
-        // 5. فیلتر کد پرسنلی
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.PersonnelCode))
-        {
-            var personnelCode = request.PersonnelCode.Trim();
-
-            query = query.Where(x =>
-                x.PersonnelCode.Contains(personnelCode));
-        }
-
-        // =========================================
-        // 6. فیلتر کد ملی
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.NationalCode))
-        {
-            var nationalCode = request.NationalCode.Trim();
-
-            query = query.Where(x =>
-                x.NationalCode != null &&
-                x.NationalCode.Contains(nationalCode));
-        }
-
-        // =========================================
-        // 7. فیلتر شماره تلفن
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-        {
-            var phoneNumber = request.PhoneNumber.Trim();
-
-            query = query.Where(x =>
-                x.PhoneNumber != null &&
-                x.PhoneNumber.Contains(phoneNumber));
-        }
-
-        // =========================================
-        // 8. فیلتر ایمیل
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.Email))
-        {
-            var email = request.Email.Trim();
-
-            query = query.Where(x =>
-                x.Email != null &&
-                x.Email.Contains(email));
-        }
-
-        // =========================================
-        // 9. فیلتر دپارتمان
-        // =========================================
-        if (request.SupportingDepartmentId.HasValue)
-        {
-            query = query.Where(x =>
-                x.SupportingDepartmentId ==
-                request.SupportingDepartmentId.Value);
-        }
-
-        // =========================================
-        // 10. فیلتر وضعیت فعال بودن کاربر
-        // =========================================
-        if (request.IsActive.HasValue)
-        {
-            query = query.Where(x =>
-                x.IsActive == request.IsActive.Value);
-        }
-
-        // =========================================
-        // 11. جست‌وجوی عمومی
-        // =========================================
-        if (!string.IsNullOrWhiteSpace(request.Search))
-        {
-            var search = request.Search.Trim();
-            var isNumeric = long.TryParse(search, out var numericSearch);
-
-            query = query.Where(x =>
-                (x.UserName != null &&
-                 x.UserName.Contains(search))
-
-                || x.FirstName.Contains(search)
-
-                || x.LastName.Contains(search)
-
-                || (x.FirstName + " " + x.LastName).Contains(search)
-
-                || x.PersonnelCode.Contains(search)
-
-                || (x.NationalCode != null &&
-                    x.NationalCode.Contains(search))
-
-                || (x.PhoneNumber != null &&
-                    x.PhoneNumber.Contains(search))
-
-                || (x.Email != null &&
-                    x.Email.Contains(search))
-
-                || (isNumeric &&
-                    (x.Id == numericSearch ||
-                     x.SupportingDepartmentId == numericSearch))
-            );
-        }
-
-        // =========================================
-        // 12. مرتب‌سازی
-        // =========================================
         var sortBy = request.SortBy?.Trim().ToLowerInvariant();
 
         var descending =
-            request.SortDirection?.Trim().ToLowerInvariant() == "desc";
+            request.SortDirection?.Trim().ToLowerInvariant() is "desc" or "dsc";
 
         query = (sortBy, descending) switch
         {
@@ -214,6 +75,24 @@ public sealed class UserManagementService : IUserManagementService
             ("personnelcode", false) =>
                 query.OrderBy(x => x.PersonnelCode),
 
+            ("isactive", true) =>
+                query.OrderByDescending(x => x.IsActive),
+
+            ("isactive", false) =>
+                query.OrderBy(x => x.IsActive),
+
+            ("supportingdepartmentid", true) =>
+                query.OrderByDescending(x => x.SupportingDepartmentId),
+
+            ("supportingdepartmentid", false) =>
+                query.OrderBy(x => x.SupportingDepartmentId),
+
+            ("fullname", true) =>
+                query.OrderByDescending(x => x.FirstName + " " + x.LastName),
+
+            ("fullname", false) =>
+                query.OrderBy(x => x.FirstName + " " + x.LastName),
+
             ("createddatetime", true) =>
                 query.OrderByDescending(x => x.CreatedDateTime),
 
@@ -227,9 +106,10 @@ public sealed class UserManagementService : IUserManagementService
                 query.OrderBy(x => x.Id)
         };
 
-        // =========================================
-        // 13. تبدیل اطلاعات اصلی کاربر به DTO
-        // =========================================
+        // Stable ordering for pagination.
+        query = ((IOrderedQueryable<ApplicationUser>)query)
+            .ThenBy(x => x.Id);
+
         var projected = query.Select(x => new UserListItemDto
         {
             Id = x.Id,
@@ -244,28 +124,20 @@ public sealed class UserManagementService : IUserManagementService
             IsActive = x.IsActive
         });
 
-        // =========================================
-        // 14. صفحه‌بندی
-        // =========================================
         var result = await projected.ToPagedResultAsync(
             pageNumber,
             pageSize,
             cancellationToken);
 
-        // شناسه کاربران صفحه جاری
         var userIds = result.Items
             .Select(x => x.Id)
             .ToArray();
 
-        // اگر صفحه خالی باشد، Queryهای اضافی اجرا نشوند
         if (userIds.Length == 0)
         {
             return result;
         }
 
-        // =========================================
-        // 15. دریافت نقش‌های کاربران
-        // =========================================
         var roleRows = await (
             from userRole in _dbContext.UserRoles.AsNoTracking()
             join role in _dbContext.Roles.AsNoTracking()
@@ -294,9 +166,6 @@ public sealed class UserManagementService : IUserManagementService
                     .OrderBy(x => x.Name)
                     .ToList());
 
-        // =========================================
-        // 16. دریافت مهارت‌های کاربران
-        // =========================================
         var skillRows = await _dbContext.TechnicianSkills
             .AsNoTracking()
             .Where(x =>
@@ -330,9 +199,6 @@ public sealed class UserManagementService : IUserManagementService
                     .OrderBy(x => x.Title)
                     .ToList());
 
-        // =========================================
-        // 17. افزودن نقش‌ها و مهارت‌ها به کاربران
-        // =========================================
         foreach (var user in result.Items)
         {
             if (rolesByUserId.TryGetValue(user.Id, out var roles))
@@ -349,7 +215,9 @@ public sealed class UserManagementService : IUserManagementService
         return result;
     }
 
-    public async Task<UserDetailDto?> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<UserDetailDto?> GetByIdAsync(
+        long id,
+        CancellationToken cancellationToken = default)
     {
         var user = await _userManager.Users
             .AsNoTracking()
@@ -357,11 +225,23 @@ public sealed class UserManagementService : IUserManagementService
                 x => x.Id == id,
                 cancellationToken);
 
-        return user is null ? null : MapDetail(user);
+        return user is null
+            ? null
+            : await LoadDetailAsync(user, cancellationToken);
     }
 
-    public async Task<UserDetailDto> CreateAsync(CreateUserDto request, CancellationToken cancellationToken = default)
+    public async Task<UserDetailDto> CreateAsync(
+        CreateUserDto request,
+        CancellationToken cancellationToken = default)
     {
+        await ValidateAssignmentsAsync(
+            request.RoleIds,
+            request.SkillIds,
+            cancellationToken);
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         var userName = request.UserName.Trim();
 
         var existingUser =
@@ -370,7 +250,8 @@ public sealed class UserManagementService : IUserManagementService
         if (existingUser is not null)
         {
             throw new ConflictException(
-                "این نام کاربری قبلاً ثبت شده است.", ErrorCodes.UserNameTaken);
+                "این نام کاربری قبلاً ثبت شده است.",
+                ErrorCodes.UserNameTaken);
         }
 
         await EnsureUniqueBusinessFieldsAsync(
@@ -404,16 +285,40 @@ public sealed class UserManagementService : IUserManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result), ErrorCodes.IdentityError);
+                FormatIdentityErrors(result),
+                ErrorCodes.IdentityError);
         }
+
+        await ApplyAssignmentsAsync(
+            user,
+            request.RoleIds,
+            request.SkillIds,
+            cancellationToken);
+
+        var detail = await LoadDetailAsync(
+            user,
+            cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
 
         _audit.Created("User", user.Id);
 
-        return MapDetail(user);
+        return detail;
     }
 
-    public async Task<UserDetailDto?> UpdateAsync(long id, UpdateUserDto request, CancellationToken cancellationToken = default)
+    public async Task<UserDetailDto?> UpdateAsync(
+        long id,
+        UpdateUserDto request,
+        CancellationToken cancellationToken = default)
     {
+        await ValidateAssignmentsAsync(
+            request.RoleIds,
+            request.SkillIds,
+            cancellationToken);
+
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
                 x => x.Id == id,
@@ -424,11 +329,15 @@ public sealed class UserManagementService : IUserManagementService
             return null;
         }
 
-        // Optional optimistic concurrency: the client sends back the RowVersion it read.
         if (!string.IsNullOrWhiteSpace(request.RowVersion) &&
-            !string.Equals(request.RowVersion, user.ConcurrencyStamp, StringComparison.Ordinal))
+            !string.Equals(
+                request.RowVersion,
+                user.ConcurrencyStamp,
+                StringComparison.Ordinal))
         {
-            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
+            throw new ConflictException(
+                RowVersionToken.ConflictMessage,
+                ErrorCodes.ConcurrencyConflict);
         }
 
         var newUserName = request.UserName.Trim();
@@ -440,7 +349,8 @@ public sealed class UserManagementService : IUserManagementService
             existingByName.Id != id)
         {
             throw new ConflictException(
-                "این نام کاربری قبلاً ثبت شده است.", ErrorCodes.UserNameTaken);
+                "این نام کاربری قبلاً ثبت شده است.",
+                ErrorCodes.UserNameTaken);
         }
 
         await EnsureUniqueBusinessFieldsAsync(
@@ -465,16 +375,26 @@ public sealed class UserManagementService : IUserManagementService
 
         var result = await _userManager.UpdateAsync(user);
 
-        if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
-            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
+        if (result.Errors.Any(
+                e => e.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+        {
+            throw new ConflictException(
+                RowVersionToken.ConflictMessage,
+                ErrorCodes.ConcurrencyConflict);
+        }
 
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result), ErrorCodes.IdentityError);
+                FormatIdentityErrors(result),
+                ErrorCodes.IdentityError);
         }
 
-        _audit.Updated("User", user.Id);
+        await ApplyAssignmentsAsync(
+            user,
+            request.RoleIds,
+            request.SkillIds,
+            cancellationToken);
 
         if (!user.IsActive)
         {
@@ -485,12 +405,21 @@ public sealed class UserManagementService : IUserManagementService
                 cancellationToken);
         }
 
-        return MapDetail(user);
+        var detail = await LoadDetailAsync(
+            user,
+            cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+
+        _audit.Updated("User", user.Id);
+
+        return detail;
     }
 
-    // حذف منطقی: کاربر از پایگاه داده حذف نمی‌شود؛
-    // فقط غیرفعال می‌شود تا روابط Identity و سابقه حفظ شوند.
-    public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken = default)
+    // Logical deletion: preserve the user and relationships.
+    public async Task<bool> DeleteAsync(
+        long id,
+        CancellationToken cancellationToken = default)
     {
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
@@ -511,7 +440,8 @@ public sealed class UserManagementService : IUserManagementService
             if (!result.Succeeded)
             {
                 throw new BadRequestException(
-                    FormatIdentityErrors(result), ErrorCodes.IdentityError);
+                    FormatIdentityErrors(result),
+                    ErrorCodes.IdentityError);
             }
         }
 
@@ -524,7 +454,10 @@ public sealed class UserManagementService : IUserManagementService
         return true;
     }
 
-    public async Task SetPasswordAsync(long id, string newPassword, CancellationToken cancellationToken = default)
+    public async Task SetPasswordAsync(
+        long id,
+        string newPassword,
+        CancellationToken cancellationToken = default)
     {
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
@@ -534,7 +467,8 @@ public sealed class UserManagementService : IUserManagementService
         if (user is null)
         {
             throw new NotFoundException(
-                "کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
+                "کاربر موردنظر پیدا نشد.",
+                ErrorCodes.UserNotFound);
         }
 
         var token =
@@ -548,18 +482,22 @@ public sealed class UserManagementService : IUserManagementService
         if (!result.Succeeded)
         {
             throw new BadRequestException(
-                FormatIdentityErrors(result), ErrorCodes.IdentityError);
+                FormatIdentityErrors(result),
+                ErrorCodes.IdentityError);
         }
 
         await RevokeRefreshTokensAsync(
             id,
             cancellationToken);
 
-        // Only the fact that the password changed is logged, never the password.
         _audit.Operation("PasswordReset", "User", id);
     }
 
-    private async Task EnsureUniqueBusinessFieldsAsync(string personnelCode, string? nationalCode, long? exceptUserId, CancellationToken cancellationToken)
+    private async Task EnsureUniqueBusinessFieldsAsync(
+        string personnelCode,
+        string? nationalCode,
+        long? exceptUserId,
+        CancellationToken cancellationToken)
     {
         var personnel = personnelCode.Trim();
 
@@ -575,7 +513,8 @@ public sealed class UserManagementService : IUserManagementService
         if (await personnelQuery.AnyAsync(cancellationToken))
         {
             throw new ConflictException(
-                "این کد پرسنلی قبلاً ثبت شده است.", ErrorCodes.PersonnelCodeTaken);
+                "این کد پرسنلی قبلاً ثبت شده است.",
+                ErrorCodes.PersonnelCodeTaken);
         }
 
         var national = NormalizeOptional(nationalCode);
@@ -594,24 +533,32 @@ public sealed class UserManagementService : IUserManagementService
             if (await nationalQuery.AnyAsync(cancellationToken))
             {
                 throw new ConflictException(
-                    "این کد ملی قبلاً ثبت شده است.", ErrorCodes.NationalCodeTaken);
+                    "این کد ملی قبلاً ثبت شده است.",
+                    ErrorCodes.NationalCodeTaken);
             }
         }
     }
 
-    private async Task EnsureDepartmentExistsAsync(long? departmentId, CancellationToken cancellationToken)
+    private async Task EnsureDepartmentExistsAsync(
+        long? departmentId,
+        CancellationToken cancellationToken)
     {
         if (departmentId.HasValue &&
-            !await _dbContext.SupportingDepartments.IncludingInactive().AnyAsync(
-                x => x.SupportingDepartmentId == departmentId.Value,
-                cancellationToken))
+            !await _dbContext.SupportingDepartments
+                .IncludingInactive()
+                .AnyAsync(
+                    x => x.SupportingDepartmentId == departmentId.Value,
+                    cancellationToken))
         {
             throw new BadRequestException(
-                "دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.", ErrorCodes.DepartmentNotFound);
+                "دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.",
+                ErrorCodes.DepartmentNotFound);
         }
     }
 
-    private async Task RevokeRefreshTokensAsync(long userId, CancellationToken cancellationToken)
+    private async Task RevokeRefreshTokensAsync(
+        long userId,
+        CancellationToken cancellationToken)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -630,19 +577,32 @@ public sealed class UserManagementService : IUserManagementService
             }
 
             if (tokens.Count == 0)
+            {
                 return;
+            }
 
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                _audit.Operation("RefreshTokensRevoked", "User", userId, $"count={tokens.Count}");
+
+                _audit.Operation(
+                    "RefreshTokensRevoked",
+                    "User",
+                    userId,
+                    $"count={tokens.Count}");
+
                 return;
             }
             catch (DbUpdateConcurrencyException) when (attempt < 5)
             {
-                // A concurrent request already revoked some of these tokens; re-read and revoke what is left.
-                foreach (var entry in _dbContext.ChangeTracker.Entries<EMS.Domain.Entities.UserRefreshToken>().ToList())
+                // A concurrent request may have revoked some tokens.
+                // Detach token entries, then re-read.
+                foreach (var entry in _dbContext.ChangeTracker
+                             .Entries<EMS.Domain.Entities.UserRefreshToken>()
+                             .ToList())
+                {
                     entry.State = EntityState.Detached;
+                }
             }
         }
     }
@@ -654,8 +614,7 @@ public sealed class UserManagementService : IUserManagementService
             : value.Trim();
     }
 
-    private static string FormatIdentityErrors(
-        IdentityResult result)
+    private static string FormatIdentityErrors(IdentityResult result)
     {
         return string.Join(
             " | ",

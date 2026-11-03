@@ -8,6 +8,24 @@ public sealed class UpdateUserDtoValidator
 {
     public UpdateUserDtoValidator()
     {
+        RuleForEach(x => x.RoleIds)
+            .GreaterThan(0);
+
+        RuleForEach(x => x.SkillIds)
+            .GreaterThan(0);
+
+        RuleFor(x => x.RoleIds)
+            .Must(x =>
+                x == null ||
+                (x.Count <= 100 && x.Distinct().Count() == x.Count))
+            .WithMessage("حداکثر ۱۰۰ نقش بدون تکرار مجاز است.");
+
+        RuleFor(x => x.SkillIds)
+            .Must(x =>
+                x == null ||
+                (x.Count <= 100 && x.Distinct().Count() == x.Count))
+            .WithMessage("حداکثر ۱۰۰ مهارت بدون تکرار مجاز است.");
+
         RuleFor(x => x.UserName)
             .NotEmpty()
             .MaximumLength(20);

@@ -4,10 +4,20 @@ namespace EMS.Application.Dtos.User;
 
 public sealed class UserListRequestDto : PagedRequest
 {
-    // جست‌وجوی عمومی در فیلدهای مختلف
+    // Used by GET /api/Users/groups:
+    // role | skill | department | isActive
+    public string? GroupBy { get; set; }
+
+    public long? RoleId { get; set; }
+
+    public long? SkillId { get; set; }
+
+    public bool? HasRole { get; set; }
+
+    public bool? HasSkill { get; set; }
+
     public string? Search { get; set; }
 
-    // فیلترهای مستقل
     public long? Id { get; set; }
 
     public string? UserName { get; set; }

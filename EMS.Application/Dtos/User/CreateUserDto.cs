@@ -2,6 +2,10 @@
 
 public sealed class CreateUserDto
 {
+    public List<long>? RoleIds { get; set; }
+
+    public List<long>? SkillIds { get; set; }
+
     public string UserName { get; set; } = string.Empty;
 
     public string Password { get; set; } = string.Empty;

@@ -2,6 +2,11 @@
 
 public sealed class UpdateUserDto
 {
+    // null preserves existing assignments; [] clears them.
+    public List<long>? RoleIds { get; set; }
+
+    public List<long>? SkillIds { get; set; }
+
     public string UserName { get; set; } = string.Empty;
 
     public string FirstName { get; set; } = string.Empty;
@@ -20,6 +25,9 @@ public sealed class UpdateUserDto
 
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Optional: the RowVersion read together with the record. A mismatch is rejected with 409.</summary>
+    /// <summary>
+    /// Optional concurrency token received from GetById.
+    /// A mismatch is rejected with HTTP 409.
+    /// </summary>
     public string? RowVersion { get; set; }
 }
