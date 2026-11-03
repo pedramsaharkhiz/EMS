@@ -165,6 +165,13 @@ public sealed class RoleManagementService : IRoleManagementService
         if (role is null)
             return null;
 
+        // Optional optimistic concurrency: the client sends back the RowVersion it read.
+        if (!string.IsNullOrWhiteSpace(request.RowVersion) &&
+            !string.Equals(request.RowVersion, role.ConcurrencyStamp, StringComparison.Ordinal))
+        {
+            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             throw new BadRequestException(
@@ -188,6 +195,9 @@ public sealed class RoleManagementService : IRoleManagementService
         role.IsActive = request.IsActive;
 
         var result = await _roleManager.UpdateAsync(role);
+
+        if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
 
         if (!result.Succeeded)
         {
@@ -257,6 +267,7 @@ public sealed class RoleManagementService : IRoleManagementService
             IsActive = role.IsActive,
             CreatedDateTime = role.CreatedDateTime,
             ModifiedDateTime = role.ModifiedDateTime,
+            RowVersion = role.ConcurrencyStamp ?? string.Empty,
             UserCount = userCount
         };
     }

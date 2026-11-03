@@ -7,6 +7,6 @@ namespace EMS.Application.Validators.Brand
 {
     public sealed class UpdateBrandDtoValidator : CatalogUpdateValidator<BrandUpdateDto>
     {
-        public UpdateBrandDtoValidator() : base(BrandService.EntityLabel, x => x.BrandId, x => x.Code) { }
+        public UpdateBrandDtoValidator() : base(BrandService.EntityLabel, x => x.Code) { }
     }
 }

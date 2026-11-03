@@ -27,28 +27,28 @@ namespace EMS.Tests.Integration
 
         public static readonly IReadOnlyList<CatalogCase> All = new List<CatalogCase>
         {
-            new("Brand", "/api/Brand", "brandId", "Brands", true, typeof(BrandDetailDto), typeof(BrandListItemDto),
+            new("Brand", "/api/Brand", "id", "Brands", true, typeof(BrandDetailDto), typeof(BrandListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "BR" })),
 
-            new("EquipmentCategory", "/api/EquipmentCategory", "equipmentCategoryId", "EquipmentCategories", false, typeof(EquipmentCategoryDetailDto), typeof(EquipmentCategoryListItemDto),
+            new("EquipmentCategory", "/api/EquipmentCategory", "id", "EquipmentCategories", false, typeof(EquipmentCategoryDetailDto), typeof(EquipmentCategoryListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title })),
 
-            new("EquipmentLocationType", "/api/EquipmentLocationType", "equipmentLocationTypeId", "EquipmentLocationTypes", true, typeof(EquipmentLocationTypeDetailDto), typeof(EquipmentLocationTypeListItemDto),
+            new("EquipmentLocationType", "/api/EquipmentLocationType", "id", "EquipmentLocationTypes", true, typeof(EquipmentLocationTypeDetailDto), typeof(EquipmentLocationTypeListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "LT" })),
 
-            new("EquipmentStatus", "/api/EquipmentStatus", "equipmentStatusId", "EquipmentStatuses", true, typeof(EquipmentStatusDetailDto), typeof(EquipmentStatusListItemDto),
+            new("EquipmentStatus", "/api/EquipmentStatus", "id", "EquipmentStatuses", true, typeof(EquipmentStatusDetailDto), typeof(EquipmentStatusListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "ST" })),
 
-            new("FailureCategory", "/api/FailureCategory", "failureCategoryId", "FailureCategories", false, typeof(FailureCategoryDetailDto), typeof(FailureCategoryListItemDto),
+            new("FailureCategory", "/api/FailureCategory", "id", "FailureCategories", false, typeof(FailureCategoryDetailDto), typeof(FailureCategoryListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title })),
 
-            new("EquipmentType", "/api/EquipmentType", "equipmentTypeId", "EquipmentTypes", true, typeof(EquipmentTypeDetailDto), typeof(EquipmentTypeListItemDto),
+            new("EquipmentType", "/api/EquipmentType", "id", "EquipmentTypes", true, typeof(EquipmentTypeDetailDto), typeof(EquipmentTypeListItemDto),
                 async (api, title) => new Dictionary<string, object?>
                 {
                     ["equipmentCategoryId"] = await CatalogFixtures.NewCategoryAsync(api), ["title"] = title, ["code"] = "TY"
                 }),
 
-            new("EquipmentModel", "/api/EquipmentModel", "equipmentModelId", "EquipmentModels", true, typeof(EquipmentModelDetailDto), typeof(EquipmentModelListItemDto),
+            new("EquipmentModel", "/api/EquipmentModel", "id", "EquipmentModels", true, typeof(EquipmentModelDetailDto), typeof(EquipmentModelListItemDto),
                 async (api, title) => new Dictionary<string, object?>
                 {
                     ["equipmentTypeId"] = await CatalogFixtures.NewTypeAsync(api),
@@ -56,7 +56,7 @@ namespace EMS.Tests.Integration
                     ["title"] = title, ["code"] = "MO"
                 }),
 
-            new("SupportingDepartment", "/api/SupportingDepartment", "supportingDepartmentId", "SupportingDepartments", false, typeof(SupportingDepartmentDetailDto), typeof(SupportingDepartmentListItemDto),
+            new("SupportingDepartment", "/api/SupportingDepartment", "id", "SupportingDepartments", false, typeof(SupportingDepartmentDetailDto), typeof(SupportingDepartmentListItemDto),
                 async (api, title) => new Dictionary<string, object?> { ["cityId"] = await CatalogFixtures.EnsureCityAsync(api), ["title"] = title }),
         };
 
@@ -78,13 +78,13 @@ namespace EMS.Tests.Integration
         }
 
         public static Task<long> NewCategoryAsync(ApiTestBase api) =>
-            PostAsync(api, "/api/EquipmentCategory", new { title = Unique("fx-cat") }, "equipmentCategoryId");
+            PostAsync(api, "/api/EquipmentCategory", new { title = Unique("fx-cat") }, "id");
 
         public static async Task<long> NewTypeAsync(ApiTestBase api) =>
-            await PostAsync(api, "/api/EquipmentType", new { equipmentCategoryId = await NewCategoryAsync(api), title = Unique("fx-type"), code = "T" }, "equipmentTypeId");
+            await PostAsync(api, "/api/EquipmentType", new { equipmentCategoryId = await NewCategoryAsync(api), title = Unique("fx-type"), code = "T" }, "id");
 
         public static Task<long> NewBrandAsync(ApiTestBase api) =>
-            PostAsync(api, "/api/Brand", new { title = Unique("fx-brand"), code = "B" }, "brandId");
+            PostAsync(api, "/api/Brand", new { title = Unique("fx-brand"), code = "B" }, "id");
 
         public static async Task<long> EnsureCityAsync(ApiTestBase api)
         {

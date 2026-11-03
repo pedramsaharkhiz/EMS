@@ -1,69 +1,64 @@
 # قرارداد خطاهای API
 
-همه‌ی خطاهای API (قانون کسب‌وکار، اعتبارسنجی، احراز هویت، دسترسی، مسیر ناموجود، خطای سرور) **یک قالب یکسان** دارند: سند «problem details» استاندارد RFC 9457/7807 با نوع محتوای `application/problem+json`، به‌علاوه‌ی یک **کد خطای ماشینی پایدار**.
+همه‌ی خطاهای API (قانون کسب‌وکار، اعتبارسنجی، احراز هویت، دسترسی، مسیر ناموجود، خطای سرور) **همان پوششی را دارند که پاسخ موفق دارد** (`success`، `message`، `data`، `meta`، `error`، `traceId`، تعریف کامل در [API-CONVENTIONS.md](API-CONVENTIONS.md))، با `success: false` و یک **کد خطای ماشینی پایدار** در `error.code`. کد HTTP نوع خطا را نشان می‌دهد (400، 401، 403، 404، 405، 409، 500).
 
 ## قالب
 
 ```json
 {
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
-  "title": "Conflict",
-  "status": 409,
-  "detail": "برند دیگری با این عنوان وجود دارد.",
-  "instance": "/api/Brand",
-
-  "code": "duplicate_title",
+  "success": false,
   "message": "برند دیگری با این عنوان وجود دارد.",
-  "correlationId": "0c9d7f5e1b2a4e6f8a3b9c1d2e4f5a6b",
+  "data": null,
+  "meta": null,
+  "error": { "code": "duplicate_title", "details": [] },
   "traceId": "0c9d7f5e1b2a4e6f8a3b9c1d2e4f5a6b"
 }
 ```
 
 | فیلد | توضیح |
 |---|---|
-| `type`، `title`، `status`، `detail`، `instance` | اعضای استاندارد RFC. `detail` متن فارسی خطا و `instance` مسیر درخواست است |
-| **`code`** | کد پایدار ماشینی. **کلاینت باید روی `code` تصمیم بگیرد، نه روی متن پیام** |
-| `message` | همان متن `detail`. برای سازگاری با کلاینت‌های قدیمی نگه داشته شده است |
-| `correlationId`، `traceId` | شناسه‌ی ردگیری (همان هدر `X-Correlation-ID`). به پشتیبانی بدهید تا لاگ همان درخواست پیدا شود |
-| `errors` | فقط در خطای اعتبارسنجی: دیکشنری `نام فیلد ← آرایه‌ای از پیام‌ها` |
+| `success` | همیشه `false` |
+| `message` | متن فارسی خطا که می‌شود به کاربر نشان داد |
+| `error.code` | کد پایدار ماشینی. **کلاینت باید روی `code` تصمیم بگیرد، نه روی متن پیام** |
+| `error.details` | آرایه‌ی `{ field, message }`. فقط در خطای اعتبارسنجی پر است؛ برای بقیه خالی |
+| `traceId` | شناسه‌ی ردگیری (همان هدر `X-Correlation-ID`). به پشتیبانی بدهید تا لاگ همان درخواست پیدا شود |
+| `data`، `meta` | همیشه `null` |
 
 نمونه‌ی خطای اعتبارسنجی (`400`):
 
 ```json
 {
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-  "title": "One or more validation errors occurred.",
-  "status": 400,
-  "detail": "اطلاعات ارسالی نامعتبر است.",
-  "instance": "/api/Brand",
-  "code": "validation_failed",
+  "success": false,
   "message": "اطلاعات ارسالی نامعتبر است.",
-  "correlationId": "…", "traceId": "…",
-  "errors": { "Title": ["عنوان برند الزامی است."] }
+  "data": null,
+  "meta": null,
+  "error": {
+    "code": "validation_failed",
+    "details": [ { "field": "title", "message": "عنوان برند الزامی است." } ]
+  },
+  "traceId": "…"
 }
 ```
 
-## سازگاری با نسخه‌ی قبلی
-- `message` و `correlationId` که قبلاً در بعضی خطاها بودند، حالا در **همه** خطاها هستند.
-- `errors` برای اعتبارسنجی همان دیکشنری قبلی (`نام فیلد ← پیام‌ها`) است.
-- نوع محتوا از `application/json` به `application/problem+json` تغییر کرده. اگر کلاینت شما فقط به نوع `application/json` وابسته است، آن را به `+json` تعمیم دهید.
-- پاسخ‌های `401` و `403` و `404` (مسیر ناموجود) و `405` که قبلاً **بدنه‌ی خالی** داشتند، حالا بدنه‌ی بالا را دارند.
+`field` همان نام فیلد در بدنه‌ی درخواست است، با همان املا (camelCase). فیلد تودرتو با نقطه می‌آید (`items[0].name`). نوع محتوا `application/json` است.
 
-## کدهای خطا
-
-کدهای جدید ممکن است اضافه شوند. کدهای موجود هرگز تغییر نام نمی‌دهند.
+## تغییر نسبت به نسخه‌ی قبلی
+- قالب `application/problem+json` (RFC 9457) برداشته شد. `type`، `title`، `status`، `detail`، `instance` و `correlationId` دیگر نیستند. `status` همان کد HTTP است، `detail` همان `message`، و `correlationId` همان `traceId`.
+- `code` از سطح بالا به `error.code` رفت.
+- `errors` (دیکشنری با کلید PascalCase) جایش را `error.details` (آرایه با `field` به‌صورت camelCase) گرفت.
+- پاسخ‌های `401` و `403` و `404` (مسیر ناموجود) و `405` همچنان بدنه دارند، با همین قالب.
 
 ### عمومی
 | code | status | معنی |
 |---|---|---|
-| `validation_failed` | 400 | اعتبارسنجی ورودی یا JSON نامعتبر (`errors` را ببینید) |
+| `validation_failed` | 400 | اعتبارسنجی ورودی یا JSON نامعتبر (`error.details` را ببینید) |
 | `bad_request` | 400 | درخواست نامعتبر |
 | `unauthorized` | 401 | توکن نیست یا نامعتبر/منقضی است (یا تغییر دسترسی: refresh بزنید) |
 | `forbidden` | 403 | احراز هویت شده، اما permission لازم را ندارد |
 | `not_found` | 404 | مسیر یا رکورد وجود ندارد |
 | `method_not_allowed` | 405 | متد HTTP برای این مسیر مجاز نیست |
 | `conflict` | 409 | تعارض عمومی با وضعیت منبع |
-| `internal_error` | 500 | خطای پیش‌بینی‌نشده‌ی سرور (جزئیاتی نشت نمی‌کند، `correlationId` را گزارش کنید) |
+| `internal_error` | 500 | خطای پیش‌بینی‌نشده‌ی سرور (جزئیاتی نشت نمی‌کند، `traceId` را گزارش کنید) |
 
 ### احراز هویت
 | code | status | معنی |
@@ -101,6 +96,6 @@
 | `identity_error` | 400 | رد شدن توسط قوانین Identity (مثلاً سیاست رمز) |
 
 ## برای توسعه‌دهنده‌ی بک‌اند
-- خطای قابل انتظار را با `NotFoundException`، `ConflictException` یا `BadRequestException` بیندازید و کد مناسب را از `ErrorCodes` بدهید: `throw new ConflictException("...", ErrorCodes.DuplicateTitle);`. کنترلر نباید بدنه‌ی خطا را خودش بسازد.
+- خطای قابل انتظار را با `NotFoundException`، `ConflictException` یا `BadRequestException` بیندازید و کد مناسب را از `ErrorCodes` بدهید: `throw new ConflictException("...", ErrorCodes.DuplicateTitle);`. کنترلر نباید بدنه‌ی خطا را خودش بسازد (`ApiErrors` آن را می‌سازد).
 - برای ۴۰۱ از `UnauthorizedAppException` استفاده کنید.
 - کد جدید به `ErrorCodes` و همین جدول اضافه شود.

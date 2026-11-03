@@ -11,9 +11,6 @@ namespace EMS.Application.Common.Catalog
     /// <summary>What the generic catalog service needs to know about an update request.</summary>
     public interface ICatalogUpdateRequest
     {
-        /// <summary>The primary key of the record to update (implemented explicitly, so it is not part of the JSON contract).</summary>
-        long EntityId { get; }
-
         string? Title { get; }
         bool IsActive { get; }
         string? RowVersion { get; }

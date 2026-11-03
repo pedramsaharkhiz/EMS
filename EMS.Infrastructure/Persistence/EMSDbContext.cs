@@ -63,6 +63,9 @@ namespace EMS.Infrastructure.Persistence
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
             base.ConfigureConventions(configurationBuilder);
+            // Dates are stored as UTC; mark them as UTC when read so the API serializes them with a "Z".
+            configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+            configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
             // Columns shared by every BaseEntity are configured once (an explicit entity configuration still wins).
             configurationBuilder.Conventions.Add(_ => new Conventions.BaseEntityConvention());
         }

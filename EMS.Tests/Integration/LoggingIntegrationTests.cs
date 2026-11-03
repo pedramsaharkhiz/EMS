@@ -28,7 +28,7 @@ namespace EMS.Tests.Integration
 
             var json = await ReadJsonAsync(response);
             Assert.Equal(GenericLoginError, json.GetProperty("message").GetString());   // no hint about *why*
-            Assert.Equal(corr, json.GetProperty("correlationId").GetString());
+            Assert.Equal(corr, json.GetProperty("traceId").GetString());
 
             var events = Sink.ForCorrelation(corr);
             Assert.Contains(events, e => e.Level == LogEventLevel.Warning
@@ -197,15 +197,14 @@ namespace EMS.Tests.Integration
 
             var roleResponse = await SendAsync(HttpMethod.Post, "/api/Role", new { name = "BrandViewers" }, bearer: admin.AccessToken);
             Assert.True(roleResponse.IsSuccessStatusCode, await roleResponse.Content.ReadAsStringAsync());
-            var roleJson = await ReadJsonAsync(roleResponse);
-            var roleId = roleJson.TryGetProperty("roleId", out var rid) ? rid.GetInt64() : roleJson.GetProperty("id").GetInt64();
+            var roleId = (await ReadDataAsync(roleResponse)).GetProperty("id").GetInt64();
 
             var assign = await SendAsync(HttpMethod.Post, "/api/Role/AssignPermissions",
                 new { roleName = "BrandViewers", permissions = new[] { "Brands.View" } }, bearer: admin.AccessToken);
             Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
 
             var setRoles = await SendAsync(HttpMethod.Put, $"/api/Users/{userId}/roles", new { roleIds = new[] { roleId } }, bearer: admin.AccessToken);
-            Assert.Equal(HttpStatusCode.NoContent, setRoles.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, setRoles.StatusCode);
 
             // A fresh login picks up the new role's permissions.
             var viewer = await LoginAsync("viewer1", "Passw0rd!x");

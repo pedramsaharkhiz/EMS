@@ -7,6 +7,6 @@ namespace EMS.Application.Validators.EquipmentStatus
 {
     public sealed class UpdateEquipmentStatusDtoValidator : CatalogUpdateValidator<EquipmentStatusUpdateDto>
     {
-        public UpdateEquipmentStatusDtoValidator() : base(EquipmentStatusService.EntityLabel, x => x.EquipmentStatusId, x => x.Code) { }
+        public UpdateEquipmentStatusDtoValidator() : base(EquipmentStatusService.EntityLabel, x => x.Code) { }
     }
 }

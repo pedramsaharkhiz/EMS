@@ -34,18 +34,18 @@ public sealed class RoleController : BaseApiController
 
     [Permission(Permissions.Roles.View)]
     [HttpGet]
-    public async Task<ActionResult<PagedResult<RoleListItemDto>>> GetPaged([FromQuery] RoleListRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RoleListItemDto>>>> GetPaged([FromQuery] RoleListRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _roleManagementService.GetPagedAsync(
             request,
             cancellationToken);
 
-        return Ok(result);
+        return Paged(result);
     }
 
     [Permission(Permissions.Roles.View)]
     [HttpGet("{id:long}")]
-    public async Task<ActionResult<RoleDetailDto>> GetById(long id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<RoleDetailDto>>> GetById(long id, CancellationToken cancellationToken)
     {
         var role = await _roleManagementService.GetByIdAsync(
             id,
@@ -56,18 +56,19 @@ public sealed class RoleController : BaseApiController
             throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
-        return Ok(role);
+        return Success(role);
     }
 
     [Permission(Permissions.Roles.Create)]
     [HttpPost]
-    public async Task<ActionResult<RoleDetailDto>> Create([FromBody] CreateRoleDto request, CancellationToken cancellationToken)
+    [ProducesResponseType<ApiResponse<RoleDetailDto>>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<ApiResponse<RoleDetailDto>>> Create([FromBody] CreateRoleDto request, CancellationToken cancellationToken)
     {
         var role = await _roleManagementService.CreateAsync(
             request,
             cancellationToken);
 
-        return CreatedAtAction(
+        return CreatedAt(
             nameof(GetById),
             new { id = role.Id },
             role);
@@ -75,7 +76,7 @@ public sealed class RoleController : BaseApiController
 
     [Permission(Permissions.Roles.Update)]
     [HttpPut("{id:long}")]
-    public async Task<ActionResult<RoleDetailDto>> Update(long id, [FromBody] UpdateRoleDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<RoleDetailDto>>> Update(long id, [FromBody] UpdateRoleDto request, CancellationToken cancellationToken)
     {
         var role = await _roleManagementService.UpdateAsync(
             id,
@@ -87,12 +88,12 @@ public sealed class RoleController : BaseApiController
             throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
-        return Ok(role);
+        return Updated(role);
     }
 
     [Permission(Permissions.Roles.Delete)]
     [HttpDelete("{id:long}")]
-    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken)
     {
         var deleted = await _roleManagementService.DeleteAsync(
             id,
@@ -103,7 +104,7 @@ public sealed class RoleController : BaseApiController
             throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
         }
 
-        return NoContent();
+        return Deleted();
     }
 
     // ---------------------------------------------------------
@@ -112,28 +113,25 @@ public sealed class RoleController : BaseApiController
 
     [Permission(Permissions.Roles.ManagePermissions)]
     [HttpPost("AssignPermissions")]
-    public async Task<IActionResult> AssignPermissions([FromBody] AssignPermissionsToRoleDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> AssignPermissions([FromBody] AssignPermissionsToRoleDto request, CancellationToken cancellationToken)
     {
         await _roleService.AssignPermissionsAsync(
             request.RoleName,
             request.Permissions,
             cancellationToken);
 
-        return Ok(new
-        {
-            message = "دسترسی با موفقیت تخصیص یافت."
-        });
+        return Done("دسترسی با موفقیت تخصیص یافت.");
     }
 
     [Permission(Permissions.Roles.View)]
     [HttpGet("{roleName}/permissions")]
-    public async Task<IActionResult> GetPermissions(string roleName, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<List<string>>>> GetPermissions(string roleName, CancellationToken cancellationToken)
     {
         var permissions = await _roleService.GetPermissionsAsync(
             roleName,
             cancellationToken);
 
-        return Ok(permissions);
+        return Success(permissions);
     }
 
     // ---------------------------------------------------------
@@ -142,49 +140,49 @@ public sealed class RoleController : BaseApiController
 
     [Permission(Permissions.Roles.View)]
     [HttpGet("{roleId:long}/users")]
-    public async Task<ActionResult<PagedResult<UserListItemDto>>> GetUsers(long roleId, [FromQuery] RoleUserListRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<UserListItemDto>>>> GetUsers(long roleId, [FromQuery] RoleUserListRequestDto request, CancellationToken cancellationToken)
     {
         var result = await _assignmentService.GetRoleUsersAsync(
             roleId,
             request,
             cancellationToken);
 
-        return Ok(result);
+        return Paged(result);
     }
 
     [Permission(Permissions.Roles.ManageUsers)]
     [HttpPut("{roleId:long}/users")]
-    public async Task<IActionResult> SetUsers(long roleId, [FromBody] SetRoleUsersDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> SetUsers(long roleId, [FromBody] SetRoleUsersDto request, CancellationToken cancellationToken)
     {
         await _assignmentService.SetRoleUsersAsync(
             roleId,
             request.UserIds,
             cancellationToken);
 
-        return NoContent();
+        return Done();
     }
 
     [Permission(Permissions.Roles.ManageUsers)]
     [HttpPost("{roleId:long}/users/{userId:long}")]
-    public async Task<IActionResult> AddUser(long roleId, long userId, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> AddUser(long roleId, long userId, CancellationToken cancellationToken)
     {
         await _assignmentService.AddUserToRoleAsync(
             roleId,
             userId,
             cancellationToken);
 
-        return NoContent();
+        return Done();
     }
 
     [Permission(Permissions.Roles.ManageUsers)]
     [HttpDelete("{roleId:long}/users/{userId:long}")]
-    public async Task<IActionResult> RemoveUser(long roleId, long userId, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<object>>> RemoveUser(long roleId, long userId, CancellationToken cancellationToken)
     {
         await _assignmentService.RemoveUserFromRoleAsync(
             roleId,
             userId,
             cancellationToken);
 
-        return NoContent();
+        return Done();
     }
 }

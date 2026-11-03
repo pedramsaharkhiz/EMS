@@ -31,15 +31,13 @@ namespace EMS.Tests.Unit
             var (context, logs) = await RunAsync(exception);
 
             Assert.Equal(expectedStatus, context.Response.StatusCode);
-            Assert.Equal("application/problem+json", context.Response.ContentType);
+            Assert.Equal("application/json", context.Response.ContentType);
             var body = await ReadBodyAsync(context);
+            Assert.False(body.GetProperty("success").GetBoolean());
             Assert.Equal(exception.Message, body.GetProperty("message").GetString());
-            Assert.Equal(exception.Message, body.GetProperty("detail").GetString());   // RFC 7807 member = legacy member
-            Assert.Equal("trace-12345678", body.GetProperty("correlationId").GetString());
-            Assert.Equal(expectedStatus, body.GetProperty("status").GetInt32());
-            Assert.Equal(expectedCode, body.GetProperty("code").GetString());
-            Assert.StartsWith("https://", body.GetProperty("type").GetString());
-            Assert.Equal("/api/sample", body.GetProperty("instance").GetString());
+            Assert.Equal("trace-12345678", body.GetProperty("traceId").GetString());
+            Assert.Equal(expectedCode, body.GetProperty("error").GetProperty("code").GetString());
+            Assert.Equal(JsonValueKind.Null, body.GetProperty("data").ValueKind);
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(expectedLevel, entry.Level);
@@ -55,12 +53,13 @@ namespace EMS.Tests.Unit
 
             Assert.Equal(400, context.Response.StatusCode);
             var body = await ReadBodyAsync(context);
-            Assert.Equal("validation_failed", body.GetProperty("code").GetString());
-            Assert.Equal("One or more validation errors occurred.", body.GetProperty("title").GetString());
+            Assert.Equal("validation_failed", body.GetProperty("error").GetProperty("code").GetString());
             Assert.Equal("اطلاعات ارسالی نامعتبر است.", body.GetProperty("message").GetString());
-            var errors = body.GetProperty("errors");
-            Assert.Equal("required", errors.GetProperty("UserName")[0].GetString());   // field -> messages (same shape MVC uses)
-            Assert.Equal("too short", errors.GetProperty("Password")[0].GetString());
+            var details = body.GetProperty("error").GetProperty("details");
+            Assert.Equal("userName", details[0].GetProperty("field").GetString());      // camelCase, like the JSON body
+            Assert.Equal("required", details[0].GetProperty("message").GetString());
+            Assert.Equal("password", details[1].GetProperty("field").GetString());
+            Assert.Equal("too short", details[1].GetProperty("message").GetString());
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(LogLevel.Information, entry.Level);
@@ -75,10 +74,9 @@ namespace EMS.Tests.Unit
 
             Assert.Equal(500, context.Response.StatusCode);
             var body = await ReadBodyAsync(context);
-            Assert.Equal("trace-12345678", body.GetProperty("correlationId").GetString());
-            Assert.Equal("internal_error", body.GetProperty("code").GetString());
+            Assert.Equal("trace-12345678", body.GetProperty("traceId").GetString());
+            Assert.Equal("internal_error", body.GetProperty("error").GetProperty("code").GetString());
             Assert.DoesNotContain("secret internal detail", body.GetProperty("message").GetString());
-            Assert.DoesNotContain("secret internal detail", body.GetProperty("detail").GetString());
 
             var entry = Assert.Single(logs.Entries);
             Assert.Equal(LogLevel.Error, entry.Level);

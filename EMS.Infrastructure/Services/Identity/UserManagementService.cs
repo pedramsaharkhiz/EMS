@@ -424,6 +424,13 @@ public sealed class UserManagementService : IUserManagementService
             return null;
         }
 
+        // Optional optimistic concurrency: the client sends back the RowVersion it read.
+        if (!string.IsNullOrWhiteSpace(request.RowVersion) &&
+            !string.Equals(request.RowVersion, user.ConcurrencyStamp, StringComparison.Ordinal))
+        {
+            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
+        }
+
         var newUserName = request.UserName.Trim();
 
         var existingByName =
@@ -457,6 +464,9 @@ public sealed class UserManagementService : IUserManagementService
         user.IsActive = request.IsActive;
 
         var result = await _userManager.UpdateAsync(user);
+
+        if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.ConcurrencyFailure)))
+            throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
 
         if (!result.Succeeded)
         {
@@ -669,7 +679,8 @@ public sealed class UserManagementService : IUserManagementService
             EmailConfirmed = user.EmailConfirmed,
             PhoneNumberConfirmed = user.PhoneNumberConfirmed,
             CreatedDateTime = user.CreatedDateTime,
-            ModifiedDateTime = user.ModifiedDateTime
+            ModifiedDateTime = user.ModifiedDateTime,
+            RowVersion = user.ConcurrencyStamp ?? string.Empty
         };
     }
 }

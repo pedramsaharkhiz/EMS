@@ -6,6 +6,8 @@ using EMS.Application.Extensions;
 using EMS.Application.Interfaces;
 using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
+using FluentValidation;
+using FluentValidation.Results;
 using System.Linq.Expressions;
 
 namespace EMS.Application.Services
@@ -126,9 +128,14 @@ namespace EMS.Application.Services
             return ToDetail(entity);
         }
 
-        public async Task<TDetail> UpdateAsync(TUpdate request, CancellationToken cancellationToken = default)
+        public async Task<TDetail> UpdateAsync(long id, TUpdate request, CancellationToken cancellationToken = default)
         {
-            var entity = await LoadAsync(request.EntityId, asNoTracking: false, cancellationToken);
+            // The id comes from the route, so the request validators cannot see it: reject a non-positive id here, as a
+            // validation error on the "id" field (the same response a body-level validator would give).
+            if (id <= 0)
+                throw new ValidationException(new[] { new ValidationFailure("id", $"شناسه {Label} باید بزرگتر از صفر باشد.") });
+
+            var entity = await LoadAsync(id, asNoTracking: false, cancellationToken);
             await BeforeUpdateAsync(entity, request, cancellationToken);
 
             var title = Keep(request.Title, entity.Title)!;

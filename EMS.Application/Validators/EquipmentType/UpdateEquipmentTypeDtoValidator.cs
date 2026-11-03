@@ -7,7 +7,7 @@ namespace EMS.Application.Validators.EquipmentType
 {
     public sealed class UpdateEquipmentTypeDtoValidator : CatalogUpdateValidator<EquipmentTypeUpdateDto>
     {
-        public UpdateEquipmentTypeDtoValidator() : base(EquipmentTypeService.EntityLabel, x => x.EquipmentTypeId, x => x.Code)
+        public UpdateEquipmentTypeDtoValidator() : base(EquipmentTypeService.EntityLabel, x => x.Code)
         {
             RuleFor(x => x.EquipmentCategoryId).GreaterThan(0).WithMessage("شناسه دسته‌بندی تجهیزات باید بزرگتر از صفر باشد.");
         }

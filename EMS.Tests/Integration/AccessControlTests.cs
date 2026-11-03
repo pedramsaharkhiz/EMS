@@ -104,7 +104,7 @@ namespace EMS.Tests.Integration
 
             var refreshed = await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = a.UserRefresh });
             Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
-            var newToken = (await ReadJsonAsync(refreshed)).GetProperty("accessToken").GetString()!;
+            var newToken = (await ReadDataAsync(refreshed)).GetProperty("accessToken").GetString()!;
 
             // The new token is valid (the request is authenticated) but reflects the reduced access.
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Get, "/api/Brand", newToken));
@@ -117,7 +117,7 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, "/api/Brand", a.UserToken));
 
             var delete = await SendAsync(HttpMethod.Delete, $"/api/Users/{a.UserId}", bearer: a.Admin);
-            Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, delete.StatusCode);
 
             Assert.Equal(HttpStatusCode.Unauthorized, await StatusOfAsync(HttpMethod.Get, "/api/Brand", a.UserToken));
             Assert.Contains(Sink.Snapshot(), e => Rendered(e).Contains("user is inactive or no longer exists"));
@@ -130,7 +130,7 @@ namespace EMS.Tests.Integration
         {
             var a = await ArrangeAsync("pwd", "Brands.View");
             var reset = await SendAsync(HttpMethod.Put, $"/api/Users/{a.UserId}/password", new { newPassword = "N3wPassw0rd!y" }, bearer: a.Admin);
-            Assert.Equal(HttpStatusCode.NoContent, reset.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
 
             Assert.Equal(HttpStatusCode.Unauthorized, await StatusOfAsync(HttpMethod.Get, "/api/Brand", a.UserToken));
             var fresh = await LoginAsync("ac_pwd", "N3wPassw0rd!y");

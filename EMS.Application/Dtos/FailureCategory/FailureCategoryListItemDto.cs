@@ -6,7 +6,7 @@ namespace EMS.Application.Dtos.FailureCategory
 {
     public class FailureCategoryListItemDto
     {
-        public long FailureCategoryId { get; set; }
+        public long Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }

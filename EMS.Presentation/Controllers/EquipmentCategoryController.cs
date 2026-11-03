@@ -18,33 +18,34 @@ namespace EMS.Presentation.Controllers
 
         [Permission(Permissions.EquipmentCategories.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<EquipmentCategoryListItemDto>>> GetAllList([FromQuery] EquipmentCategoryListRequestDto request, CancellationToken cancellationToken) =>
-            Ok(await _service.GetPagedAsync(request, cancellationToken));
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentCategoryListItemDto>>>> GetAllList([FromQuery] EquipmentCategoryListRequestDto request, CancellationToken cancellationToken) =>
+            Paged(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.EquipmentCategories.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<EquipmentCategoryDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
-            Ok(await _service.GetByIdAsync(id, cancellationToken));
+        public async Task<ActionResult<ApiResponse<EquipmentCategoryDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>
+            Success(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.EquipmentCategories.Create)]
         [HttpPost]
-        public async Task<ActionResult<EquipmentCategoryDetailDto>> Create([FromBody] EquipmentCategoryCreateDto request, CancellationToken cancellationToken)
+        [ProducesResponseType<ApiResponse<EquipmentCategoryDetailDto>>(StatusCodes.Status201Created)]
+        public async Task<ActionResult<ApiResponse<EquipmentCategoryDetailDto>>> Create([FromBody] EquipmentCategoryCreateDto request, CancellationToken cancellationToken)
         {
             var result = await _service.CreateAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = result.EquipmentCategoryId }, result);
+            return CreatedAt(nameof(GetById), new { id = result.Id }, result);
         }
 
         [Permission(Permissions.EquipmentCategories.Update)]
-        [HttpPut]
-        public async Task<ActionResult<EquipmentCategoryDetailDto>> Update([FromBody] EquipmentCategoryUpdateDto request, CancellationToken cancellationToken) =>
-            Ok(await _service.UpdateAsync(request, cancellationToken));
+        [HttpPut("{id:long}")]
+        public async Task<ActionResult<ApiResponse<EquipmentCategoryDetailDto>>> Update(long id, [FromBody] EquipmentCategoryUpdateDto request, CancellationToken cancellationToken) =>
+            Updated(await _service.UpdateAsync(id, request, cancellationToken));
 
         [Permission(Permissions.EquipmentCategories.Delete)]
         [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken)
         {
             await _service.DeleteAsync(id, cancellationToken);
-            return NoContent();
+            return Deleted();
         }
     }
 }

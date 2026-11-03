@@ -26,7 +26,7 @@ namespace EMS.Tests.Integration
 
             // The token issued to the winner keeps working.
             var winner = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
-            var newRefresh = (await ReadJsonAsync(winner)).GetProperty("refreshToken").GetString()!;
+            var newRefresh = (await ReadDataAsync(winner)).GetProperty("refreshToken").GetString()!;
             Assert.Equal(HttpStatusCode.OK,
                 (await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = newRefresh })).StatusCode);
         }

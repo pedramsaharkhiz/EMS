@@ -25,7 +25,7 @@ namespace EMS.Application.Services.EquipmentType
         protected override Expression<Func<EquipmentTypeEntity, long>> IdSelector => x => x.EquipmentTypeId;
 
         protected override Expression<Func<EquipmentTypeEntity, EquipmentTypeListItemDto>> ListItem =>
-            x => new EquipmentTypeListItemDto { EquipmentTypeId = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, Title = x.Title, Code = x.Code!, IsActive = x.IsActive };
+            x => new EquipmentTypeListItemDto { Id = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentTypeEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code).By("equipmentcategoryid", x => x.EquipmentCategoryId);
@@ -71,10 +71,10 @@ namespace EMS.Application.Services.EquipmentType
         protected override EquipmentTypeDetailDto ToDetail(EquipmentTypeEntity entity) =>
             new()
             {
-                EquipmentTypeId = entity.EquipmentTypeId,
+                Id = entity.EquipmentTypeId,
                 EquipmentCategoryId = entity.EquipmentCategoryId,
                 Title = entity.Title,
-                Code = entity.Code!,
+                Code = entity.Code,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };

@@ -88,6 +88,13 @@ namespace EMS.Tests.Integration
 
         private static string Members(Type type, string indent)
         {
+            // Every response is the ApiResponse<T> envelope: show its fixed members once, then the shape of "data".
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(EMS.Application.Common.Models.ApiResponse<>))
+            {
+                var data = Members(type.GetGenericArguments()[0], indent + "  ");
+                return $"{indent}envelope: success, message, data, meta, error, traceId\n" + (data.Length == 0 ? "" : $"{indent}data:\n{data}");
+            }
+
             var element = ElementOf(type);
             if (element is not null) type = element;
             if (type.IsPrimitive || type == typeof(string) || type == typeof(decimal) || type.Namespace?.StartsWith("System") == true && !type.IsGenericType)

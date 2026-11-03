@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EMS.Presentation.Middlewares
 {
     /// <summary>
-    /// Converts exceptions into the API's error responses (see <see cref="ApiProblem"/>) and logs them at a level that
+    /// Converts exceptions into the API's error responses (see <see cref="ApiErrors"/>) and logs them at a level that
     /// matches their meaning: expected client errors are not noisy, security-relevant ones go to the security
     /// category, unexpected failures are logged as errors with the full exception.
     /// </summary>
@@ -55,7 +55,7 @@ namespace EMS.Presentation.Middlewares
                 var errors = ex.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-                await ApiProblem.WriteAsync(context, ApiProblem.Validation(context, errors));
+                await ApiErrors.WriteAsync(context, StatusCodes.Status400BadRequest, ApiErrors.Validation(context, errors));
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -65,22 +65,22 @@ namespace EMS.Presentation.Middlewares
                     context.Connection.RemoteIpAddress?.ToString(), LogSanitizer.Sanitize(ex.Message, 200));
 
                 var code = (ex as UnauthorizedAppException)?.Code ?? ErrorCodes.Unauthorized;
-                await ApiProblem.WriteAsync(context, StatusCodes.Status401Unauthorized, code, ex.Message);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status401Unauthorized, code, ex.Message);
             }
             catch (NotFoundException ex)
             {
                 LogClientError(context, ex);
-                await ApiProblem.WriteAsync(context, StatusCodes.Status404NotFound, ex.Code, ex.Message);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status404NotFound, ex.Code, ex.Message);
             }
             catch (ConflictException ex)
             {
                 LogClientError(context, ex);
-                await ApiProblem.WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message);
             }
             catch (BadRequestException ex)
             {
                 LogClientError(context, ex);
-                await ApiProblem.WriteAsync(context, StatusCodes.Status400BadRequest, ex.Code, ex.Message);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status400BadRequest, ex.Code, ex.Message);
             }
             catch (Exception ex)
             {
@@ -100,7 +100,7 @@ namespace EMS.Presentation.Middlewares
                 }
 
                 // Never leak internal details: a fixed message plus the correlation id to quote to support.
-                await ApiProblem.WriteAsync(context, StatusCodes.Status500InternalServerError,
+                await ApiErrors.WriteAsync(context, StatusCodes.Status500InternalServerError,
                     ErrorCodes.InternalError, "خطای داخلی سرور رخ داده است.");
             }
         }

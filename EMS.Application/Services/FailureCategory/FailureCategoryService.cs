@@ -21,7 +21,7 @@ namespace EMS.Application.Services.FailureCategory
         protected override Expression<Func<FailureCategoryEntity, long>> IdSelector => x => x.FailureCategoryId;
 
         protected override Expression<Func<FailureCategoryEntity, FailureCategoryListItemDto>> ListItem =>
-            x => new FailureCategoryListItemDto { FailureCategoryId = x.FailureCategoryId, Title = x.Title, IsActive = x.IsActive };
+            x => new FailureCategoryListItemDto { Id = x.FailureCategoryId, Title = x.Title, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<FailureCategoryEntity> sort) =>
             sort.By("title", x => x.Title);
@@ -37,7 +37,7 @@ namespace EMS.Application.Services.FailureCategory
         protected override FailureCategoryDetailDto ToDetail(FailureCategoryEntity entity) =>
             new()
             {
-                FailureCategoryId = entity.FailureCategoryId,
+                Id = entity.FailureCategoryId,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),

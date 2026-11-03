@@ -21,7 +21,7 @@ namespace EMS.Application.Services.EquipmentCategory
         protected override Expression<Func<EquipmentCategoryEntity, long>> IdSelector => x => x.EquipmentCategoryId;
 
         protected override Expression<Func<EquipmentCategoryEntity, EquipmentCategoryListItemDto>> ListItem =>
-            x => new EquipmentCategoryListItemDto { EquipmentCategoryId = x.EquipmentCategoryId, Title = x.Title, IsActive = x.IsActive };
+            x => new EquipmentCategoryListItemDto { Id = x.EquipmentCategoryId, Title = x.Title, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentCategoryEntity> sort) =>
             sort.By("title", x => x.Title);
@@ -37,7 +37,7 @@ namespace EMS.Application.Services.EquipmentCategory
         protected override EquipmentCategoryDetailDto ToDetail(EquipmentCategoryEntity entity) =>
             new()
             {
-                EquipmentCategoryId = entity.EquipmentCategoryId,
+                Id = entity.EquipmentCategoryId,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),

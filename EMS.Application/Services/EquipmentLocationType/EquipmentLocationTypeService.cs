@@ -21,7 +21,7 @@ namespace EMS.Application.Services.EquipmentLocationType
         protected override Expression<Func<EquipmentLocationTypeEntity, long>> IdSelector => x => x.EquipmentLocationTypeId;
 
         protected override Expression<Func<EquipmentLocationTypeEntity, EquipmentLocationTypeListItemDto>> ListItem =>
-            x => new EquipmentLocationTypeListItemDto { EquipmentLocationTypeId = x.EquipmentLocationTypeId, Title = x.Title, Code = x.Code!, IsActive = x.IsActive };
+            x => new EquipmentLocationTypeListItemDto { Id = x.EquipmentLocationTypeId, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentLocationTypeEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code);
@@ -47,9 +47,9 @@ namespace EMS.Application.Services.EquipmentLocationType
         protected override EquipmentLocationTypeDetailDto ToDetail(EquipmentLocationTypeEntity entity) =>
             new()
             {
-                EquipmentLocationTypeId = entity.EquipmentLocationTypeId,
+                Id = entity.EquipmentLocationTypeId,
                 Title = entity.Title,
-                Code = entity.Code!,
+                Code = entity.Code,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };

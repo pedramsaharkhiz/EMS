@@ -11,6 +11,9 @@ namespace EMS.Application.Common.Models
     /// </summary>
     public static class RowVersionToken
     {
+        /// <summary>Message of the 409 returned when a record was changed by someone else after the client read it.</summary>
+        public const string ConflictMessage = "این رکورد در این فاصله توسط کاربر دیگری تغییر کرده است. اطلاعات را دوباره بارگذاری کنید و تغییرات را مجدداً اعمال کنید.";
+
         public static string From(DateTime? modifiedDateTime) =>
             (modifiedDateTime?.Ticks ?? 0).ToString(CultureInfo.InvariantCulture);
 

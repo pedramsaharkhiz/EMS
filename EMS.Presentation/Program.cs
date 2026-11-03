@@ -4,6 +4,7 @@ using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Presentation.Errors;
+using EMS.Presentation.Extensions;
 using EMS.Presentation.Middlewares;
 using EMS.Presentation.Security;
 using FluentValidation.AspNetCore;
@@ -69,12 +70,12 @@ try
         });
     });
 
-    builder.Services.AddControllers()
+    builder.Services.AddControllers(options => options.Conventions.Add(new ApiResponseConvention()))
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         })
-        // Model-validation failures (FluentValidation, malformed JSON) use the same error document as every other error.
+        // Model-validation failures (FluentValidation, malformed JSON) use the same error envelope as every other error.
         .ConfigureApiBehaviorOptions(options =>
         {
             options.InvalidModelStateResponseFactory = actionContext =>
@@ -86,7 +87,7 @@ try
                         entry => entry.Value!.Errors
                             .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage) ? "مقدار نامعتبر است." : error.ErrorMessage)
                             .ToArray());
-                return new ApiProblemResult(ApiProblem.Validation(actionContext.HttpContext, errors));
+                return new ApiErrorResult(StatusCodes.Status400BadRequest, ApiErrors.Validation(actionContext.HttpContext, errors));
             };
         });
 
@@ -179,9 +180,10 @@ try
 
     // Responses that have an error status but no body (401/403 from authentication/authorization, 404 for an unknown
     // route, 405, ...) get the same error document. Responses that already carry a body are left alone.
-    app.UseStatusCodePages(statusContext => ApiProblem.WriteAsync(
+    app.UseStatusCodePages(statusContext => ApiErrors.WriteAsync(
         statusContext.HttpContext,
-        ApiProblem.ForStatus(statusContext.HttpContext, statusContext.HttpContext.Response.StatusCode)));
+        statusContext.HttpContext.Response.StatusCode,
+        ApiErrors.ForStatus(statusContext.HttpContext, statusContext.HttpContext.Response.StatusCode)));
 
     if (app.Environment.IsDevelopment())
     {

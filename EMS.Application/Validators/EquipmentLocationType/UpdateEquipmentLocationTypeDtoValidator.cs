@@ -7,6 +7,6 @@ namespace EMS.Application.Validators.EquipmentLocationType
 {
     public sealed class UpdateEquipmentLocationTypeDtoValidator : CatalogUpdateValidator<EquipmentLocationTypeUpdateDto>
     {
-        public UpdateEquipmentLocationTypeDtoValidator() : base(EquipmentLocationTypeService.EntityLabel, x => x.EquipmentLocationTypeId, x => x.Code) { }
+        public UpdateEquipmentLocationTypeDtoValidator() : base(EquipmentLocationTypeService.EntityLabel, x => x.Code) { }
     }
 }

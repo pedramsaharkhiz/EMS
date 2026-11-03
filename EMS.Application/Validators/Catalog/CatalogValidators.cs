@@ -48,18 +48,15 @@ namespace EMS.Application.Validators.Catalog
     }
 
     /// <summary>
-    /// Update-request rules every catalog shares: a positive id, a Title (if sent) and Code (if the catalog has one)
-    /// that fit their columns.
+    /// Update-request rules every catalog shares: a Title (if sent) and Code (if the catalog has one) that fit their
+    /// columns. The id comes from the route and is checked by <c>CatalogService.UpdateAsync</c>.
     /// </summary>
     public abstract class CatalogUpdateValidator<T> : AbstractValidator<T> where T : ICatalogUpdateRequest
     {
         /// <param name="label">Persian name of the catalog used in messages.</param>
-        /// <param name="id">The id property (e.g. <c>x =&gt; x.BrandId</c>); its name appears in the error response.</param>
         /// <param name="code">The Code property, or null when the catalog has no code.</param>
-        protected CatalogUpdateValidator(string label, Expression<Func<T, long>> id, Expression<Func<T, string?>>? code = null)
+        protected CatalogUpdateValidator(string label, Expression<Func<T, string?>>? code = null)
         {
-            RuleFor(id).GreaterThan(0).WithMessage($"شناسه {label} باید بزرگتر از صفر باشد.");
-
             RuleFor(x => x.Title)
                 .MaximumLength(CatalogConstraints.TitleMaxLength)
                 .WithMessage($"عنوان {label} نمی‌تواند بیشتر از {CatalogConstraints.TitleMaxLength} کاراکتر باشد.");

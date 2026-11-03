@@ -48,17 +48,33 @@ namespace EMS.Tests.Integration
             return await _client.SendAsync(request);
         }
 
+        /// <summary>The whole response body: the envelope { success, message, data, meta, error, traceId }.</summary>
         protected async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response)
         {
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             return doc.RootElement.Clone();
         }
 
+        /// <summary>The <c>data</c> member of a response (the resource, or the array of a list).</summary>
+        protected async Task<JsonElement> ReadDataAsync(HttpResponseMessage response) => DataOf(await ReadJsonAsync(response));
+
+        protected static JsonElement DataOf(JsonElement envelope) => envelope.GetProperty("data");
+
+        /// <summary>The paging information of a list response: <c>meta.pagination</c>.</summary>
+        protected static JsonElement PaginationOf(JsonElement envelope) => envelope.GetProperty("meta").GetProperty("pagination");
+
+        /// <summary>The stable <c>error.code</c> of an error response.</summary>
+        protected static string? ErrorCodeOf(JsonElement envelope) => envelope.GetProperty("error").GetProperty("code").GetString();
+
+        /// <summary>The <c>error.details</c> field names of a validation error.</summary>
+        protected static List<string> ErrorFieldsOf(JsonElement envelope) =>
+            envelope.GetProperty("error").GetProperty("details").EnumerateArray().Select(d => d.GetProperty("field").GetString()!).ToList();
+
         protected async Task<(string AccessToken, string RefreshToken, long UserId)> LoginAsync(string userName, string password, string? correlationId = null)
         {
             var response = await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { userName, password }, correlationId);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var json = await ReadJsonAsync(response);
+            var json = await ReadDataAsync(response);
             return (json.GetProperty("accessToken").GetString()!, json.GetProperty("refreshToken").GetString()!, json.GetProperty("userId").GetInt64());
         }
 
@@ -76,8 +92,7 @@ namespace EMS.Tests.Integration
                 personnelCode = "PC-" + userName
             }, bearer: adminToken);
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
-            var json = await ReadJsonAsync(response);
-            return json.TryGetProperty("userId", out var id) ? id.GetInt64() : json.GetProperty("id").GetInt64();
+            return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
         }
 
         /// <summary>Creates a role holding exactly the given permissions and returns its id.</summary>
@@ -85,8 +100,7 @@ namespace EMS.Tests.Integration
         {
             var response = await SendAsync(HttpMethod.Post, "/api/Role", new { name = roleName }, bearer: adminToken);
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
-            var json = await ReadJsonAsync(response);
-            var roleId = json.TryGetProperty("roleId", out var rid) ? rid.GetInt64() : json.GetProperty("id").GetInt64();
+            var roleId = (await ReadDataAsync(response)).GetProperty("id").GetInt64();
 
             var assign = await SendAsync(HttpMethod.Post, "/api/Role/AssignPermissions", new { roleName, permissions }, bearer: adminToken);
             Assert.Equal(HttpStatusCode.OK, assign.StatusCode);
@@ -94,16 +108,16 @@ namespace EMS.Tests.Integration
         }
 
         protected async Task AssignRoleAsync(string adminToken, long userId, long roleId) =>
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Post, $"/api/Users/{userId}/roles/{roleId}", bearer: adminToken)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Post, $"/api/Users/{userId}/roles/{roleId}", bearer: adminToken)).StatusCode);
 
         protected async Task RemoveRoleAsync(string adminToken, long userId, long roleId) =>
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/Users/{userId}/roles/{roleId}", bearer: adminToken)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/Users/{userId}/roles/{roleId}", bearer: adminToken)).StatusCode);
 
         // Entry points for fixture helpers that live outside the test class hierarchy.
         public IServiceProvider ServicesForFixtures => _factory.Services;
         public Task<(string AccessToken, string RefreshToken, long UserId)> LoginAdminForFixturesAsync() => LoginAdminAsync();
         public Task<HttpResponseMessage> SendForFixturesAsync(HttpMethod method, string url, object? body, string bearer) => SendAsync(method, url, body, bearer: bearer);
-        public Task<JsonElement> ReadForFixturesAsync(HttpResponseMessage response) => ReadJsonAsync(response);
+        public Task<JsonElement> ReadForFixturesAsync(HttpResponseMessage response) => ReadDataAsync(response);
 
         protected async Task<HttpStatusCode> StatusOfAsync(HttpMethod method, string url, string bearer, object? body = null) =>
             (await SendAsync(method, url, body, bearer: bearer)).StatusCode;

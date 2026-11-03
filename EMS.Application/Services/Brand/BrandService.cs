@@ -21,7 +21,7 @@ namespace EMS.Application.Services.Brand
         protected override Expression<Func<BrandEntity, long>> IdSelector => x => x.BrandId;
 
         protected override Expression<Func<BrandEntity, BrandListItemDto>> ListItem =>
-            x => new BrandListItemDto { BrandId = x.BrandId, Title = x.Title, Code = x.Code!, IsActive = x.IsActive };
+            x => new BrandListItemDto { Id = x.BrandId, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<BrandEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code);
@@ -47,9 +47,9 @@ namespace EMS.Application.Services.Brand
         protected override BrandDetailDto ToDetail(BrandEntity entity) =>
             new()
             {
-                BrandId = entity.BrandId,
+                Id = entity.BrandId,
                 Title = entity.Title,
-                Code = entity.Code!,
+                Code = entity.Code,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };

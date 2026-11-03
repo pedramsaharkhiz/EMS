@@ -6,9 +6,9 @@ namespace EMS.Application.Dtos.EquipmentLocationType
 {
     public class EquipmentLocationTypeListItemDto
     {
-        public long EquipmentLocationTypeId { get; set; }
+        public long Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string Code { get; set; } = string.Empty;
+        public string? Code { get; set; }
         public bool IsActive { get; set; }
     }
 }

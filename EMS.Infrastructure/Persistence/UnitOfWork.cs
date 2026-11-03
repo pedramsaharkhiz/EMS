@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Models;
 using EMS.Domain.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +24,7 @@ namespace EMS.Infrastructure.Persistence
             catch (DbUpdateConcurrencyException)
             {
                 // The row was changed (or removed) by someone else after it was read.
-                throw new ConflictException("این رکورد در این فاصله توسط کاربر دیگری تغییر کرده است. اطلاعات را دوباره بارگذاری کنید و تغییرات را مجدداً اعمال کنید.", ErrorCodes.ConcurrencyConflict);
+                throw new ConflictException(RowVersionToken.ConflictMessage, ErrorCodes.ConcurrencyConflict);
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
             {

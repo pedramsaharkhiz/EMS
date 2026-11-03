@@ -26,7 +26,7 @@ namespace EMS.Application.Services.SupportingDepartment
         protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
 
         protected override Expression<Func<SupportingDepartmentEntity, SupportingDepartmentListItemDto>> ListItem =>
-            x => new SupportingDepartmentListItemDto { SupportingDepartmentId = x.SupportingDepartmentId, CityId = x.CityId, Title = x.Title, IsActive = x.IsActive };
+            x => new SupportingDepartmentListItemDto { Id = x.SupportingDepartmentId, CityId = x.CityId, Title = x.Title, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<SupportingDepartmentEntity> sort) =>
             sort.By("title", x => x.Title).By("cityid", x => x.CityId);
@@ -64,7 +64,7 @@ namespace EMS.Application.Services.SupportingDepartment
         protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) =>
             new()
             {
-                SupportingDepartmentId = entity.SupportingDepartmentId,
+                Id = entity.SupportingDepartmentId,
                 CityId = entity.CityId,
                 Title = entity.Title,
                 IsActive = entity.IsActive,

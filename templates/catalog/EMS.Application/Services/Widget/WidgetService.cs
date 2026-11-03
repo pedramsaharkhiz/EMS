@@ -33,10 +33,10 @@ namespace EMS.Application.Services.Widget
         protected override Expression<Func<WidgetEntity, WidgetListItemDto>> ListItem =>
             x => new WidgetListItemDto
             {
-                WidgetId = x.WidgetId,
+                Id = x.WidgetId,
                 Title = x.Title,
 //#if (HasCode)
-                Code = x.Code!,
+                Code = x.Code,
 //#endif
                 IsActive = x.IsActive
             };
@@ -80,10 +80,10 @@ namespace EMS.Application.Services.Widget
         protected override WidgetDetailDto ToDetail(WidgetEntity entity) =>
             new()
             {
-                WidgetId = entity.WidgetId,
+                Id = entity.WidgetId,
                 Title = entity.Title,
 //#if (HasCode)
-                Code = entity.Code!,
+                Code = entity.Code,
 //#endif
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),

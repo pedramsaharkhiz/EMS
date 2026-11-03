@@ -54,7 +54,7 @@
    ↓  SQL Server
 ```
 
-DTOها **برای هر entity جدا** می‌مانند، چون نام فیلدها بخشی از قرارداد API است (`brandId` در برابر `equipmentStatusId`). validatorها هم کلاس جدا دارند، ولی هرکدام یک خط است و قواعد مشترک (طول عنوان و کد، شناسه‌ی مثبت، محدوده‌ی صفحه‌بندی و جهت مرتب‌سازی) را از کلاس پایه می‌گیرند.
+DTOها **برای هر entity جدا** می‌مانند، چون فیلدهای هر کاتالوگ فرق دارد (کلید خارجی‌ها نام کامل دارند: `brandId`، `equipmentTypeId`؛ شناسه‌ی خود رکورد همه‌جا `id` است). validatorها هم کلاس جدا دارند، ولی هرکدام یک خط است و قواعد مشترک (طول عنوان و کد، شناسه‌ی مثبت، محدوده‌ی صفحه‌بندی و جهت مرتب‌سازی) را از کلاس پایه می‌گیرند.
 
 ### چه چیزی خودکار ثبت می‌شود
 
@@ -76,13 +76,15 @@ DTOها **برای هر entity جدا** می‌مانند، چون نام فیل
 
 هر کاتالوگ پنج endpoint دارد. مسیر از نام کنترلر می‌آید: `/api/<Entity>` (مثلاً `/api/Brand`). همه به permission نیاز دارند (`<Plural>.View/Create/Update/Delete`، مثلاً `Brands.Create`) و بدون توکن `401` می‌گیرند.
 
+**هر پاسخ (موفق و خطا) داخل پوشش `{ success, message, data, meta, error, traceId }` است** و در نمونه‌های زیر فقط `data` و `meta` نشان داده می‌شود. تعریف کامل پوشش و قواعد مشترک در [API-CONVENTIONS.md](API-CONVENTIONS.md) است.
+
 | متد و مسیر | permission | موفقیت | کار |
 |---|---|---|---|
 | `GET /api/Brand` | `Brands.View` | `200` | لیست صفحه‌بندی‌شده |
 | `GET /api/Brand/{id}` | `Brands.View` | `200` | یک رکورد (فعال یا غیرفعال) |
 | `POST /api/Brand` | `Brands.Create` | `201` + هدر `Location` | ایجاد |
-| `PUT /api/Brand` | `Brands.Update` | `200` | ویرایش (شناسه داخل بدنه است) |
-| `DELETE /api/Brand/{id}` | `Brands.Delete` | `204` | حذف منطقی |
+| `PUT /api/Brand/{id}` | `Brands.Update` | `200` | ویرایش (شناسه فقط در مسیر است) |
+| `DELETE /api/Brand/{id}` | `Brands.Delete` | `200` (`data: null`) | حذف منطقی |
 
 ### لیست: `GET /api/Brand`
 
@@ -98,19 +100,23 @@ DTOها **برای هر entity جدا** می‌مانند، چون نام فیل
 | `code` | | جستجوی «شامل» روی کد (فقط کاتالوگ‌های دارای کد) |
 | `isActive` | فقط فعال‌ها | `false` فقط غیرفعال‌ها را می‌دهد (برای پیدا کردن و بازگرداندن) |
 
-پاسخ:
+پاسخ: `data` آرایه‌ی رکوردهاست و اطلاعات صفحه‌بندی در `meta.pagination` می‌آید.
 
 ```json
 {
-  "items": [
-    { "brandId": 3, "title": "سامسونگ", "code": "SMS", "isActive": true }
+  "success": true,
+  "message": null,
+  "data": [
+    { "id": 3, "title": "سامسونگ", "code": "SMS", "isActive": true }
   ],
-  "pageNumber": 1,
-  "pageSize": 10,
-  "totalCount": 1,
-  "totalPages": 1,
-  "hasPreviousPage": false,
-  "hasNextPage": false
+  "meta": {
+    "pagination": {
+      "pageNumber": 1, "pageSize": 10, "totalCount": 1,
+      "totalPages": 1, "hasPreviousPage": false, "hasNextPage": false
+    }
+  },
+  "error": null,
+  "traceId": "…"
 }
 ```
 
@@ -120,19 +126,23 @@ DTOها **برای هر entity جدا** می‌مانند، چون نام فیل
 { "title": "سامسونگ", "code": "SMS" }
 ```
 
-پاسخ `201` شکل «Detail» را برمی‌گرداند:
+پاسخ `201` (با هدر `Location`) شکل «Detail» را در `data` برمی‌گرداند و `message` «با موفقیت ایجاد شد.» است:
 
 ```json
-{ "brandId": 3, "title": "سامسونگ", "code": "SMS", "isActive": true, "rowVersion": "…" }
+{ "id": 3, "title": "سامسونگ", "code": "SMS", "isActive": true, "rowVersion": "…" }
 ```
 
 `title` و `code` قبل از ذخیره trim می‌شوند.
 
-### ویرایش: `PUT /api/Brand`
+### ویرایش: `PUT /api/Brand/{id}`
+
+شناسه فقط در مسیر است (`PUT /api/Brand/3`)، بدنه‌ی درخواست آن را ندارد:
 
 ```json
-{ "brandId": 3, "title": "سامسونگ الکترونیکس", "code": "SMS", "isActive": true, "rowVersion": "…" }
+{ "title": "سامسونگ الکترونیکس", "code": "SMS", "isActive": true, "rowVersion": "…" }
 ```
+
+پاسخ `200` با شکل «Detail» در `data` (و `rowVersion` جدید) است. شناسه‌ی غیرمثبت در مسیر `400 validation_failed` با فیلد `id` می‌دهد.
 
 نکته‌های مهم رفتار ویرایش:
 
@@ -143,15 +153,15 @@ DTOها **برای هر entity جدا** می‌مانند، چون نام فیل
 
 ### حذف: `DELETE /api/Brand/{id}`
 
-حذف منطقی است: رکورد `IsActive = false` می‌شود و پاک نمی‌شود. `204` برمی‌گرداند. اگر رکورد وابسته‌ی فعال داشته باشد `409 has_active_dependents`.
+حذف منطقی است: رکورد `IsActive = false` می‌شود و پاک نمی‌شود. `200` با `data: null` و `message` «با موفقیت حذف شد.» برمی‌گرداند. اگر رکورد وابسته‌ی فعال داشته باشد `409 has_active_dependents`.
 
 ### کدهای خطایی که کاتالوگ‌ها برمی‌گردانند
 
-قالب کامل خطاها در [ERRORS.md](ERRORS.md) است. کلاینت باید روی `code` تصمیم بگیرد، نه متن پیام.
+قالب کامل خطاها در [ERRORS.md](ERRORS.md) است. کلاینت باید روی `error.code` تصمیم بگیرد، نه متن پیام. ستون `code` در جدول زیر همین `error.code` است.
 
 | status | code | وقتی |
 |---|---|---|
-| 400 | `validation_failed` | عنوان خالی یا بلندتر از 100، کد بلندتر از 20، `pageSize` بیرون از 1 تا 100، شناسه‌ی غیرمثبت، `sortDirection` نامعتبر. فهرست مشکل‌ها در `errors` است |
+| 400 | `validation_failed` | عنوان خالی یا بلندتر از 100، کد بلندتر از 20، `pageSize` بیرون از 1 تا 100، شناسه‌ی غیرمثبت، `sortDirection` نامعتبر. فهرست مشکل‌ها در `error.details` است |
 | 400 | `invalid_row_version` | `rowVersion` عدد معتبر نیست |
 | 400 | `parent_inactive` | والد انتخاب‌شده غیرفعال است |
 | 401 / 403 | `unauthorized` / `forbidden` | توکن نیست یا permission لازم را ندارد |
@@ -396,14 +406,14 @@ curl -X POST https://localhost:PORT/api/Manufacturer \
 curl "https://localhost:PORT/api/Manufacturer?pageSize=5&sortBy=title" -H "Authorization: Bearer <token>"
 
 # ایجاد با عنوان تکراری → 409 با code = duplicate_title
-# حذف (204)
+# حذف (200 با data = null)
 curl -X DELETE https://localhost:PORT/api/Manufacturer/1 -H "Authorization: Bearer <token>"
 
 # حالا لیست فعال‌ها خالی است، ولی غیرفعال‌ها:
 curl "https://localhost:PORT/api/Manufacturer?isActive=false" -H "Authorization: Bearer <token>"
 ```
 
-(`PORT` را از `launchSettings.json` بردار.)
+(`PORT` را از `launchSettings.json` بردار. هر پاسخ داخل پوشش `{ success, message, data, meta, error, traceId }` است؛ نتیجه را در `data` ببین. [API-CONVENTIONS.md](API-CONVENTIONS.md))
 
 ### گام ۸: تست
 
@@ -416,11 +426,11 @@ using EMS.Application.Dtos.Manufacturer;
 ۲. در لیست `All` یک `CatalogCase` اضافه کن (مثل `Brand`):
 
 ```csharp
-new("Manufacturer", "/api/Manufacturer", "manufacturerId", "Manufacturers", true, typeof(ManufacturerDetailDto), typeof(ManufacturerListItemDto),
+new("Manufacturer", "/api/Manufacturer", "id", "Manufacturers", true, typeof(ManufacturerDetailDto), typeof(ManufacturerListItemDto),
     (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "MF" })),
 ```
 
-ترتیب پارامترها: نام، مسیر، نام فیلد شناسه در JSON، نام گروه permission، دارد کد؟، نوع DTO جزئیات، نوع DTO لیست، تابعی که بدنه‌ی ایجاد را می‌سازد (اگر والد دارد، همین‌جا والد را می‌سازی، مثل `EquipmentType`).
+ترتیب پارامترها: نام، مسیر، نام فیلد شناسه در JSON (همیشه `"id"`)، نام گروه permission، دارد کد؟، نوع DTO جزئیات، نوع DTO لیست، تابعی که بدنه‌ی ایجاد را می‌سازد (اگر والد دارد، همین‌جا والد را می‌سازی، مثل `EquipmentType`).
 
 ۳. اجرا:
 

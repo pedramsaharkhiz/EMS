@@ -20,31 +20,31 @@ namespace EMS.Tests.Integration
         {
             var response = await SendAsync(HttpMethod.Post, url, body, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-            return (await ReadJsonAsync(response)).GetProperty(idProperty).GetInt64();
+            return (await ReadDataAsync(response)).GetProperty(idProperty).GetInt64();
         }
 
-        private Task<long> NewStatusAsync() => PostAsync("/api/EquipmentStatus", new { title = Uniq("sd-st"), code = "S" }, "equipmentStatusId");
-        private Task<long> NewLocationTypeAsync() => PostAsync("/api/EquipmentLocationType", new { title = Uniq("sd-lt"), code = "L" }, "equipmentLocationTypeId");
+        private Task<long> NewStatusAsync() => PostAsync("/api/EquipmentStatus", new { title = Uniq("sd-st"), code = "S" }, "id");
+        private Task<long> NewLocationTypeAsync() => PostAsync("/api/EquipmentLocationType", new { title = Uniq("sd-lt"), code = "L" }, "id");
 
         private async Task<long> NewTypeAsync() =>
             await PostAsync("/api/EquipmentType", new
             {
-                equipmentCategoryId = await PostAsync("/api/EquipmentCategory", new { title = Uniq("sd-cat") }, "equipmentCategoryId"),
+                equipmentCategoryId = await PostAsync("/api/EquipmentCategory", new { title = Uniq("sd-cat") }, "id"),
                 title = Uniq("sd-type"),
                 code = "T"
-            }, "equipmentTypeId");
+            }, "id");
 
         private async Task<long> NewModelAsync() =>
             await PostAsync("/api/EquipmentModel", new
             {
                 equipmentTypeId = await NewTypeAsync(),
-                brandId = await PostAsync("/api/Brand", new { title = Uniq("sd-br"), code = "B" }, "brandId"),
+                brandId = await PostAsync("/api/Brand", new { title = Uniq("sd-br"), code = "B" }, "id"),
                 title = Uniq("sd-model"),
                 code = "M"
-            }, "equipmentModelId");
+            }, "id");
 
         private async Task<long> NewDepartmentAsync() =>
-            await PostAsync("/api/SupportingDepartment", new { cityId = await CatalogFixtures.EnsureCityAsync(this), title = Uniq("sd-dept") }, "supportingDepartmentId");
+            await PostAsync("/api/SupportingDepartment", new { cityId = await CatalogFixtures.EnsureCityAsync(this), title = Uniq("sd-dept") }, "id");
 
         private async Task<long> InsertEquipmentAsync(long statusId, long locationTypeId, long? typeId = null, long? modelId = null, long? departmentId = null, bool active = true)
         {
@@ -97,7 +97,7 @@ namespace EMS.Tests.Integration
         public async Task A_plain_query_never_sees_deactivated_catalog_rows_but_including_inactive_does()
         {
             var admin = await AdminAsync();
-            var id = await PostAsync("/api/Brand", new { title = Uniq("sd-hidden"), code = "H" }, "brandId");
+            var id = await PostAsync("/api/Brand", new { title = Uniq("sd-hidden"), code = "H" }, "id");
             await SendAsync(HttpMethod.Delete, $"/api/Brand/{id}", bearer: admin);
 
             using var scope = _factory.Services.CreateScope();
@@ -118,8 +118,8 @@ namespace EMS.Tests.Integration
             var equipmentId = await InsertEquipmentAsync(status, location, typeId: type, active: false);
 
             var admin = await AdminAsync();
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{status}", bearer: admin)).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: admin)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{status}", bearer: admin)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: admin)).StatusCode);
 
             using var scope = _factory.Services.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IEquipmentRepository>();
@@ -141,7 +141,7 @@ namespace EMS.Tests.Integration
             var admin = await AdminAsync();
             await AssertConflictAsync($"/api/EquipmentStatus/{status}");
             await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{status}", bearer: admin)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{status}", bearer: admin)).StatusCode);
         }
 
         [Fact]
@@ -152,7 +152,7 @@ namespace EMS.Tests.Integration
 
             await AssertConflictAsync($"/api/EquipmentLocationType/{location}");
             await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: await AdminAsync())).StatusCode);
         }
 
         [Fact]
@@ -163,7 +163,7 @@ namespace EMS.Tests.Integration
 
             await AssertConflictAsync($"/api/EquipmentModel/{model}");
             await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentModel/{model}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentModel/{model}", bearer: await AdminAsync())).StatusCode);
         }
 
         [Fact]
@@ -174,7 +174,7 @@ namespace EMS.Tests.Integration
 
             await AssertConflictAsync($"/api/EquipmentType/{type}");
             await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentType/{type}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentType/{type}", bearer: await AdminAsync())).StatusCode);
         }
 
         [Fact]
@@ -197,14 +197,14 @@ namespace EMS.Tests.Integration
             var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewLocationTypeAsync(), typeId: await NewTypeAsync(), departmentId: byEquipment);
             await AssertConflictAsync($"/api/SupportingDepartment/{byEquipment}");
             await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"/api/SupportingDepartment/{byEquipment}", bearer: admin)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/SupportingDepartment/{byEquipment}", bearer: admin)).StatusCode);
         }
 
         private async Task AssertConflictAsync(string deleteUrl)
         {
             var response = await SendAsync(HttpMethod.Delete, deleteUrl, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-            Assert.Equal("has_active_dependents", (await ReadJsonAsync(response)).GetProperty("code").GetString());
+            Assert.Equal("has_active_dependents", ErrorCodeOf(await ReadJsonAsync(response)));
         }
     }
 }

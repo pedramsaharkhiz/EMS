@@ -5,29 +5,31 @@ using System.Text.Json;
 
 namespace EMS.Tests.Integration
 {
-    /// <summary>Every kind of error the API can return is one RFC 7807 problem document with a stable code.</summary>
+    /// <summary>Every kind of error the API can return is the same envelope: success = false, a message, and an error with a stable code.</summary>
     public class ErrorContractTests : ApiTestBase
     {
         public ErrorContractTests(EmsApiFactory factory) : base(factory) { }
 
         private static readonly string[] RequiredMembers =
-            { "type", "title", "status", "detail", "instance", "code", "message", "correlationId", "traceId" };
+            { "success", "message", "data", "meta", "error", "traceId" };
 
         private async Task<JsonElement> AssertProblemAsync(HttpResponseMessage response, HttpStatusCode status, string code)
         {
             Assert.Equal(status, response.StatusCode);
-            Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
 
             var json = await ReadJsonAsync(response);
             foreach (var member in RequiredMembers)
-                Assert.True(json.TryGetProperty(member, out _), $"'{member}' is missing from {await Task.FromResult(json.ToString())}");
+                Assert.True(json.TryGetProperty(member, out _), $"'{member}' is missing from {json}");
+            Assert.Equal(RequiredMembers.ToHashSet(), json.EnumerateObject().Select(p => p.Name).ToHashSet());
 
-            Assert.Equal((int)status, json.GetProperty("status").GetInt32());
-            Assert.Equal(code, json.GetProperty("code").GetString());
-            Assert.Equal(json.GetProperty("detail").GetString(), json.GetProperty("message").GetString());
+            Assert.False(json.GetProperty("success").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, json.GetProperty("data").ValueKind);
+            Assert.Equal(JsonValueKind.Null, json.GetProperty("meta").ValueKind);
+            Assert.Equal(code, ErrorCodeOf(json));
             Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("message").GetString()));
-            Assert.Equal(response.Headers.GetValues("X-Correlation-ID").Single(), json.GetProperty("correlationId").GetString());
-            Assert.StartsWith("https://", json.GetProperty("type").GetString());
+            Assert.Equal(JsonValueKind.Array, json.GetProperty("error").GetProperty("details").ValueKind);
+            Assert.Equal(response.Headers.GetValues("X-Correlation-ID").Single(), json.GetProperty("traceId").GetString());
             return json;
         }
 
@@ -39,7 +41,6 @@ namespace EMS.Tests.Integration
             var response = await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { userName = "nobody", password = "Wrong1pass" });
             var json = await AssertProblemAsync(response, HttpStatusCode.Unauthorized, "invalid_credentials");
             Assert.Equal(GenericLoginError, json.GetProperty("message").GetString());
-            Assert.Equal("/api/Identity/Login", json.GetProperty("instance").GetString());
         }
 
         [Fact]
@@ -50,7 +51,7 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task Authentication_and_authorization_failures_produced_by_the_framework_also_carry_a_problem_body()
+        public async Task Authentication_and_authorization_failures_produced_by_the_framework_also_carry_the_error_envelope()
         {
             // no token: the JWT challenge writes no body of its own
             await AssertProblemAsync(await SendAsync(HttpMethod.Get, "/api/Users"), HttpStatusCode.Unauthorized, "unauthorized");
@@ -78,15 +79,18 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task Validation_failures_list_the_fields_as_a_dictionary_with_the_validation_failed_code()
+        public async Task Validation_failures_list_the_fields_in_camel_case_with_the_validation_failed_code()
         {
             var response = await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "", code = "X" }, bearer: await AdminTokenAsync());
             var json = await AssertProblemAsync(response, HttpStatusCode.BadRequest, "validation_failed");
 
-            Assert.Equal("One or more validation errors occurred.", json.GetProperty("title").GetString());
-            var errors = json.GetProperty("errors");
-            var title = errors.EnumerateObject().Single(p => p.Name.Equals("Title", StringComparison.OrdinalIgnoreCase)).Value;
-            Assert.All(title.EnumerateArray(), m => Assert.False(string.IsNullOrWhiteSpace(m.GetString())));
+            Assert.Equal("اطلاعات ارسالی نامعتبر است.", json.GetProperty("message").GetString());
+            var details = json.GetProperty("error").GetProperty("details").EnumerateArray().ToList();
+            Assert.NotEmpty(details);
+            Assert.All(details, d => Assert.False(string.IsNullOrWhiteSpace(d.GetProperty("message").GetString())));
+            var fields = details.Select(d => d.GetProperty("field").GetString()!).ToList();
+            Assert.Contains("title", fields);
+            Assert.All(fields, f => Assert.True(f.Length > 0 && char.IsLower(f[0]), $"field '{f}' is not camelCase"));
         }
 
         [Fact]
@@ -106,14 +110,14 @@ namespace EMS.Tests.Integration
             var admin = await AdminTokenAsync();
 
             // concurrency
-            var created = await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "EcBrand", code = "E" }, bearer: admin));
-            var id = created.GetProperty("brandId").GetInt64();
-            await SendAsync(HttpMethod.Put, "/api/Brand", new { brandId = id, title = "EcBrand", code = "E2", isActive = true, rowVersion = "0" }, bearer: admin);
+            var created = await ReadDataAsync(await SendAsync(HttpMethod.Post, "/api/Brand", new { title = "EcBrand", code = "E" }, bearer: admin));
+            var id = created.GetProperty("id").GetInt64();
+            await SendAsync(HttpMethod.Put, $"/api/Brand/{id}", new { title = "EcBrand", code = "E2", isActive = true, rowVersion = "0" }, bearer: admin);
             await AssertProblemAsync(
-                await SendAsync(HttpMethod.Put, "/api/Brand", new { brandId = id, title = "EcBrand", code = "E3", isActive = true, rowVersion = "0" }, bearer: admin),
+                await SendAsync(HttpMethod.Put, $"/api/Brand/{id}", new { title = "EcBrand", code = "E3", isActive = true, rowVersion = "0" }, bearer: admin),
                 HttpStatusCode.Conflict, "concurrency_conflict");
             await AssertProblemAsync(
-                await SendAsync(HttpMethod.Put, "/api/Brand", new { brandId = id, title = "EcBrand", code = "E4", isActive = true, rowVersion = "x" }, bearer: admin),
+                await SendAsync(HttpMethod.Put, $"/api/Brand/{id}", new { title = "EcBrand", code = "E4", isActive = true, rowVersion = "x" }, bearer: admin),
                 HttpStatusCode.BadRequest, "invalid_row_version");
 
             // users and roles
@@ -136,8 +140,8 @@ namespace EMS.Tests.Integration
                 HttpStatusCode.Conflict, "duplicate_title");
 
             // active dependents
-            var category = (await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentCategory", new { title = "EcCatDeps" }, bearer: admin))).GetProperty("equipmentCategoryId").GetInt64();
-            var type = (await ReadJsonAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentType", new { equipmentCategoryId = category, title = "EcTypeDeps", code = "T" }, bearer: admin))).GetProperty("equipmentTypeId").GetInt64();
+            var category = (await ReadDataAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentCategory", new { title = "EcCatDeps" }, bearer: admin))).GetProperty("id").GetInt64();
+            var type = (await ReadDataAsync(await SendAsync(HttpMethod.Post, "/api/EquipmentType", new { equipmentCategoryId = category, title = "EcTypeDeps", code = "T" }, bearer: admin))).GetProperty("id").GetInt64();
             await AssertProblemAsync(await SendAsync(HttpMethod.Delete, $"/api/EquipmentCategory/{category}", bearer: admin),
                 HttpStatusCode.Conflict, "has_active_dependents");
 
@@ -156,7 +160,6 @@ namespace EMS.Tests.Integration
             var corr = NewCorrelationId("it-err");
             var response = await SendAsync(HttpMethod.Get, "/api/Users", correlationId: corr);
             var json = await AssertProblemAsync(response, HttpStatusCode.Unauthorized, "unauthorized");
-            Assert.Equal(corr, json.GetProperty("correlationId").GetString());
             Assert.Equal(corr, json.GetProperty("traceId").GetString());
         }
     }

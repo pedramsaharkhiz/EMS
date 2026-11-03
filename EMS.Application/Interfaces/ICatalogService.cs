@@ -11,7 +11,7 @@ namespace EMS.Application.Interfaces
         Task<PagedResult<TListItem>> GetPagedAsync(TListRequest request, CancellationToken cancellationToken = default);
         Task<TDetail> GetByIdAsync(long id, CancellationToken cancellationToken = default);
         Task<TDetail> CreateAsync(TCreate request, CancellationToken cancellationToken = default);
-        Task<TDetail> UpdateAsync(TUpdate request, CancellationToken cancellationToken = default);
+        Task<TDetail> UpdateAsync(long id, TUpdate request, CancellationToken cancellationToken = default);
 
         /// <summary>Soft delete: the record is deactivated, not removed.</summary>
         Task DeleteAsync(long id, CancellationToken cancellationToken = default);

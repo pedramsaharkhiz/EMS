@@ -32,17 +32,17 @@ namespace EMS.Tests.Integration
             var body = await c.CreateBody(this, title);
             var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
             Assert.True(response.StatusCode == HttpStatusCode.Created, $"{c.Name} create -> {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
-            var json = await ReadJsonAsync(response);
+            var json = await ReadDataAsync(response);
             return (json.GetProperty(c.IdProperty).GetInt64(), json);
         }
 
         private async Task<HttpResponseMessage> UpdateAsync(CatalogCase c, long id, string? title, bool isActive = true, string? rowVersion = null, string? code = null)
         {
-            var body = new Dictionary<string, object?> { [c.IdProperty] = id, ["isActive"] = isActive };
+            var body = new Dictionary<string, object?> { ["isActive"] = isActive };
             if (title is not null) body["title"] = title;
             if (code is not null) body["code"] = code;
             if (rowVersion is not null) body["rowVersion"] = rowVersion;
-            return await SendAsync(HttpMethod.Put, c.Route, body, bearer: await AdminAsync());
+            return await SendAsync(HttpMethod.Put, $"{c.Route}/{id}", body, bearer: await AdminAsync());
         }
 
         private async Task<JsonElement> ListAsync(CatalogCase c, string query = "")
@@ -53,7 +53,7 @@ namespace EMS.Tests.Integration
         }
 
         private static List<string> TitlesOf(JsonElement page) =>
-            page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("title").GetString()!).ToList();
+            DataOf(page).EnumerateArray().Select(i => i.GetProperty("title").GetString()!).ToList();
 
         // ------------------------------------------------------------------------------- create / read
 
@@ -66,7 +66,10 @@ namespace EMS.Tests.Integration
             var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-            var json = await ReadJsonAsync(response);
+            var envelope = await ReadJsonAsync(response);
+            Assert.True(envelope.GetProperty("success").GetBoolean());
+            Assert.False(string.IsNullOrWhiteSpace(envelope.GetProperty("message").GetString()));
+            var json = DataOf(envelope);
             var id = json.GetProperty(c.IdProperty).GetInt64();
             Assert.EndsWith($"{c.Route}/{id}", response.Headers.Location!.AbsolutePath, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(JsonNamesOf(c.DetailDto), NamesIn(json));
@@ -75,7 +78,7 @@ namespace EMS.Tests.Integration
 
             var get = await SendAsync(HttpMethod.Get, $"{c.Route}/{id}", bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.OK, get.StatusCode);
-            Assert.Equal(title, (await ReadJsonAsync(get)).GetProperty("title").GetString());
+            Assert.Equal(title, (await ReadDataAsync(get)).GetProperty("title").GetString());
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -85,7 +88,10 @@ namespace EMS.Tests.Integration
             var response = await SendAsync(HttpMethod.Get, $"{c.Route}/987654321", bearer: await AdminAsync());
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.False(string.IsNullOrWhiteSpace((await ReadJsonAsync(response)).GetProperty("message").GetString()));
+            var envelope = await ReadJsonAsync(response);
+            Assert.False(envelope.GetProperty("success").GetBoolean());
+            Assert.Equal("not_found", ErrorCodeOf(envelope));
+            Assert.False(string.IsNullOrWhiteSpace(envelope.GetProperty("message").GetString()));
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -97,7 +103,9 @@ namespace EMS.Tests.Integration
             var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.True((await ReadJsonAsync(response)).TryGetProperty("errors", out _));
+            var envelope = await ReadJsonAsync(response);
+            Assert.Equal("validation_failed", ErrorCodeOf(envelope));
+            Assert.Contains("title", ErrorFieldsOf(envelope));
         }
 
         // ------------------------------------------------------------------------------- uniqueness
@@ -114,7 +122,7 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.Conflict, same.StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, upper.StatusCode);
 
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
             var again = await SendAsync(HttpMethod.Post, c.Route, await c.CreateBody(this, title), bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Created, again.StatusCode);
         }
@@ -145,27 +153,29 @@ namespace EMS.Tests.Integration
             // filter by title + sort descending
             var page = await ListAsync(c, $"title={prefix}&sortBy=title&sortDirection=desc&pageSize=10");
             Assert.Equal(new[] { prefix + "C", prefix + "B", prefix + "A" }, TitlesOf(page));
-            Assert.Equal(3, page.GetProperty("totalCount").GetInt32());
-            Assert.Equal(JsonNamesOf(c.ListItemDto), NamesIn(page.GetProperty("items")[0]));
+            Assert.Equal(3, PaginationOf(page).GetProperty("totalCount").GetInt32());
+            Assert.Equal(JsonNamesOf(c.ListItemDto), NamesIn(DataOf(page)[0]));
 
             // ascending
             Assert.Equal(new[] { prefix + "A", prefix + "B", prefix + "C" }, TitlesOf(await ListAsync(c, $"title={prefix}&sortBy=title&pageSize=10")));
 
             // default order is by id (creation order)
-            var byId = page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty(c.IdProperty).GetInt64()).OrderBy(x => x).ToList();
-            var defaultOrder = (await ListAsync(c, $"title={prefix}&pageSize=10")).GetProperty("items").EnumerateArray().Select(i => i.GetProperty(c.IdProperty).GetInt64()).ToList();
+            var byId = DataOf(page).EnumerateArray().Select(i => i.GetProperty(c.IdProperty).GetInt64()).OrderBy(x => x).ToList();
+            var defaultOrder = DataOf(await ListAsync(c, $"title={prefix}&pageSize=10")).EnumerateArray().Select(i => i.GetProperty(c.IdProperty).GetInt64()).ToList();
             Assert.Equal(byId, defaultOrder);
             Assert.Equal(ids.OrderBy(x => x), defaultOrder);
 
             // paging
             var second = await ListAsync(c, $"title={prefix}&sortBy=title&pageSize=2&pageNumber=2");
             Assert.Equal(new[] { prefix + "C" }, TitlesOf(second));
-            Assert.Equal(3, second.GetProperty("totalCount").GetInt32());
-            Assert.Equal(2, second.GetProperty("pageNumber").GetInt32());
-            Assert.Equal(2, second.GetProperty("pageSize").GetInt32());
+            Assert.Equal(3, PaginationOf(second).GetProperty("totalCount").GetInt32());
+            Assert.Equal(2, PaginationOf(second).GetProperty("pageNumber").GetInt32());
+            Assert.Equal(2, PaginationOf(second).GetProperty("pageSize").GetInt32());
 
-            // the paged wrapper has exactly the documented members
-            Assert.Equal(typeof(PagedResult<>).GetProperties().Select(p => Camel(p.Name)).ToHashSet(), NamesIn(page));
+            // the envelope and its pagination have exactly the documented members
+            Assert.Equal(typeof(ApiResponse<>).GetProperties().Select(p => Camel(p.Name)).ToHashSet(), NamesIn(page));
+            Assert.Equal(typeof(ApiPagination).GetProperties().Select(p => Camel(p.Name)).ToHashSet(), NamesIn(PaginationOf(page)));
+            Assert.Equal(JsonValueKind.Null, page.GetProperty("error").ValueKind);
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -188,13 +198,15 @@ namespace EMS.Tests.Integration
             var renamed = Title("UpdB");
             var update = await UpdateAsync(c, id, renamed);
             Assert.Equal(HttpStatusCode.OK, update.StatusCode);
-            var json = await ReadJsonAsync(update);
+            var envelope = await ReadJsonAsync(update);
+            Assert.False(string.IsNullOrWhiteSpace(envelope.GetProperty("message").GetString()));
+            var json = DataOf(envelope);
             Assert.Equal(renamed, json.GetProperty("title").GetString());
             Assert.Equal(JsonNamesOf(c.DetailDto), NamesIn(json));
             Assert.NotEqual(created.GetProperty("rowVersion").GetString(), json.GetProperty("rowVersion").GetString());
 
             // title omitted => unchanged
-            var keep = await ReadJsonAsync(await UpdateAsync(c, id, title: null));
+            var keep = await ReadDataAsync(await UpdateAsync(c, id, title: null));
             Assert.Equal(renamed, keep.GetProperty("title").GetString());
         }
 
@@ -214,7 +226,7 @@ namespace EMS.Tests.Integration
 
             var first = await UpdateAsync(c, id, Title("VerA"), rowVersion: v0);
             Assert.Equal(HttpStatusCode.OK, first.StatusCode);
-            var v1 = (await ReadJsonAsync(first)).GetProperty("rowVersion").GetString()!;
+            var v1 = (await ReadDataAsync(first)).GetProperty("rowVersion").GetString()!;
 
             Assert.Equal(HttpStatusCode.Conflict, (await UpdateAsync(c, id, Title("VerB"), rowVersion: v0)).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, Title("VerC"), rowVersion: v1)).StatusCode);
@@ -224,8 +236,7 @@ namespace EMS.Tests.Integration
 
         // ------------------------------------------------------------------------------- validation rules
 
-        private static HashSet<string> ErrorFields(JsonElement problem) =>
-            problem.GetProperty("errors").EnumerateObject().Select(e => e.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        private static HashSet<string> ErrorFields(JsonElement envelope) => ErrorFieldsOf(envelope).ToHashSet();
 
         [Theory, MemberData(nameof(Cases))]
         public async Task An_oversized_title_is_rejected_on_create_and_update_but_the_maximum_length_is_accepted(string name)
@@ -235,12 +246,12 @@ namespace EMS.Tests.Integration
             var tooLong = await c.CreateBody(this, new string('a', 101));
             var create = await SendAsync(HttpMethod.Post, c.Route, tooLong, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
-            Assert.Contains("Title", ErrorFields(await ReadJsonAsync(create)));
+            Assert.Contains("title", ErrorFields(await ReadJsonAsync(create)));
 
             var (id, _) = await CreateAsync(c, new string('b', 100) + "");   // exactly the maximum is fine
             var update = await UpdateAsync(c, id, new string('c', 101));
             Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
-            Assert.Contains("Title", ErrorFields(await ReadJsonAsync(update)));
+            Assert.Contains("title", ErrorFields(await ReadJsonAsync(update)));
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -250,7 +261,7 @@ namespace EMS.Tests.Integration
             var response = await UpdateAsync(c, 0, Title("Id"));
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(char.ToUpperInvariant(c.IdProperty[0]) + c.IdProperty[1..], ErrorFields(await ReadJsonAsync(response)));
+            Assert.Contains("id", ErrorFields(await ReadJsonAsync(response)));
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -260,7 +271,7 @@ namespace EMS.Tests.Integration
             var response = await SendAsync(HttpMethod.Get, $"{c.Route}?sortDirection=sideways", bearer: await AdminAsync());
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains("SortDirection", ErrorFields(await ReadJsonAsync(response)));
+            Assert.Contains("sortDirection", ErrorFields(await ReadJsonAsync(response)));
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -274,12 +285,12 @@ namespace EMS.Tests.Integration
             body["code"] = new string('x', 21);
             var create = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
-            Assert.Contains("Code", ErrorFields(await ReadJsonAsync(create)));
+            Assert.Contains("code", ErrorFields(await ReadJsonAsync(create)));
 
             var (id, _) = await CreateAsync(c, Title("Code2"));
             var update = await UpdateAsync(c, id, title: null, code: new string('y', 21));
             Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
-            Assert.Contains("Code", ErrorFields(await ReadJsonAsync(update)));
+            Assert.Contains("code", ErrorFields(await ReadJsonAsync(update)));
 
             // the maximum itself is accepted
             Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, title: null, code: new string('z', 20))).StatusCode);
@@ -290,11 +301,12 @@ namespace EMS.Tests.Integration
         {
             var c = CatalogCase.Get(name);
             var page = await SendAsync(HttpMethod.Get, $"{c.Route}?pageSize=101", bearer: await AdminAsync());
-            var pageMessage = (await ReadJsonAsync(page)).GetProperty("errors").GetProperty("PageSize")[0].GetString();
+            var pageMessage = (await ReadJsonAsync(page)).GetProperty("error").GetProperty("details").EnumerateArray()
+                .First(d => d.GetProperty("field").GetString() == "pageSize").GetProperty("message").GetString();
             Assert.Contains("اندازه صفحه", pageMessage);        // the message used to be a fragment without a subject
 
             var update = await UpdateAsync(c, 0, Title("Msg"));
-            var idMessage = (await ReadJsonAsync(update)).GetProperty("errors").EnumerateObject().First().Value[0].GetString();
+            var idMessage = (await ReadJsonAsync(update)).GetProperty("error").GetProperty("details")[0].GetProperty("message").GetString();
             Assert.Contains("شناسه", idMessage);
         }
 
@@ -311,7 +323,7 @@ namespace EMS.Tests.Integration
 
             var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Contains(char.ToUpperInvariant(parentKey[0]) + parentKey[1..], ErrorFields(await ReadJsonAsync(response)));
+            Assert.Contains(parentKey, ErrorFields(await ReadJsonAsync(response)));
         }
 
         // ------------------------------------------------------------------------------- behaviour fixed by the refactoring
@@ -331,7 +343,7 @@ namespace EMS.Tests.Integration
                     continue;
 
                 Assert.Equal(HttpStatusCode.OK, update.StatusCode);
-                Assert.Equal(single, (await ReadJsonAsync(update)).GetProperty("title").GetString());
+                Assert.Equal(single, (await ReadDataAsync(update)).GetProperty("title").GetString());
                 return;
             }
 
@@ -349,7 +361,7 @@ namespace EMS.Tests.Integration
             var update = await UpdateAsync(c, id, title: null, code: "Z");
 
             Assert.Equal(HttpStatusCode.OK, update.StatusCode);
-            Assert.Equal("Z", (await ReadJsonAsync(update)).GetProperty("code").GetString());
+            Assert.Equal("Z", (await ReadDataAsync(update)).GetProperty("code").GetString());
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -363,7 +375,7 @@ namespace EMS.Tests.Integration
             body["code"] = "  ab  ";
             var response = await SendAsync(HttpMethod.Post, c.Route, body, bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-            Assert.Equal("ab", (await ReadJsonAsync(response)).GetProperty("code").GetString());
+            Assert.Equal("ab", (await ReadDataAsync(response)).GetProperty("code").GetString());
         }
 
         [Theory, MemberData(nameof(Cases))]
@@ -373,7 +385,7 @@ namespace EMS.Tests.Integration
             var activeTitle = Title("Act");
             await CreateAsync(c, activeTitle);
             var (id, _) = await CreateAsync(c, Title("Gone"));
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
 
             // staying inactive, it may carry the same title as an active record
             Assert.Equal(HttpStatusCode.OK, (await UpdateAsync(c, id, activeTitle, isActive: false)).StatusCode);
@@ -390,8 +402,8 @@ namespace EMS.Tests.Integration
             var title = Title("Del");
             var (id, _) = await CreateAsync(c, title);
 
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode); // idempotent
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode); // idempotent
 
             Assert.DoesNotContain(title, TitlesOf(await ListAsync(c, $"title={title}")));
             Assert.Contains(title, TitlesOf(await ListAsync(c, $"title={title}&isActive=false")));
@@ -399,7 +411,7 @@ namespace EMS.Tests.Integration
 
             var get = await SendAsync(HttpMethod.Get, $"{c.Route}/{id}", bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.OK, get.StatusCode);
-            Assert.False((await ReadJsonAsync(get)).GetProperty("isActive").GetBoolean());
+            Assert.False((await ReadDataAsync(get)).GetProperty("isActive").GetBoolean());
 
             // restoring works through update
             var restore = await UpdateAsync(c, id, title: null, isActive: true);
@@ -433,7 +445,7 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, $"{c.Route}/{id}", viewer));
             // ...but not to change anything
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, c.Route, viewer, await c.CreateBody(this, Title("Aut2"))));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, c.Route, viewer, new Dictionary<string, object?> { [c.IdProperty] = id, ["isActive"] = true }));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"{c.Route}/{id}", viewer, new Dictionary<string, object?> { ["isActive"] = true }));
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"{c.Route}/{id}", viewer));
 
             // anonymous

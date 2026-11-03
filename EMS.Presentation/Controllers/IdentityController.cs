@@ -1,4 +1,5 @@
-﻿using EMS.Application.Dtos.RefreshToken;
+﻿using EMS.Application.Common.Models;
+using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,26 +16,26 @@ namespace EMS.Presentation.Controllers
 
         [AllowAnonymous]
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken) 
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken) 
         { 
             var result = await _authService.LoginAsync(request, cancellationToken);
-            return Ok(result); 
+            return Success(result);
         }
 
         [AllowAnonymous]
         [HttpPost("RefreshToken")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
         { 
             var result = await _authService.RefreshTokenAsync(request, cancellationToken);
-            return Ok(result);
+            return Success(result);
         }
 
         [Authorize]
         [HttpPost("RevokeRefreshToken")]
-        public async Task<IActionResult> RevokeRefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
+        public async Task<ActionResult<ApiResponse<object>>> RevokeRefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
         { 
             await _authService.RevokeRefreshTokenAsync(request.RefreshToken, cancellationToken);
-            return Ok(new { message = "ابطال رفرش توکن با موفقیت انجام شد." });
+            return Done("ابطال رفرش توکن با موفقیت انجام شد.");
         }
 
         //[Authorize(Roles = "Admin")]

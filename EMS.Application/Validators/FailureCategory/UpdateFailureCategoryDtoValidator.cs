@@ -7,6 +7,6 @@ namespace EMS.Application.Validators.FailureCategory
 {
     public sealed class UpdateFailureCategoryDtoValidator : CatalogUpdateValidator<FailureCategoryUpdateDto>
     {
-        public UpdateFailureCategoryDtoValidator() : base(FailureCategoryService.EntityLabel, x => x.FailureCategoryId) { }
+        public UpdateFailureCategoryDtoValidator() : base(FailureCategoryService.EntityLabel) { }
     }
 }

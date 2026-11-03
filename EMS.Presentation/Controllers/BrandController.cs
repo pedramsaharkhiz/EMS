@@ -18,33 +18,34 @@ namespace EMS.Presentation.Controllers
 
         [Permission(Permissions.Brands.View)]
         [HttpGet]
-        public async Task<ActionResult<PagedResult<BrandListItemDto>>> GetAllList([FromQuery] BrandListRequestDto request, CancellationToken cancellationToken) =>
-            Ok(await _service.GetPagedAsync(request, cancellationToken));
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<BrandListItemDto>>>> GetAllList([FromQuery] BrandListRequestDto request, CancellationToken cancellationToken) =>
+            Paged(await _service.GetPagedAsync(request, cancellationToken));
 
         [Permission(Permissions.Brands.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<BrandDetailDto>> GetById(long id, CancellationToken cancellationToken) =>
-            Ok(await _service.GetByIdAsync(id, cancellationToken));
+        public async Task<ActionResult<ApiResponse<BrandDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>
+            Success(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.Brands.Create)]
         [HttpPost]
-        public async Task<ActionResult<BrandDetailDto>> Create([FromBody] BrandCreateDto request, CancellationToken cancellationToken)
+        [ProducesResponseType<ApiResponse<BrandDetailDto>>(StatusCodes.Status201Created)]
+        public async Task<ActionResult<ApiResponse<BrandDetailDto>>> Create([FromBody] BrandCreateDto request, CancellationToken cancellationToken)
         {
             var result = await _service.CreateAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(GetById), new { id = result.BrandId }, result);
+            return CreatedAt(nameof(GetById), new { id = result.Id }, result);
         }
 
         [Permission(Permissions.Brands.Update)]
-        [HttpPut]
-        public async Task<ActionResult<BrandDetailDto>> Update([FromBody] BrandUpdateDto request, CancellationToken cancellationToken) =>
-            Ok(await _service.UpdateAsync(request, cancellationToken));
+        [HttpPut("{id:long}")]
+        public async Task<ActionResult<ApiResponse<BrandDetailDto>>> Update(long id, [FromBody] BrandUpdateDto request, CancellationToken cancellationToken) =>
+            Updated(await _service.UpdateAsync(id, request, cancellationToken));
 
         [Permission(Permissions.Brands.Delete)]
         [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken)
         {
             await _service.DeleteAsync(id, cancellationToken);
-            return NoContent();
+            return Deleted();
         }
     }
 }

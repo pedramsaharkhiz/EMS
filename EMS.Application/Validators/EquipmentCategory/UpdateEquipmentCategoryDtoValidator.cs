@@ -7,6 +7,6 @@ namespace EMS.Application.Validators.EquipmentCategory
 {
     public sealed class UpdateEquipmentCategoryDtoValidator : CatalogUpdateValidator<EquipmentCategoryUpdateDto>
     {
-        public UpdateEquipmentCategoryDtoValidator() : base(EquipmentCategoryService.EntityLabel, x => x.EquipmentCategoryId) { }
+        public UpdateEquipmentCategoryDtoValidator() : base(EquipmentCategoryService.EntityLabel) { }
     }
 }
