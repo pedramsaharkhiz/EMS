@@ -28,7 +28,7 @@ namespace EMS.Tests.Unit
         public void Every_action_returns_the_api_response_envelope()
         {
             var offenders = Actions()
-                .Where(m => EMS.Presentation.Extensions.ApiResponseConvention.SuccessTypeOf(m.ReturnType) is null)
+                .Where(m => EMS.Presentation.Conventions.ApiResponseConvention.SuccessTypeOf(m.ReturnType) is null)
                 .Select(m => $"{m.DeclaringType!.Name}.{m.Name} returns {m.ReturnType.Name}")
                 .ToList();
 

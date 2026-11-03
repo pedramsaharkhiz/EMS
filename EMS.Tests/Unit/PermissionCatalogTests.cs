@@ -1,6 +1,6 @@
 using EMS.Application.Common.Security;
 using EMS.Presentation.Controllers;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;

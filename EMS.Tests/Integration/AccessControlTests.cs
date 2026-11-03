@@ -1,7 +1,7 @@
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Persistence;
-using EMS.Infrastructure.Persistence.Identity.Service;
+using EMS.Infrastructure.Services.Identity;
 using EMS.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

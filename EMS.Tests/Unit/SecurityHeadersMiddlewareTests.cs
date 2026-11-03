@@ -1,3 +1,4 @@
+using EMS.Presentation.Middlewares;
 using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

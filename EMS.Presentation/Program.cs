@@ -4,7 +4,7 @@ using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Presentation.Errors;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Conventions;
 using EMS.Presentation.Middlewares;
 using EMS.Presentation.Security;
 using FluentValidation.AspNetCore;

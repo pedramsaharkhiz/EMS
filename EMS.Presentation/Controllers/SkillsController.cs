@@ -2,7 +2,7 @@
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.Skill;
 using EMS.Application.Interfaces.Skill;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers;
