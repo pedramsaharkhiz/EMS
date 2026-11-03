@@ -7,9 +7,13 @@ namespace EMS.Application.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        /// <summary>Registers what the Application layer owns: its FluentValidation validators and their language.</summary>
+        /// <summary>Registers what the Application layer owns: AutoMapper profiles, FluentValidation validators and their language.</summary>
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
+            services.AddAutoMapper(cfg =>
+            {
+                cfg.AddMaps(new[] { "EMS.Domain", "EMS.Infrastructure", "EMS.Application" });
+            });
             services.AddValidatorsFromAssemblyContaining<LoginRequestDtoValidator>();
             // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("fa");
