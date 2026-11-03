@@ -16,12 +16,12 @@ namespace EMS.Presentation.Controllers
             _service = service;
         }
 
-        [Permission(Permissions.Cities.View)]
+        [Lookup]
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<CityListItemDto>>>> GetAllList([FromQuery] CityListRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetPagedAsync(request, cancellationToken));
 
-        [Permission(Permissions.Cities.View)]
+        [Lookup]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<ApiResponse<CityDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>
             Success(await _service.GetByIdAsync(id, cancellationToken));

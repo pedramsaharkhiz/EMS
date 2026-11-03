@@ -450,24 +450,32 @@ namespace EMS.Tests.Integration
         // ------------------------------------------------------------------------------- authorization
 
         [Theory, MemberData(nameof(Cases))]
-        public async Task Every_verb_needs_its_own_permission_and_anonymous_callers_get_401(string name)
+        public async Task Reading_needs_only_a_signed_in_user_while_writing_needs_its_own_permission_and_anonymous_callers_get_401(string name)
         {
             var c = CatalogCase.Get(name);
             var (id, _) = await CreateAsync(c, Title("Aut"));
             var admin = await AdminAsync();
-            var userName = ("ct_" + name)[..Math.Min(18, name.Length + 3)] + Guid.NewGuid().ToString("N")[..2];
-            var userId = await CreateUserAsync(admin, userName, "Passw0rd!x");
-            var roleId = await CreateRoleAsync(admin, "CtRole_" + userName, $"{c.PermissionGroup}.View");
-            await AssignRoleAsync(admin, userId, roleId);
-            var viewer = (await LoginAsync(userName, "Passw0rd!x")).AccessToken;
+            var tag = Guid.NewGuid().ToString("N")[..10];
+            var userName = "ct_" + tag;                                     // user names are limited to 20 characters
+            var writerName = "cw_" + tag;
+            await CreateUserAsync(admin, userName, "Passw0rd!x");           // no role, no permission at all
+            var plain = (await LoginAsync(userName, "Passw0rd!x")).AccessToken;
 
-            // View is enough to read...
-            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, viewer));
-            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, $"{c.Route}/{id}", viewer));
-            // ...but not to change anything
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, c.Route, viewer, await c.CreateBody(this, Title("Aut2"))));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"{c.Route}/{id}", viewer, new Dictionary<string, object?> { ["isActive"] = true }));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"{c.Route}/{id}", viewer));
+            // Reference data feeds dropdowns on every form, so any signed-in user can read it...
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, plain));
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, $"{c.Route}/{id}", plain));
+            // ...but changing it needs the catalog's own permission
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, c.Route, plain, await c.CreateBody(this, Title("Aut2"))));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"{c.Route}/{id}", plain, new Dictionary<string, object?> { ["isActive"] = true }));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"{c.Route}/{id}", plain));
+
+            // a role holding only the write permission can write, and still reads
+            var roleId = await CreateRoleAsync(admin, "CtRole_" + userName, $"{c.PermissionGroup}.Create");
+            var writerId = await CreateUserAsync(admin, writerName, "Passw0rd!x");
+            await AssignRoleAsync(admin, writerId, roleId);
+            var writer = (await LoginAsync(writerName, "Passw0rd!x")).AccessToken;
+            Assert.Equal(HttpStatusCode.Created, await StatusOfAsync(HttpMethod.Post, c.Route, writer, await c.CreateBody(this, Title("Aut3"))));
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, writer));
 
             // anonymous
             Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Get, c.Route)).StatusCode);

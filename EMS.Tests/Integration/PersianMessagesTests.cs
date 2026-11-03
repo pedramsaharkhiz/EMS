@@ -108,7 +108,7 @@ namespace EMS.Tests.Integration
         public async Task Assigning_an_unknown_permission_is_rejected_in_persian()
         {
             var admin = (await LoginAdminAsync()).AccessToken;
-            await CreateRoleAsync(admin, "PmRole", "Brands.View");
+            await CreateRoleAsync(admin, "PmRole", "Skills.View");
             var response = await SendAsync(HttpMethod.Post, "/api/Role/AssignPermissions", new { roleName = "PmRole", permissions = new[] { "Nope.Nothing" } }, bearer: admin);
             await AssertPersianAsync("unknown permission", response, HttpStatusCode.BadRequest);
             Assert.Contains("permissions[0]", (await ReadJsonAsync(response)).GetProperty("error").GetProperty("details")[0].GetProperty("field").GetString());

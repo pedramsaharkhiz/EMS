@@ -1,5 +1,5 @@
 GET api/Brand
-  authorization: Permission:Brands.View
+  authorization: (authenticated)
   Query: Code : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -57,7 +57,7 @@ DELETE api/Brand/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/Brand/{id}
-  authorization: Permission:Brands.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<BrandDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -100,7 +100,7 @@ PUT api/Brand/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/City
-  authorization: Permission:Cities.View
+  authorization: (authenticated)
   Query: Code : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -164,7 +164,7 @@ DELETE api/City/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/City/{id}
-  authorization: Permission:Cities.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<CityDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -212,7 +212,7 @@ PUT api/City/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentCategory
-  authorization: Permission:EquipmentCategories.View
+  authorization: (authenticated)
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -266,7 +266,7 @@ DELETE api/EquipmentCategory/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentCategory/{id}
-  authorization: Permission:EquipmentCategories.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<EquipmentCategoryDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -306,7 +306,7 @@ PUT api/EquipmentCategory/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentLocationType
-  authorization: Permission:EquipmentLocationTypes.View
+  authorization: (authenticated)
   Query: Code : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -364,7 +364,7 @@ DELETE api/EquipmentLocationType/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentLocationType/{id}
-  authorization: Permission:EquipmentLocationTypes.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<EquipmentLocationTypeDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -407,7 +407,7 @@ PUT api/EquipmentLocationType/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentModel
-  authorization: Permission:EquipmentModels.View
+  authorization: (authenticated)
   Query: BrandId : Int64?
   Query: Code : String
   Query: EquipmentTypeId : Int64?
@@ -473,7 +473,7 @@ DELETE api/EquipmentModel/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentModel/{id}
-  authorization: Permission:EquipmentModels.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<EquipmentModelDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -522,7 +522,7 @@ PUT api/EquipmentModel/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentStatus
-  authorization: Permission:EquipmentStatuses.View
+  authorization: (authenticated)
   Query: Code : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -580,7 +580,7 @@ DELETE api/EquipmentStatus/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentStatus/{id}
-  authorization: Permission:EquipmentStatuses.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<EquipmentStatusDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -623,7 +623,7 @@ PUT api/EquipmentStatus/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentType
-  authorization: Permission:EquipmentTypes.View
+  authorization: (authenticated)
   Query: Code : String
   Query: EquipmentCategoryId : Int64?
   Query: IsActive : Boolean?
@@ -685,7 +685,7 @@ DELETE api/EquipmentType/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/EquipmentType/{id}
-  authorization: Permission:EquipmentTypes.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<EquipmentTypeDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -731,7 +731,7 @@ PUT api/EquipmentType/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/FailureCategory
-  authorization: Permission:FailureCategories.View
+  authorization: (authenticated)
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -785,7 +785,7 @@ DELETE api/FailureCategory/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/FailureCategory/{id}
-  authorization: Permission:FailureCategories.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<FailureCategoryDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -908,7 +908,7 @@ GET api/OrganizationHierarchy
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/Province
-  authorization: Permission:Provinces.View
+  authorization: (authenticated)
   Query: Code : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -966,7 +966,7 @@ DELETE api/Province/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/Province/{id}
-  authorization: Permission:Provinces.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<ProvinceDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -1386,7 +1386,7 @@ PUT api/Skills/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/SupportingDepartment
-  authorization: Permission:SupportingDepartments.View
+  authorization: (authenticated)
   Query: CityId : Int64?
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -1451,7 +1451,7 @@ DELETE api/SupportingDepartment/{id}
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/SupportingDepartment/{id}
-  authorization: Permission:SupportingDepartments.View
+  authorization: (authenticated)
   Path: id : Int64 (required)
   response 200: ApiResponse<SupportingDepartmentDetailDto>
     envelope: success, message, data, meta, error, traceId

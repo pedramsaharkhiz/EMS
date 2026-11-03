@@ -1,4 +1,4 @@
-﻿using EMS.Application.Common.Security;
+using EMS.Application.Common.Security;
 using EMS.Application.Interfaces.Auth;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -92,7 +92,20 @@ public class IdentitySeeder : IIdentitySeeder
             }
         }
 
-        if (addedPermissions > 0)
+        // Permissions that no longer exist (see Permissions.Retired) are removed from the administrator role.
+        var removedPermissions = 0;
+        foreach (var claim in existingClaims.Where(x => x.Type == "permission" && Permissions.Retired.Contains(x.Value)))
+        {
+            var removeResult = await _roleManager.RemoveClaimAsync(adminRole, claim);
+            if (!removeResult.Succeeded)
+                throw new Exception(string.Join(" | ", removeResult.Errors.Select(x => x.Description)));
+            removedPermissions++;
+        }
+
+        if (removedPermissions > 0)
+            _logger.LogInformation("Identity seed: removed {RemovedPermissions} retired permission(s) from role {RoleName}", removedPermissions, adminRoleName);
+
+        if (addedPermissions + removedPermissions > 0)
         {
             _logger.LogInformation("Identity seed: added {AddedPermissions} permission(s) to role {RoleName}", addedPermissions, adminRoleName);
             // Administrators already holding a token must pick up the new permissions.
