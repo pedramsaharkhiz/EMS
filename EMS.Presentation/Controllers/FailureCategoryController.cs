@@ -2,7 +2,7 @@ using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.FailureCategory;
 using EMS.Application.Interfaces.FailureCategory;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers

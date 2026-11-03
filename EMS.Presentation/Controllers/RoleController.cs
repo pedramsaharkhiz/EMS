@@ -5,7 +5,7 @@ using EMS.Application.Dtos.Role;
 using EMS.Application.Dtos.User;
 using EMS.Application.Dtos.UserRole;
 using EMS.Application.Interfaces.Auth;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

@@ -9,7 +9,7 @@ using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace EMS.Infrastructure.Persistence.Identity.Service;
+namespace EMS.Infrastructure.Services.Identity;
 
 public sealed partial class UserManagementService : IUserManagementService
 {

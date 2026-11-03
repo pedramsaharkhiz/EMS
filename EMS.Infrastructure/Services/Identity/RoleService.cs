@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Exceptions;
+﻿using EMS.Infrastructure.Persistence;
+using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Interfaces.Auth;
 using EMS.Infrastructure.Persistence.Identity;

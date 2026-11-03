@@ -2,18 +2,16 @@
 using EMS.Application.Common.Logging;
 using EMS.Infrastructure.Logging;
 using EMS.Application.Interfaces.Auth;
-using EMS.Application.Mapping;
 using EMS.Application.Validators.RefreshToken;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
-using EMS.Infrastructure.Persistence.Identity.Security;
-using EMS.Infrastructure.Persistence.Identity.Service;
+using EMS.Infrastructure.Security;
+using EMS.Infrastructure.Services.Identity;
 using EMS.Infrastructure.Persistence.Interceptors;
 using EMS.Infrastructure.Repositories;
-using EMS.Infrastructure.Services.Identity;
 using EMS.Infrastructure.Services.User;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -227,19 +225,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserManagementService, UserManagementService>();
         services.AddScoped<IRoleManagementService, RoleManagementService>();
         services.AddScoped<IUserRoleAssignmentService, UserRoleAssignmentService>();
-        return services;
-    }
-
-    public static IServiceCollection AddApplication(this IServiceCollection services)
-    {
-        services.AddAutoMapper(cfg =>
-        {
-            cfg.AddMaps(new[] { "EMS.Domain", "EMS.Infrastructure", "EMS.Application" });
-        });
-        //services.AddValidatorsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
-        services.AddValidatorsFromAssemblyContaining<LoginRequestDtoValidator>();
-        // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).
-        FluentValidation.ValidatorOptions.Global.LanguageManager.Culture = new System.Globalization.CultureInfo("fa");
         return services;
     }
 }

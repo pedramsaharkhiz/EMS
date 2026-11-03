@@ -2,7 +2,7 @@ using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.EquipmentLocationType;
 using EMS.Application.Interfaces.EquipmentLocationType;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers

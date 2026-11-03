@@ -2,7 +2,7 @@ using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
 using EMS.Application.Dtos.EquipmentStatus;
 using EMS.Application.Interfaces.EquipmentStatus;
-using EMS.Presentation.Extensions;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Presentation.Controllers
