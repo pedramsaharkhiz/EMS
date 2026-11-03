@@ -1409,8 +1409,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -1772,13 +1771,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Name")
                         .HasMaxLength(256)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(256)");
+                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 

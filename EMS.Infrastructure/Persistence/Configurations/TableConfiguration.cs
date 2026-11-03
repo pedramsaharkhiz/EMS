@@ -21,9 +21,9 @@ namespace EMS.Infrastructure.Persistence.Configurations
                 .IsUnicode(false)
                 .IsRequired();
 
+            // Shown to users, may be Persian: nvarchar.
             builder.Property(x => x.DisplayName)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .IsRequired();
 
             builder.Property(x => x.IsAttachmentEnabled)

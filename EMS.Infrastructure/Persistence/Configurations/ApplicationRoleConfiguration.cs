@@ -16,14 +16,13 @@ namespace EMS.Infrastructure.Persistence.Configurations
 
             builder.HasKey(x => x.Id);
 
+            // Role names are typed by users and may be Persian: nvarchar (not varchar).
             builder.Property(x => x.Name)
                 .HasMaxLength(256)
-                .IsUnicode(false)
                 .IsRequired(false);
 
             builder.Property(x => x.NormalizedName)
                 .HasMaxLength(256)
-                .IsUnicode(false)
                 .IsRequired(false);
 
             builder.Property(x => x.ConcurrencyStamp)
