@@ -100,6 +100,12 @@ namespace EMS.Application.Services
         /// <summary>See <see cref="TitleScopeForCreate"/>. Use the group the record will belong to after this update.</summary>
         protected virtual Expression<Func<TEntity, bool>>? TitleScopeForUpdate(TEntity entity, TUpdate request) => null;
 
+        /// <summary>
+        /// Called before an active record is deactivated (update with <c>isActive=false</c> or delete), ahead of the dependents
+        /// check. Throw to refuse, e.g. for system rows the code depends on. Optional.
+        /// </summary>
+        protected virtual Task EnsureCanDeactivateAsync(TEntity entity, CancellationToken cancellationToken) => Task.CompletedTask;
+
         protected virtual string DuplicateMessage => $"{Label} دیگری با این عنوان وجود دارد.";
         protected virtual string NotFoundMessage => $"{Label} موردنظر پیدا نشد.";
 
@@ -168,7 +174,10 @@ namespace EMS.Application.Services
                 _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
 
             if (entity.IsActive && !request.IsActive)
+            {
+                await EnsureCanDeactivateAsync(entity, cancellationToken);
                 await EnsureNoActiveDependentsAsync(entity, cancellationToken);
+            }
 
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
@@ -183,7 +192,10 @@ namespace EMS.Application.Services
             var entity = await LoadAsync(id, asNoTracking: false, cancellationToken);
 
             if (entity.IsActive)
+            {
+                await EnsureCanDeactivateAsync(entity, cancellationToken);
                 await EnsureNoActiveDependentsAsync(entity, cancellationToken);
+            }
 
             entity.IsActive = false;
             _repository.Update(entity);

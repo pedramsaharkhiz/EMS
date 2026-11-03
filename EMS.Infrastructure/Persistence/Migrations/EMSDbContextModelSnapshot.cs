@@ -700,6 +700,89 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            EquipmentStatusId = 1L,
+                            Code = "InStock",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "موجود در انبار"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 2L,
+                            Code = "InUse",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در حال استفاده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 3L,
+                            Code = "Assigned",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "تخصیص داده شده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 4L,
+                            Code = "UnderMaintenance",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در تعمیر / سرویس"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 5L,
+                            Code = "OutOfService",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "خارج از سرویس"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 6L,
+                            Code = "Damaged",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "آسیب‌دیده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 7L,
+                            Code = "Lost",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "مفقود"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 8L,
+                            Code = "Scrapped",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "اسقاط شده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 9L,
+                            Code = "Decommissioned",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "از رده خارج"
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.EquipmentType", b =>

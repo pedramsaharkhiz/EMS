@@ -35,6 +35,8 @@ namespace EMS.Application.Common.Exceptions
         public const string HasActiveDependents = "has_active_dependents";
         public const string ParentNotFound = "parent_not_found";
         public const string ParentInactive = "parent_inactive";
+        public const string ProtectedRecord = "protected_record";
+        public const string ReservedCode = "reserved_code";
 
         // users and roles
         public const string UserNameTaken = "user_name_taken";
