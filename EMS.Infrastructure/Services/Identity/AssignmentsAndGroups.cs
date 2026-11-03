@@ -181,8 +181,10 @@ public sealed partial class UserManagementService
         if (grouped &&
             group is not ("role" or "skill" or "department" or "isactive"))
         {
-            throw new BadRequestException(
-                "GroupBy باید role، skill، department یا isActive باشد.");
+            throw new FluentValidation.ValidationException(new[]
+            {
+                new FluentValidation.Results.ValidationFailure("groupBy", "گروه‌بندی باید role، skill، department یا isActive باشد.")
+            });
         }
 
         var sort = request.SortBy?
@@ -251,7 +253,7 @@ public sealed partial class UserManagementService
                 ct) != skillIds.Count)
         {
             throw new BadRequestException(
-                "یک یا چند مهارت وجود ندارد یا غیرفعال است.");
+                "یک یا چند مهارت وجود ندارد یا غیرفعال است.", ErrorCodes.SkillsInvalid);
         }
     }
 
