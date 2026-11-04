@@ -176,6 +176,7 @@ public async Task<ActionResult<ApiResponse<BrandDetailDto>>> Create([FromBody] B
 - متدهای کمکی در `EMS.Presentation/Controllers/BaseApiController.cs`.
 - خطاها در `EMS.Presentation/Errors/ApiErrors.cs` ساخته می‌شوند. این کلاس از سه مسیر صدا زده می‌شود: `GlobalExceptionMiddleware` (استثناها)، `InvalidModelStateResponseFactory` در `Program.cs` (اعتبارسنجی و JSON خراب) و `UseStatusCodePages` (401/403/404/405 بدون بدنه).
 - `ApiResponseConvention` برای هر action پاسخ موفق (از نوع برگشتی) و خطاهای `400`، `401`، `403`، `500` را در OpenAPI اعلام می‌کند. نیازی به `ProducesResponseType` روی هر action نیست، به‌جز `201`.
+- دانلود فایل (`[FileDownloadResponse]`، مثل `[ExcelResponse]`) استثنای مصوب قاعده‌ی پوشش است: پاسخ موفقش خود فایل است و خطاهایش همان پوشش JSON‌اند.
 - `/health/*` و `/openapi`، `/scalar` از پوشش بیرون‌اند (ابزار زیرساخت‌اند، نه API).
 
 ## ۷. چه چیزی از پوشش جلوگیری می‌کند که بشکند

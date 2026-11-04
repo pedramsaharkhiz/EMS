@@ -74,6 +74,10 @@ namespace EMS.Tests.Integration
                 // Serilog's ReadFrom.Services picks this sink up.
                 services.AddSingleton<ILogEventSink>(Sink);
 
+                // the in-memory database cannot run the raw SQL that streams attachment files (see InMemoryAttachmentBlobStore)
+                services.RemoveAll<EMS.Application.Interfaces.Attachment.IAttachmentBlobStore>();
+                services.AddSingleton<EMS.Application.Interfaces.Attachment.IAttachmentBlobStore, EMS.Tests.Support.InMemoryAttachmentBlobStore>();
+
                 services.RemoveAll<DbContextOptions<EMSDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<EMSDbContext>>();
                 services.AddDbContext<EMSDbContext>((sp, options) =>

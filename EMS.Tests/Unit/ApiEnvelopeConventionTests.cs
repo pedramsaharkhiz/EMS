@@ -28,7 +28,8 @@ namespace EMS.Tests.Unit
         public void Every_action_returns_the_api_response_envelope()
         {
             var offenders = Actions()
-                .Where(m => m.GetCustomAttribute<EMS.Presentation.Conventions.ExcelResponseAttribute>() is null)   // the one sanctioned exception: Excel downloads
+                .Where(m => m.GetCustomAttribute<EMS.Presentation.Conventions.ExcelResponseAttribute>() is null)   // sanctioned exceptions: Excel and file downloads
+                .Where(m => m.GetCustomAttribute<EMS.Presentation.Conventions.FileDownloadResponseAttribute>() is null)
                 .Where(m => EMS.Presentation.Conventions.ApiResponseConvention.SuccessTypeOf(m.ReturnType) is null)
                 .Select(m => $"{m.DeclaringType!.Name}.{m.Name} returns {m.ReturnType.Name}")
                 .ToList();
@@ -40,7 +41,8 @@ namespace EMS.Tests.Unit
         [Fact]
         public void An_excel_action_returns_IActionResult_and_is_a_GET()
         {
-            var excel = Actions().Where(m => m.GetCustomAttribute<EMS.Presentation.Conventions.ExcelResponseAttribute>() is not null).ToList();
+            var excel = Actions().Where(m => m.GetCustomAttribute<EMS.Presentation.Conventions.ExcelResponseAttribute>() is not null
+                                              || m.GetCustomAttribute<EMS.Presentation.Conventions.FileDownloadResponseAttribute>() is not null).ToList();
             foreach (var action in excel)
             {
                 Assert.Equal(typeof(Task<IActionResult>), action.ReturnType);

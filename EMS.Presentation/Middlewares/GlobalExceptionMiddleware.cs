@@ -87,6 +87,15 @@ namespace EMS.Presentation.Middlewares
                 LogClientError(context, ex);
                 await ApiErrors.WriteAsync(context, StatusCodes.Status400BadRequest, ex.Code, ex.Message);
             }
+            catch (BadHttpRequestException ex) when (ex.StatusCode is >= 400 and < 500)
+            {
+                // The request itself is wrong (body too large for the endpoint's limit, malformed framing, ...): not a server fault.
+                LogClientError(context, ex);
+                var tooLarge = ex.StatusCode == StatusCodes.Status413PayloadTooLarge;
+                await ApiErrors.WriteAsync(context, ex.StatusCode,
+                    tooLarge ? ErrorCodes.PayloadTooLarge : ErrorCodes.BadRequest,
+                    tooLarge ? "حجم درخواست از حد مجاز بیشتر است." : "درخواست نامعتبر است.");
+            }
             catch (Exception ex)
             {
                 var correlationId = context.TraceIdentifier;

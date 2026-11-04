@@ -70,16 +70,17 @@ namespace EMS.Tests.Unit
                                      ?? controller.GetCustomAttribute<PermissionAttribute>(inherit: true);
                     var allowsAnonymous = action.GetCustomAttribute<AllowAnonymousAttribute>() is not null;
                     var isLookup = action.GetCustomAttribute<LookupAttribute>() is not null;
+                    var isEntityPermission = action.GetCustomAttribute<EntityPermissionAttribute>() is not null;   // authorizes in the action, per entity
 
                     var known = permission?.Policy is { } policy
                                 && Permissions.All.Contains(policy.Replace("Permission:", string.Empty));
-                    if (!known && !allowsAnonymous && !isLookup)
+                    if (!known && !allowsAnonymous && !isLookup && !isEntityPermission)
                         unprotected.Add($"{controller.Name}.{action.Name}");
                 }
             }
 
             Assert.True(unprotected.Count == 0,
-                "Actions without a registered [Permission] (or [Lookup] on a read): " + string.Join(", ", unprotected));
+                "Actions without a registered [Permission] (or [Lookup] on a read, or [EntityPermission]): " + string.Join(", ", unprotected));
         }
 
         [Fact]

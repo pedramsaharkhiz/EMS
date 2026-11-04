@@ -54,6 +54,7 @@ namespace EMS.Infrastructure.Persistence
 
         public DbSet<Table> Tables => Set<Table>();
         public DbSet<EntityAttachment> EntityAttachments => Set<EntityAttachment>();
+        public DbSet<AttachmentContent> AttachmentContents => Set<AttachmentContent>();
         public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 

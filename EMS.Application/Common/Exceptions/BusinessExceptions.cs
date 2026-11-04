@@ -15,6 +15,7 @@ namespace EMS.Application.Common.Exceptions
         public const string NotFound = "not_found";
         public const string MethodNotAllowed = "method_not_allowed";
         public const string UnsupportedMediaType = "unsupported_media_type";
+        public const string PayloadTooLarge = "payload_too_large";
         public const string NotAcceptable = "not_acceptable";
         public const string Conflict = "conflict";
         public const string InternalError = "internal_error";
@@ -60,6 +61,14 @@ namespace EMS.Application.Common.Exceptions
         public const string RoleNotFound = "role_not_found";
         public const string RoleInactive = "role_inactive";
         public const string RolesInvalid = "roles_invalid";
+
+        // attachments
+        public const string AttachmentTargetNotFound = "attachment_target_not_found";
+        public const string AttachmentFileRequired = "attachment_file_required";
+        public const string AttachmentTooLarge = "attachment_too_large";
+        public const string AttachmentTypeNotAllowed = "attachment_type_not_allowed";
+        public const string AttachmentContentMismatch = "attachment_content_mismatch";
+        public const string AttachmentLimitReached = "attachment_limit_reached";
         public const string UserAlreadyHasRole = "user_already_has_role";
         public const string SkillsInvalid = "skills_invalid";
         public const string RoleInUse = "role_in_use";

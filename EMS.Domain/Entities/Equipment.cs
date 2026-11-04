@@ -2,6 +2,7 @@
 
 namespace EMS.Domain.Entities
 {
+    [Attachable("تجهیز", "Equipments")]
     public class Equipment : BaseEntity, IAuditableEntity
     {
         public long EquipmentId { get; set; }

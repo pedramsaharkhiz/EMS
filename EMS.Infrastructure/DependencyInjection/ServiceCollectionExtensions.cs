@@ -6,6 +6,8 @@ using EMS.Application.Validators.RefreshToken;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Identity.Seed;
 using EMS.Infrastructure.Persistence.Seed;
+using EMS.Infrastructure.Services.Attachments;
+using EMS.Application.Interfaces.Attachment;
 using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Services.Export;
 using EMS.Application.Common.Export;
@@ -225,6 +227,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IIdentitySeeder, IdentitySeeder>();
         services.AddScoped<IGeographySeeder, GeographySeeder>();
+        services.AddScoped<IAttachmentTableSeeder, AttachmentTableSeeder>();
+        services.AddScoped<IAttachmentTargetCatalog, AttachmentTargetCatalog>();
+        services.AddScoped<IAttachmentBlobStore, SqlAttachmentBlobStore>();
         services.AddScoped<IAuthService, AuthService>(); 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRoleService, RoleService>();

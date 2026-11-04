@@ -237,6 +237,9 @@ try
         var seeder = scope.ServiceProvider.GetRequiredService<IIdentitySeeder>();
         await seeder.SeedAsync();
 
+        // The Tables registry follows the [Attachable] entities (a new attachable entity needs no seed of its own).
+        await scope.ServiceProvider.GetRequiredService<IAttachmentTableSeeder>().SeedAsync();
+
         // Optional reference data (Seed:Geography:Enabled): the provinces of Iran with their capitals. Off by default.
         if (app.Configuration.GetValue<bool>("Seed:Geography:Enabled"))
             await scope.ServiceProvider.GetRequiredService<IGeographySeeder>().SeedAsync();

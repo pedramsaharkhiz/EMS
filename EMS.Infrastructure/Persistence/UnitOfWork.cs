@@ -15,6 +15,17 @@ namespace EMS.Infrastructure.Persistence
             _context = context;
         }
 
+        public async Task<IUnitOfWorkTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+            new EfTransaction(await _context.Database.BeginTransactionAsync(cancellationToken));
+
+        private sealed class EfTransaction : IUnitOfWorkTransaction
+        {
+            private readonly Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _transaction;
+            public EfTransaction(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction) => _transaction = transaction;
+            public Task CommitAsync(CancellationToken cancellationToken = default) => _transaction.CommitAsync(cancellationToken);
+            public ValueTask DisposeAsync() => _transaction.DisposeAsync();   // rolls back when not committed
+        }
+
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             try

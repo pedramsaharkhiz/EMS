@@ -68,6 +68,55 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("ActionEntities", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.AttachmentContent", b =>
+                {
+                    b.Property<Guid>("StreamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("Sha256")
+                        .HasColumnType("varbinary(32)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("StreamId");
+
+                    b.ToTable("AttachmentContents", (string)null);
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -344,7 +393,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("EntityAttachmentId");
 
-                    b.HasIndex("TableId");
+                    b.HasIndex("StreamId");
+
+                    b.HasIndex("TableId", "EntityId")
+                        .HasDatabaseName("IX_EntityAttachments_Table_Entity_Active")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EntityAttachments", (string)null);
                 });
@@ -2225,11 +2278,18 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.EntityAttachment", b =>
                 {
+                    b.HasOne("EMS.Domain.Entities.AttachmentContent", "Content")
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("EMS.Domain.Entities.Table", "Table")
                         .WithMany("EntityAttachments")
                         .HasForeignKey("TableId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("Content");
 
                     b.Navigation("Table");
                 });

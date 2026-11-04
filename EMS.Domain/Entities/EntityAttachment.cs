@@ -14,5 +14,6 @@ namespace EMS.Domain.Entities
         public string? Description { get; set; }
 
         public Table Table { get; set; } = null!;
+        public AttachmentContent? Content { get; set; }
     }
 }
