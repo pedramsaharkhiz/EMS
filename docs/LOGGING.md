@@ -81,11 +81,11 @@
 
 ### رد شدن دسترسی (۴۰۳)
 
-هر action ای که `[Permission(...)]` دارد، هنگام رد شدن یک لاگ `Access denied` با نام دقیق permission، کاربر، متد و مسیر می‌نویسد. همه‌ی endpointها به‌جز `Login`، `RefreshToken` و `RevokeRefreshToken` اکنون permission اختصاصی دارند، از جمله هشت کنترلر داده‌های پایه. هر کدام چهار permission دارند:
+هر action ای که `[Permission(...)]` دارد، هنگام رد شدن یک لاگ `Access denied` با نام دقیق permission، کاربر، متد و مسیر می‌نویسد. همه‌ی endpointها به‌جز `Login`، `RefreshToken` و `RevokeRefreshToken` اکنون permission اختصاصی دارند، از جمله هشت کنترلر داده‌های پایه. هر کدام سه permission نوشتن دارند (`Create/Update/Delete`)؛ خواندن آن‌ها با `[Lookup]` برای هر کاربر واردشده آزاد است و permission ندارد:
 
 | منبع | permissionها |
 |---|---|
-| Brand | `Brands.View/Create/Update/Delete` |
+| Brand | `Brands.Create/Update/Delete` |
 | EquipmentCategory | `EquipmentCategories.*` |
 | EquipmentLocationType | `EquipmentLocationTypes.*` |
 | EquipmentModel | `EquipmentModels.*` |

@@ -1,10 +1,12 @@
 using EMS.Application.Dtos.Brand;
+using EMS.Application.Dtos.City;
 using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.EquipmentLocationType;
 using EMS.Application.Dtos.EquipmentModel;
 using EMS.Application.Dtos.EquipmentStatus;
 using EMS.Application.Dtos.EquipmentType;
 using EMS.Application.Dtos.FailureCategory;
+using EMS.Application.Dtos.Province;
 using EMS.Application.Dtos.SupportingDepartment;
 using EMS.Domain.Entities;
 using EMS.Infrastructure.Persistence;
@@ -21,7 +23,8 @@ namespace EMS.Tests.Integration
         bool HasCode,
         Type DetailDto,
         Type ListItemDto,
-        Func<ApiTestBase, string, Task<Dictionary<string, object?>>> CreateBody)
+        Func<ApiTestBase, string, Task<Dictionary<string, object?>>> CreateBody,
+        string? ScopeKey = null)
     {
         public override string ToString() => Name;
 
@@ -56,8 +59,18 @@ namespace EMS.Tests.Integration
                     ["title"] = title, ["code"] = "MO"
                 }),
 
+            new("Province", "/api/Province", "id", "Provinces", true, typeof(ProvinceDetailDto), typeof(ProvinceListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "PR" })),
+
+            new("City", "/api/City", "id", "Cities", true, typeof(CityDetailDto), typeof(CityListItemDto),
+                async (api, title) => new Dictionary<string, object?>
+                {
+                    ["provinceId"] = await CatalogFixtures.NewProvinceAsync(api), ["title"] = title, ["code"] = "CT"
+                }, ScopeKey: "provinceId"),
+
             new("SupportingDepartment", "/api/SupportingDepartment", "id", "SupportingDepartments", false, typeof(SupportingDepartmentDetailDto), typeof(SupportingDepartmentListItemDto),
-                async (api, title) => new Dictionary<string, object?> { ["cityId"] = await CatalogFixtures.EnsureCityAsync(api), ["title"] = title }),
+                async (api, title) => new Dictionary<string, object?> { ["cityId"] = await CatalogFixtures.EnsureCityAsync(api), ["title"] = title },
+                ScopeKey: "cityId"),
         };
 
         public static CatalogCase Get(string name) => All.Single(c => c.Name == name);
@@ -85,6 +98,12 @@ namespace EMS.Tests.Integration
 
         public static Task<long> NewBrandAsync(ApiTestBase api) =>
             PostAsync(api, "/api/Brand", new { title = Unique("fx-brand"), code = "B" }, "id");
+
+        public static Task<long> NewProvinceAsync(ApiTestBase api) =>
+            PostAsync(api, "/api/Province", new { title = Unique("fx-prov") }, "id");
+
+        public static async Task<long> NewCityAsync(ApiTestBase api, long? provinceId = null, string? title = null) =>
+            await PostAsync(api, "/api/City", new { provinceId = provinceId ?? await NewProvinceAsync(api), title = title ?? Unique("fx-city") }, "id");
 
         public static async Task<long> EnsureCityAsync(ApiTestBase api)
         {

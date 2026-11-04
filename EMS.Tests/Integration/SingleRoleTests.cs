@@ -32,7 +32,7 @@ namespace EMS.Tests.Integration
         public async Task Setting_a_role_replaces_the_previous_one_and_an_empty_list_removes_it()
         {
             var admin = (await LoginAdminAsync()).AccessToken;
-            var a = await CreateRoleAsync(admin, "SrRepA", "Brands.View");
+            var a = await CreateRoleAsync(admin, "SrRepA", "Brands.Create");
             var b = await CreateRoleAsync(admin, "SrRepB", "Skills.View");
             var user = await CreateUserAsync(admin, "sr_rep", "Passw0rd!x");
 

@@ -1,7 +1,9 @@
+using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.EquipmentStatus;
 using EMS.Application.Interfaces.EquipmentStatus;
+using EMS.Domain;
 using EMS.Domain.Interfaces;
 using System.Linq.Expressions;
 using EquipmentStatusEntity = EMS.Domain.Entities.EquipmentStatus;
@@ -35,6 +37,36 @@ namespace EMS.Application.Services.EquipmentStatus
             }
             return query;
         }
+
+        // The system rows (see EquipmentStatusCatalog) are what the code relies on: they stay active, keep their code, and
+        // no other status may take one of their codes (it could be mistaken for the system status).
+        protected override Task BeforeCreateAsync(EquipmentStatusCreateDto request, CancellationToken cancellationToken)
+        {
+            if (EquipmentStatusCatalog.IsSystemCode(request.Code))
+                throw new ConflictException(ReservedCodeMessage, ErrorCodes.ReservedCode);
+            return Task.CompletedTask;
+        }
+
+        protected override Task BeforeUpdateAsync(EquipmentStatusEntity entity, EquipmentStatusUpdateDto request, CancellationToken cancellationToken)
+        {
+            var system = EquipmentStatusCatalog.IsSystemRow(entity.EquipmentStatusId, entity.Code);
+            var newCode = string.IsNullOrWhiteSpace(request.Code) ? null : request.Code.Trim();
+
+            if (system && newCode is not null && !string.Equals(newCode, entity.Code, StringComparison.Ordinal))
+                throw new ConflictException("کد وضعیت‌های سیستمی قابل تغییر نیست.", ErrorCodes.ProtectedRecord);
+
+            if (!system && EquipmentStatusCatalog.IsSystemCode(newCode))
+                throw new ConflictException(ReservedCodeMessage, ErrorCodes.ReservedCode);
+
+            return Task.CompletedTask;
+        }
+
+        protected override Task EnsureCanDeactivateAsync(EquipmentStatusEntity entity, CancellationToken cancellationToken) =>
+            EquipmentStatusCatalog.IsSystemRow(entity.EquipmentStatusId, entity.Code)
+                ? throw new ConflictException("وضعیت‌های سیستمی قابل غیرفعال‌سازی یا حذف نیستند (فقط عنوان آن‌ها قابل ویرایش است).", ErrorCodes.ProtectedRecord)
+                : Task.CompletedTask;
+
+        private const string ReservedCodeMessage = "این کد برای وضعیت‌های سیستمی رزرو شده است و برای وضعیت دیگری قابل استفاده نیست.";
 
         protected override EquipmentStatusEntity NewEntity(EquipmentStatusCreateDto request, string title) =>
             new() { Title = title, Code = Normalize(request.Code) };

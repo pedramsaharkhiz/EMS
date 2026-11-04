@@ -36,6 +36,26 @@ namespace EMS.Tests.Integration
             return (json.GetProperty(c.IdProperty).GetInt64(), json);
         }
 
+        /// <summary>
+        /// A create body for the same group as <paramref name="existing"/>. Catalogs whose titles are unique only within a
+        /// parent (cities per province, departments per city) must be created under the same parent to collide.
+        /// </summary>
+        private async Task<Dictionary<string, object?>> BodyLikeAsync(CatalogCase c, JsonElement existing, string title)
+        {
+            var body = await c.CreateBody(this, title);
+            if (c.ScopeKey is not null)
+                body[c.ScopeKey] = existing.GetProperty(c.ScopeKey).GetInt64();
+            return body;
+        }
+
+        private async Task<(long Id, JsonElement Json)> CreateLikeAsync(CatalogCase c, JsonElement existing, string title)
+        {
+            var response = await SendAsync(HttpMethod.Post, c.Route, await BodyLikeAsync(c, existing, title), bearer: await AdminAsync());
+            Assert.True(response.StatusCode == HttpStatusCode.Created, $"{c.Name} create -> {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            var json = await ReadDataAsync(response);
+            return (json.GetProperty(c.IdProperty).GetInt64(), json);
+        }
+
         private async Task<HttpResponseMessage> UpdateAsync(CatalogCase c, long id, string? title, bool isActive = true, string? rowVersion = null, string? code = null)
         {
             var body = new Dictionary<string, object?> { ["isActive"] = isActive };
@@ -115,15 +135,15 @@ namespace EMS.Tests.Integration
         {
             var c = CatalogCase.Get(name);
             var title = Title("Dup");
-            var (id, _) = await CreateAsync(c, title);
+            var (id, first) = await CreateAsync(c, title);
 
-            var same = await SendAsync(HttpMethod.Post, c.Route, await c.CreateBody(this, title), bearer: await AdminAsync());
-            var upper = await SendAsync(HttpMethod.Post, c.Route, await c.CreateBody(this, title.ToUpperInvariant()), bearer: await AdminAsync());
+            var same = await SendAsync(HttpMethod.Post, c.Route, await BodyLikeAsync(c, first, title), bearer: await AdminAsync());
+            var upper = await SendAsync(HttpMethod.Post, c.Route, await BodyLikeAsync(c, first, title.ToUpperInvariant()), bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Conflict, same.StatusCode);
             Assert.Equal(HttpStatusCode.Conflict, upper.StatusCode);
 
             Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
-            var again = await SendAsync(HttpMethod.Post, c.Route, await c.CreateBody(this, title), bearer: await AdminAsync());
+            var again = await SendAsync(HttpMethod.Post, c.Route, await BodyLikeAsync(c, first, title), bearer: await AdminAsync());
             Assert.Equal(HttpStatusCode.Created, again.StatusCode);
         }
 
@@ -131,10 +151,10 @@ namespace EMS.Tests.Integration
         public async Task Renaming_onto_another_active_records_title_is_409(string name)
         {
             var c = CatalogCase.Get(name);
-            var (_, _) = await CreateAsync(c, Title("RenA"));
+            var (_, first) = await CreateAsync(c, Title("RenA"));
             var taken = Title("RenB");
-            await CreateAsync(c, taken);
-            var (otherId, _) = await CreateAsync(c, Title("RenC"));
+            await CreateLikeAsync(c, first, taken);
+            var (otherId, _) = await CreateLikeAsync(c, first, Title("RenC"));
 
             Assert.Equal(HttpStatusCode.Conflict, (await UpdateAsync(c, otherId, taken)).StatusCode);
         }
@@ -313,6 +333,7 @@ namespace EMS.Tests.Integration
         [Theory]
         [InlineData("EquipmentType")]
         [InlineData("EquipmentModel")]
+        [InlineData("City")]
         [InlineData("SupportingDepartment")]
         public async Task A_non_positive_parent_id_is_a_validation_error_on_create(string name)
         {
@@ -383,8 +404,8 @@ namespace EMS.Tests.Integration
         {
             var c = CatalogCase.Get(name);
             var activeTitle = Title("Act");
-            await CreateAsync(c, activeTitle);
-            var (id, _) = await CreateAsync(c, Title("Gone"));
+            var (_, active) = await CreateAsync(c, activeTitle);
+            var (id, _) = await CreateLikeAsync(c, active, Title("Gone"));
             Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"{c.Route}/{id}", bearer: await AdminAsync())).StatusCode);
 
             // staying inactive, it may carry the same title as an active record
@@ -429,24 +450,32 @@ namespace EMS.Tests.Integration
         // ------------------------------------------------------------------------------- authorization
 
         [Theory, MemberData(nameof(Cases))]
-        public async Task Every_verb_needs_its_own_permission_and_anonymous_callers_get_401(string name)
+        public async Task Reading_needs_only_a_signed_in_user_while_writing_needs_its_own_permission_and_anonymous_callers_get_401(string name)
         {
             var c = CatalogCase.Get(name);
             var (id, _) = await CreateAsync(c, Title("Aut"));
             var admin = await AdminAsync();
-            var userName = ("ct_" + name)[..Math.Min(18, name.Length + 3)] + Guid.NewGuid().ToString("N")[..2];
-            var userId = await CreateUserAsync(admin, userName, "Passw0rd!x");
-            var roleId = await CreateRoleAsync(admin, "CtRole_" + userName, $"{c.PermissionGroup}.View");
-            await AssignRoleAsync(admin, userId, roleId);
-            var viewer = (await LoginAsync(userName, "Passw0rd!x")).AccessToken;
+            var tag = Guid.NewGuid().ToString("N")[..10];
+            var userName = "ct_" + tag;                                     // user names are limited to 20 characters
+            var writerName = "cw_" + tag;
+            await CreateUserAsync(admin, userName, "Passw0rd!x");           // no role, no permission at all
+            var plain = (await LoginAsync(userName, "Passw0rd!x")).AccessToken;
 
-            // View is enough to read...
-            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, viewer));
-            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, $"{c.Route}/{id}", viewer));
-            // ...but not to change anything
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, c.Route, viewer, await c.CreateBody(this, Title("Aut2"))));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"{c.Route}/{id}", viewer, new Dictionary<string, object?> { ["isActive"] = true }));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"{c.Route}/{id}", viewer));
+            // Reference data feeds dropdowns on every form, so any signed-in user can read it...
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, plain));
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, $"{c.Route}/{id}", plain));
+            // ...but changing it needs the catalog's own permission
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, c.Route, plain, await c.CreateBody(this, Title("Aut2"))));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"{c.Route}/{id}", plain, new Dictionary<string, object?> { ["isActive"] = true }));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"{c.Route}/{id}", plain));
+
+            // a role holding only the write permission can write, and still reads
+            var roleId = await CreateRoleAsync(admin, "CtRole_" + userName, $"{c.PermissionGroup}.Create");
+            var writerId = await CreateUserAsync(admin, writerName, "Passw0rd!x");
+            await AssignRoleAsync(admin, writerId, roleId);
+            var writer = (await LoginAsync(writerName, "Passw0rd!x")).AccessToken;
+            Assert.Equal(HttpStatusCode.Created, await StatusOfAsync(HttpMethod.Post, c.Route, writer, await c.CreateBody(this, Title("Aut3"))));
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, c.Route, writer));
 
             // anonymous
             Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Get, c.Route)).StatusCode);

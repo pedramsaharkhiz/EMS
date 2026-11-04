@@ -15,6 +15,7 @@ namespace EMS.Application.Common.Exceptions
         public const string NotFound = "not_found";
         public const string MethodNotAllowed = "method_not_allowed";
         public const string UnsupportedMediaType = "unsupported_media_type";
+        public const string PayloadTooLarge = "payload_too_large";
         public const string NotAcceptable = "not_acceptable";
         public const string Conflict = "conflict";
         public const string InternalError = "internal_error";
@@ -35,6 +36,17 @@ namespace EMS.Application.Common.Exceptions
         public const string HasActiveDependents = "has_active_dependents";
         public const string ParentNotFound = "parent_not_found";
         public const string ParentInactive = "parent_inactive";
+        public const string ProtectedRecord = "protected_record";
+        public const string ReservedCode = "reserved_code";
+
+        // equipment
+        public const string DuplicateYaasCode = "duplicate_yaas_code";
+        public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
+
+        // exports
+        public const string ExportTooLarge = "export_too_large";
+        public const string ExportBusy = "export_busy";
+        public const string TooManyRequests = "too_many_requests";
 
         // users and roles
         public const string UserNameTaken = "user_name_taken";
@@ -49,6 +61,14 @@ namespace EMS.Application.Common.Exceptions
         public const string RoleNotFound = "role_not_found";
         public const string RoleInactive = "role_inactive";
         public const string RolesInvalid = "roles_invalid";
+
+        // attachments
+        public const string AttachmentTargetNotFound = "attachment_target_not_found";
+        public const string AttachmentFileRequired = "attachment_file_required";
+        public const string AttachmentTooLarge = "attachment_too_large";
+        public const string AttachmentTypeNotAllowed = "attachment_type_not_allowed";
+        public const string AttachmentContentMismatch = "attachment_content_mismatch";
+        public const string AttachmentLimitReached = "attachment_limit_reached";
         public const string UserAlreadyHasRole = "user_already_has_role";
         public const string SkillsInvalid = "skills_invalid";
         public const string RoleInUse = "role_in_use";
@@ -74,6 +94,12 @@ namespace EMS.Application.Common.Exceptions
     public sealed class ConflictException : AppException
     {
         public ConflictException(string message, string? code = null) : base(message, code ?? ErrorCodes.Conflict) { }
+    }
+
+    /// <summary>A 429: the caller must wait and try again (e.g. too many exports running at once).</summary>
+    public sealed class TooManyRequestsException : AppException
+    {
+        public TooManyRequestsException(string message, string? code = null) : base(message, code ?? ErrorCodes.TooManyRequests) { }
     }
 
     public sealed class BadRequestException : AppException

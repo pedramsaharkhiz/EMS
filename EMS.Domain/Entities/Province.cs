@@ -1,8 +1,8 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
 {
-    public class Province : BaseEntity, IAuditableEntity
+    public class Province : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long ProvinceId { get; set; }
         public string Title { get; set; } = null!;

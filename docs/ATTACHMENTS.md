@@ -1,0 +1,98 @@
+# پیوست‌ها (Attachments)
+
+پیوست یک قابلیت **کلی** برای همه‌ی موجودیت‌هاست: یک جدول `EntityAttachments` به‌همراه جدول ثبت `Tables`. فایل‌ها **داخل دیتابیس SQL Server** ذخیره می‌شوند (به‌صورت stream) و **هیچ فایلی روی دیسک سرور برنامه نمی‌نشیند**.
+
+## ساختار داده
+
+| جدول | کار |
+|---|---|
+| `Tables` | فهرست موجودیت‌های سیستم. `IsAttachmentEnabled` می‌گوید پیوست برای این جدول فعال است یا نه |
+| `EntityAttachments` | «جدول X، رکورد Y، این فایل». ستون‌های `TableId`، `EntityId` (بدون کلید خارجی، چون به جدول‌های مختلف اشاره می‌کند)، `StreamId` (کلید خارجی به محتوا)، `Description`، `IsActive` |
+| `AttachmentContents` | خود فایل: `StreamId` (کلید)، `FileName`، `ContentType`، `SizeBytes`، `Sha256` و ستون `Content` از نوع `varbinary(max)` |
+
+- `Content` عمداً property کلاس C# نیست (ستون سایه)، پس هیچ کدی نمی‌تواند فایل را اتفاقی در حافظه بخواند. فقط `IAttachmentBlobStore` آن را به‌صورت stream می‌نویسد و می‌خواند.
+- چون `EntityId` کلید خارجی ندارد، سرویس وجود رکورد (و فعال بودنش) را خودش چک می‌کند (`404` اگر نباشد).
+- حذف پیوست = `IsActive = false` روی ردیف `EntityAttachments`. فایل می‌ماند، ولی از لیست پیش‌فرض می‌رود و دانلودش `404` می‌شود.
+
+### چرا `varbinary(max)` و نه FileTable؟
+سرور فعلی SQL Server 2022 Enterprise روی Windows است ولی FILESTREAM روشن نیست (`FilestreamEffectiveLevel = 0`)؛ روشن کردنش به ریستارت سرویس SQL و کار DBA نیاز دارد، ساخت FileTable با EF ممکن نیست (SQL خام لازم است) و روی Linux و Azure SQL کار نمی‌کند. `varbinary(max)` روی هر نسخه کار می‌کند، با migration معمولی ساخته می‌شود، کلید خارجی واقعی دارد، در تراکنش و backup معمولی می‌ماند و آپلود و دانلودش stream است. هزینه: حجم فایل‌ها داخل فایل‌های دیتابیس می‌رود. اگر روزی FILESTREAM لازم شد، فقط `IAttachmentBlobStore` عوض می‌شود.
+
+## موجودیت پیوست‌پذیر
+
+یک موجودیت با یک attribute پیوست‌پذیر می‌شود، بدون کد دیگر:
+
+```csharp
+[Attachable("تجهیز", "Equipments")]      // نام فارسی، گروه permission
+public class Equipment : BaseEntity, IAuditableEntity { ... }
+```
+
+- **جدول `Tables` خودکار پر می‌شود:** در هر راه‌اندازی `AttachmentTableSeeder` همه‌ی موجودیت‌های `[Attachable]` را پیدا می‌کند و برایشان ردیف می‌سازد یا اصلاح می‌کند (`IsAttachmentEnabled = true`). موجودیتی که attribute را از دست داد فقط **غیرفعال** می‌شود، پاک نمی‌شود (پیوست‌های قدیمی به ردیف اشاره می‌کنند). idempotent است.
+- **permissionها از خود موجودیت می‌آیند:** `{Group}.View` برای لیست و دانلود، `{Group}.Update` برای آپلود و غیرفعال‌سازی. برای تجهیز: `Equipments.View` و `Equipments.Update`. هر دو باید در `Permissions` باشند (تست `Every_attachable_entity_has_view_and_update_permissions...` این را می‌گیرد).
+- کلید اصلی موجودیت باید یک `long` باشد (تست دارد).
+- فعلاً فقط `Equipment` نشانه‌دار است.
+
+## endpointها
+
+مسیر `GET/POST /api/Attachments/{tableName}/{entityId}` که `tableName` نام جدول است (مثلاً `Equipments`).
+
+| متد و مسیر | permission | کار |
+|---|---|---|
+| `GET /api/Attachments/{tableName}/{entityId}` | `{Group}.View` | لیست پیوست‌های یک رکورد، جدیدترین اول، صفحه‌بندی‌شده. `?isActive=false` غیرفعال‌ها را نشان می‌دهد |
+| `POST /api/Attachments/{tableName}/{entityId}?description=` | `{Group}.Update` | آپلود یک فایل (`201` + هدر `Location` به آدرس دانلود) |
+| `GET /api/Attachments/{id}/download` | `{Group}.View` | دانلود فایل (stream) |
+| `DELETE /api/Attachments/{id}` | `{Group}.Update` | غیرفعال‌سازی |
+
+### آپلود
+بدنه‌ی `multipart/form-data` با **فایل در بخش فایلی** (فقط اولین فایل خوانده می‌شود). توضیح اختیاری در **query string** (`?description=`) می‌آید تا بخش فایل بدون بافر شدن stream شود.
+
+```
+POST /api/Attachments/Equipments/42?description=نمای%20کلی
+Content-Type: multipart/form-data; boundary=...
+Authorization: Bearer <token>
+```
+
+بدنه در طول مسیر **stream** می‌شود: نه در حافظه جمع می‌شود و نه روی دیسک سرور برنامه. (برای همین attribute `[DisableFormValueModelBinding]` روی action هست؛ بدون آن، MVC کل فرم را پیش از اجرای action بافر می‌کرد.)
+
+### دانلود
+پاسخ خام فایل است، نه پوشش JSON (`[FileDownloadResponse]`، مثل Excel یک استثنای مصوب قاعده‌ی پوشش). `Content-Type` همان است که هنگام پذیرش از روی پسوند ذخیره شده، و `Content-Disposition: attachment` است. خطاها همچنان پوشش JSON فارسی‌اند.
+
+## قواعد و حدها
+
+| قاعده | مقدار |
+|---|---|
+| حداکثر اندازه‌ی هر فایل | ۱۰ مگابایت (`AttachmentRules.MaxFileSizeBytes`) |
+| حداکثر پیوست فعال هر رکورد | ۲۰ (`MaxActivePerEntity`) |
+| طول توضیح / نام فایل | ۵۰۰ / ۲۰۰ کاراکتر |
+| نوع‌های مجاز | `pdf`، `jpg`، `jpeg`، `png`، `docx`، `xlsx`، `txt` |
+
+- **نوع فایل دو بار بررسی می‌شود:** پسوند باید مجاز باشد **و** بایت‌های ابتدای فایل (magic bytes) باید با آن بخواند (PDF با `%PDF-`، PNG و JPEG با امضایشان، docx و xlsx با امضای zip، txt بدون بایت NUL و کنترلی). `MIME` ادعایی کلاینت هرگز استفاده نمی‌شود؛ نوعی که ذخیره و سرو می‌شود از جدول `AttachmentRules` می‌آید. فایل `.exe` که `.pdf` نام گرفته رد می‌شود.
+- **نام فایل پاک‌سازی می‌شود:** مسیر (`../`، `C:\`) و نویسه‌های رزروشده (`< > | : * ? "`) و کنترلی حذف می‌شود؛ نام فارسی می‌ماند.
+- **اندازه حین stream کنترل می‌شود:** فایل بزرگ‌تر از حد، همان‌جا رد می‌شود و تراکنش برمی‌گردد؛ هیچ ردیف یا فایلی نمی‌ماند.
+- **آپلود در یک تراکنش:** ردیف محتوا، stream فایل و ردیف پیوست با هم commit می‌شوند یا هیچ‌کدام.
+- سرور خودش اندازه (`DATALENGTH`) و هش (`HASHBYTES('SHA2_256')`) فایل ذخیره‌شده را حساب می‌کند.
+
+## کدهای خطا
+| status | code | وقتی |
+|---|---|---|
+| 404 | `attachment_target_not_found` | جدول ناشناخته یا پیوستش غیرفعال است، یا رکورد وجود ندارد یا غیرفعال است |
+| 404 | `not_found` | پیوست وجود ندارد یا غیرفعال شده |
+| 400 | `attachment_file_required` | فایل ارسال نشده، خالی است یا نام فایل معتبر نیست |
+| 400 | `attachment_type_not_allowed` | پسوند مجاز نیست |
+| 400 | `attachment_content_mismatch` | محتوا با پسوند نمی‌خواند |
+| 400 | `attachment_too_large` | فایل از حد بزرگ‌تر است |
+| 409 | `attachment_limit_reached` | رکورد ۲۰ پیوست فعال دارد |
+| 400 | `validation_failed` | توضیح بلندتر از ۵۰۰ کاراکتر (فیلد `description`) |
+| 413 | `payload_too_large` | کل درخواست از حد endpoint بزرگ‌تر است (۱۰ مگابایت + ۱ مگابایت سربار) |
+| 415 | `unsupported_media_type` | بدنه `multipart/form-data` نیست |
+| 401 / 403 | | توکن نیست، یا permission موجودیت را ندارد |
+
+## استقرار
+- migration `AttachmentContents` (اسکریپت idempotent: `docs/sql/AttachmentContents.sql`): جدول `AttachmentContents`، کلید خارجی `EntityAttachments.StreamId`، ایندکس لیست. چون API پیوست قبلاً نبود، `EntityAttachments` باید خالی باشد؛ در سرآیند اسکریپت کوئری بررسی هست.
+- جدول `Tables` موقع راه‌اندازی خودکار پر می‌شود؛ کاری لازم نیست.
+- **حجم دیتابیس:** فایل‌ها داخل دیتابیس‌اند، پس اندازه‌ی فایل داده و backup رشد می‌کند. رشد را زیر نظر بگیر و برای دیتابیس‌های خیلی بزرگ به FILESTREAM فکر کن.
+- **reverse proxy:** Kestrel و IIS پیش‌فرض حدود ۳۰ مگابایت دارند و endpoint خودش `RequestSizeLimit` ۱۱ مگابایت دارد. اگر جلوی برنامه nginx یا مشابه است، `client_max_body_size` باید حداقل ۱۱ مگابایت باشد.
+- حدها ثابت‌های `AttachmentRules` هستند؛ تغییر آن‌ها یک خط است (به‌جز `RequestSizeLimit` که از همان ثابت می‌آید).
+
+## تست
+- تست‌های API (`AttachmentTests`) روی دیتابیس in-memory اجرا می‌شوند، که SQL خام و stream را نمی‌تواند اجرا کند؛ برای همین `InMemoryAttachmentBlobStore` جایگزین می‌شود (بایت‌ها در حافظه‌ی تست). قواعد، permissionها، حدها و seeder با این‌ها پوشش داده شده‌اند.
+- **مسیر SQL** (`SqlAttachmentBlobStore`: stream به SQL، `OUTPUT` اندازه و هش، دانلود با reader، rollback) فقط روی SQL Server واقعی قابل راستی‌آزمایی است: `SqlAttachmentBlobStoreTests`. به‌صورت پیش‌فرض Skip است. برای اجرا، یک دیتابیس **موقت** با نامی که `test` دارد بساز، connection string را در `EMS_TEST_SQL` بگذار و تست‌ها را اجرا کن (دیتابیس را drop و دوباره می‌سازد).

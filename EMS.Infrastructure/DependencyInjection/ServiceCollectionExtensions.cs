@@ -1,11 +1,16 @@
-﻿using EMS.Application.Common.Interfaces;
+using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Infrastructure.Logging;
 using EMS.Application.Interfaces.Auth;
 using EMS.Application.Validators.RefreshToken;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Identity.Seed;
+using EMS.Infrastructure.Persistence.Seed;
+using EMS.Infrastructure.Services.Attachments;
+using EMS.Application.Interfaces.Attachment;
 using EMS.Infrastructure.Options;
+using EMS.Infrastructure.Services.Export;
+using EMS.Application.Common.Export;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
 using EMS.Infrastructure.Security;
@@ -45,6 +50,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditEventLogger, AuditEventLogger>();
         services.Configure<AuditTrailOptions>(configuration.GetSection(AuditTrailOptions.SectionName));
         services.Configure<RefreshTokenCleanupOptions>(configuration.GetSection(RefreshTokenCleanupOptions.SectionName));
+        services.Configure<ExportOptions>(configuration.GetSection(ExportOptions.SectionName));
+        services.AddSingleton<ExportGate>();
+        services.AddScoped<IExcelExporter, ExcelExporter>();
         services.AddHostedService<EMS.Infrastructure.Maintenance.RefreshTokenCleanupBackgroundService>();
         services.AddScoped<AuditSaveChangesInterceptor>();
         var slowQueryThresholdMs = configuration.GetValue("Logging:SlowQueryThresholdMs", 500);
@@ -218,6 +226,10 @@ public static class ServiceCollectionExtensions
 
 
         services.AddScoped<IIdentitySeeder, IdentitySeeder>();
+        services.AddScoped<IGeographySeeder, GeographySeeder>();
+        services.AddScoped<IAttachmentTableSeeder, AttachmentTableSeeder>();
+        services.AddScoped<IAttachmentTargetCatalog, AttachmentTargetCatalog>();
+        services.AddScoped<IAttachmentBlobStore, SqlAttachmentBlobStore>();
         services.AddScoped<IAuthService, AuthService>(); 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRoleService, RoleService>();

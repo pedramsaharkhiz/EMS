@@ -74,14 +74,14 @@ DTOها **برای هر entity جدا** می‌مانند، چون فیلدها�
 
 ## ۳. قرارداد API هر کاتالوگ
 
-هر کاتالوگ پنج endpoint دارد. مسیر از نام کنترلر می‌آید: `/api/<Entity>` (مثلاً `/api/Brand`). همه به permission نیاز دارند (`<Plural>.View/Create/Update/Delete`، مثلاً `Brands.Create`) و بدون توکن `401` می‌گیرند.
+هر کاتالوگ پنج endpoint دارد. مسیر از نام کنترلر می‌آید: `/api/<Entity>` (مثلاً `/api/Brand`). **خواندن** (لیست و جزئیات) برای هر کاربر واردشده آزاد است، چون dropdown فرم‌ها این لیست‌ها را لازم دارند. **نوشتن** permission اختصاصی می‌خواهد (`<Plural>.Create/Update/Delete`، مثلاً `Brands.Create`). بدون توکن همه `401` می‌گیرند.
 
 **هر پاسخ (موفق و خطا) داخل پوشش `{ success, message, data, meta, error, traceId }` است** و در نمونه‌های زیر فقط `data` و `meta` نشان داده می‌شود. تعریف کامل پوشش و قواعد مشترک در [API-CONVENTIONS.md](API-CONVENTIONS.md) است.
 
 | متد و مسیر | permission | موفقیت | کار |
 |---|---|---|---|
-| `GET /api/Brand` | `Brands.View` | `200` | لیست صفحه‌بندی‌شده |
-| `GET /api/Brand/{id}` | `Brands.View` | `200` | یک رکورد (فعال یا غیرفعال) |
+| `GET /api/Brand` | هر کاربر واردشده (`[Lookup]`) | `200` | لیست صفحه‌بندی‌شده |
+| `GET /api/Brand/{id}` | هر کاربر واردشده (`[Lookup]`) | `200` | یک رکورد (فعال یا غیرفعال) |
 | `POST /api/Brand` | `Brands.Create` | `201` + هدر `Location` | ایجاد |
 | `PUT /api/Brand/{id}` | `Brands.Update` | `200` | ویرایش (شناسه فقط در مسیر است) |
 | `DELETE /api/Brand/{id}` | `Brands.Delete` | `200` (`data: null`) | حذف منطقی |
@@ -211,6 +211,57 @@ public override async Task<bool> HasActiveDependentsAsync(long id, CancellationT
 
 وقتی کاتالوگ به کاتالوگ دیگری وابسته است (مثلاً «نوع تجهیز» به «دسته‌بندی تجهیز»)، سرویس repository والد را می‌گیرد و در `BeforeCreateAsync` و `BeforeUpdateAsync` از `RequireParentAsync` استفاده می‌کند. نمونه‌ی کامل: `EquipmentTypeService`. قاعده‌ی ویرایش: والد باید فعال باشد اگر **عوض می‌شود** یا رکورد **بازگردانده می‌شود**.
 
+### دسترسی: خواندن آزاد با `[Lookup]`
+
+لیست و جزئیات کاتالوگ‌ها با `[Lookup]` علامت می‌خورد و فقط یک توکن معتبر می‌خواهد (همچنان در هر درخواست بررسی می‌شود: کاربر فعال و security stamp جاری). دلیل: هر فرم برای dropdownهایش به ده‌ها lookup نیاز دارد و نباید برای هر کدام یک permission جدا به نقش‌ها داد. فقط نوشتن (`Create/Update/Delete`) permission اختصاصی دارد. `[Lookup]` را **فقط روی GET** بگذار (تست `Lookup_is_only_used_on_read_actions` این را اجبار می‌کند)، و فقط برای داده‌ی پایه‌ای که دیدنش برای همه بی‌خطر است؛ برای کاربران، نقش‌ها و داده‌ی عملیاتی از `[Permission]` استفاده کن.
+
+permissionهای `X.View` قدیمیِ ده کاتالوگ در `Permissions.Retired` نگه داشته شده‌اند: نقشی که قبلاً یکی از آن‌ها را داشته باشد هنوز می‌تواند ذخیره شود، ولی claim هنگام ذخیره حذف می‌شود و seeder هم آن را از نقش Admin پاک می‌کند.
+
+### رکوردهای سیستمی (مثال: وضعیت تجهیز)
+
+بعضی ردیف‌های یک کاتالوگ را خود کد به‌کار می‌برد (مثلاً «مفقود» در منطق تخصیص تجهیز) و مدیر نباید بتواند آن‌ها را غیرفعال کند یا کدشان را عوض کند. الگو:
+
+- یک `enum` در `EMS.Domain/Enums` با مقدارهایی که هر کدام یک ردیف‌اند. برای وضعیت تجهیز: `EquipmentStatusCode` (`Unknown = 0` ردیف ندارد). `EquipmentStatusCatalog` عنوان فارسی اولیه و قواعد شناسایی را نگه می‌دارد.
+- ردیف‌ها با `HasData` در تنظیمات EF و `InsertData` در migration ساخته می‌شوند، با **شناسه برابر مقدار enum** و **`Code` برابر نام enum**. پس کد می‌تواند `(long)EquipmentStatusCode.Lost` را مستقیم به‌کار ببرد.
+- مدیر می‌تواند **عنوان** را ویرایش کند و ردیف‌های دیگر اضافه کند (شناسه‌شان بعد از مقدارهای enum است). ردیف سیستمی را نمی‌شود غیرفعال یا حذف کرد (`409 protected_record`)، کدش را نمی‌شود عوض کرد (`protected_record`)، و ردیف دیگری نمی‌تواند کد سیستمی بگیرد (`409 reserved_code`). این قواعد با hook جدید `EnsureCanDeactivateAsync` و `BeforeCreateAsync` / `BeforeUpdateAsync` در `EquipmentStatusService` پیاده شده‌اند.
+- **مقدار جدید enum** یعنی یک migration که ردیفش را اضافه کند؛ تست `Each_enum_value_is_a_row...` اگر فراموش شود می‌شکند. عنوان‌های `HasData` را در migration بعدی عوض نکن مگر بخواهی ویرایش مدیر را بازنویسی کنی.
+- در تست‌ها دیتابیس in-memory با migration ساخته نمی‌شود؛ `EmsApiFactory` با `EnsureCreated` داده‌ی `HasData` را اعمال می‌کند.
+
+### یکتایی عنوان فقط در محدوده‌ی والد (استان ← شهر ← دپارتمان)
+
+به‌طور پیش‌فرض عنوان در کل جدول یکتاست. بعضی کاتالوگ‌ها فقط درون والدشان یکتا هستند: «شهر» در هر **استان** و «دپارتمان پشتیبانی» در هر **شهر** (دو شهر می‌توانند هر دو دپارتمان «فناوری اطلاعات» داشته باشند). برای این حالت سه کار لازم است:
+
+1. در سرویس، دو hook را override کن (برای ایجاد و برای ویرایش؛ در ویرایش از والدی استفاده کن که رکورد **بعد از ویرایش** دارد، چون جابه‌جایی بین والدها هم باید بررسی شود):
+   ```csharp
+   protected override Expression<Func<CityEntity, bool>>? TitleScopeForCreate(CityCreateDto request) =>
+       x => x.ProvinceId == request.ProvinceId;
+
+   protected override Expression<Func<CityEntity, bool>>? TitleScopeForUpdate(CityEntity entity, CityUpdateDto request)
+   {
+       var provinceId = request.ProvinceId ?? entity.ProvinceId;
+       return x => x.ProvinceId == provinceId;
+   }
+   ```
+2. در تنظیمات EF ایندکس یکتا را **ترکیبی** کن: `HasIndex(x => new { x.ProvinceId, x.Title }).IsUnique().HasFilter("[IsActive] = 1")` (نام: `UX_Cities_ProvinceId_Title`). این ایندکس جای ایندکس ساده‌ی کلید خارجی را هم می‌گیرد.
+3. اگر جدول قبلاً داده داشته، پیش از `CREATE INDEX` تکراری‌ها را بررسی کن؛ migration `GeographyCatalogs` نمونه است و با پیام خوانا متوقف می‌شود.
+
+در تست‌ها `ScopeKey` در `CatalogCase` (مثلاً `"provinceId"`) به تست‌های عمومی می‌گوید رکوردهای رقیب را زیر **همان والد** بسازند.
+
+### نام والد در DTO (`ToDetailAsync`)
+
+اگر جزئیات باید عنوان والد را هم داشته باشد (مثلاً `provinceTitle` در شهر، `cityTitle` و `provinceTitle` در دپارتمان)، در **لیست** از projection (`x.Province.Title`) استفاده کن و برای **جزئیات** `ToDetailAsync` را override کن: بعد از ایجاد و ویرایش entity فقط کلید خارجی دارد و عنوان والد باید با یک کوئری خوانده شود (نمونه: `CityService` و `SupportingDepartmentService.GetLocationAsync`).
+
+### سلسله‌مراتب جغرافیایی
+
+`Province` ← `City` ← `SupportingDepartment`: هر سه کاتالوگ‌اند و قواعد زیر را دارند.
+
+- غیرفعال‌کردن استان تا وقتی **شهر فعال** دارد، و غیرفعال‌کردن شهر تا وقتی **دپارتمان فعال** دارد، با `409 has_active_dependents` رد می‌شود. پس همیشه ابتدا فرزندان غیرفعال می‌شوند.
+- ایجاد شهر زیر استان غیرفعال (و دپارتمان زیر شهر غیرفعال) با `400 parent_inactive` رد می‌شود؛ استان یا شهر ناموجود `404 parent_not_found` است.
+- بازگرداندن یک شهر/دپارتمان یا جابه‌جاکردنش به والد دیگر، والد فعال می‌خواهد.
+- لیست شهرها با `provinceId` و لیست دپارتمان‌ها با `cityId` و `provinceId` فیلتر می‌شود.
+
+داده‌ی اولیه (اختیاری): با `Seed:Geography:Enabled=true` در `appsettings` هنگام شروع برنامه ۳۱ استان و مرکز هر استان اضافه می‌شود (`GeographySeeder`). عملیات افزایشی و تکرارپذیر است: استان یا شهری که از قبل هست (حتی غیرفعال یا با حروف متفاوت) دست نمی‌خورد. پیش‌فرض خاموش است و بقیه‌ی شهرها از طریق `POST /api/City` اضافه می‌شوند.
+
 ---
 
 ## ۵. حذف منطقی به‌صورت فیلتر سراسری
@@ -264,7 +315,7 @@ dotnet new ems-catalog -n Category --Label "دسته‌بندی" --Plural Catego
 | `Category` | `Categorys` ✗ | `--Plural Categories` |
 | `Status` | `Statuss` ✗ | `--Plural Statuses` |
 
-اگر ندهی، جدول `Categorys` و permission `Categorys.View` ساخته می‌شود و عوض کردنش بعداً migration و ویرایش می‌خواهد.
+اگر ندهی، جدول `Categorys` و permission `Categorys.Create` ساخته می‌شود و عوض کردنش بعداً migration و ویرایش می‌خواهد.
 
 #### کی `--HasCode false` بدهم؟
 
@@ -285,7 +336,7 @@ dotnet new ems-catalog -n Category --Label "دسته‌بندی" --Plural Catego
 
 ### ۳. مراحل دستی
 
-1. **Permission:** در `EMS.Application/Common/Security/Permissions.cs` یک کلاس `Manufacturers` با چهار ثابت `View/Create/Update/Delete` اضافه کنید (الگوی کلاس‌های موجود، نام کلاس = `Plural`). `Permissions.All` خودکار از روی ثابت‌ها ساخته می‌شود و جای دیگری ثبت لازم نیست. تا این کار را نکنید build نمی‌شود (کنترلر به آن ارجاع دارد).
+1. **Permission:** در `EMS.Application/Common/Security/Permissions.cs` یک کلاس `Manufacturers` با سه ثابت `Create/Update/Delete` اضافه کنید (خواندن در کنترلر با `[Lookup]` برای هر کاربر واردشده آزاد است، پس `View` لازم نیست) (الگوی کلاس‌های موجود، نام کلاس = `Plural`). `Permissions.All` خودکار از روی ثابت‌ها ساخته می‌شود و جای دیگری ثبت لازم نیست. تا این کار را نکنید build نمی‌شود (کنترلر به آن ارجاع دارد).
 2. **Migration:**
 
    ```bash
@@ -356,7 +407,6 @@ dotnet new ems-catalog -n Manufacturer --Label "سازنده"
 ```csharp
 public static class Manufacturers
 {
-    public const string View = "Manufacturers.View";
     public const string Create = "Manufacturers.Create";
     public const string Update = "Manufacturers.Update";
     public const string Delete = "Manufacturers.Delete";

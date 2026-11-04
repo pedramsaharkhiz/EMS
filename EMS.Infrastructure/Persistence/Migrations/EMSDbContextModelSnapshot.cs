@@ -68,6 +68,55 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("ActionEntities", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.AttachmentContent", b =>
+                {
+                    b.Property<Guid>("StreamId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("Sha256")
+                        .HasColumnType("varbinary(32)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("StreamId");
+
+                    b.ToTable("AttachmentContents", (string)null);
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -212,6 +261,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<long>("ProvinceId")
@@ -224,7 +274,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("CityId");
 
-                    b.HasIndex("ProvinceId");
+                    b.HasIndex("ProvinceId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Cities_ProvinceId_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Cities", (string)null);
                 });
@@ -340,7 +393,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("EntityAttachmentId");
 
-                    b.HasIndex("TableId");
+                    b.HasIndex("StreamId");
+
+                    b.HasIndex("TableId", "EntityId")
+                        .HasDatabaseName("IX_EntityAttachments_Table_Entity_Active")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EntityAttachments", (string)null);
                 });
@@ -396,6 +453,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("SerialNumber")
@@ -425,6 +483,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.HasIndex("EquipmentTypeId");
 
                     b.HasIndex("TechnicianUserId");
+
+                    b.HasIndex("YaasCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Equipments_YaasCode")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Equipments", null, t =>
                         {
@@ -696,6 +759,89 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasFilter("[IsActive] = 1");
 
                     b.ToTable("EquipmentStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            EquipmentStatusId = 1L,
+                            Code = "InStock",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "موجود در انبار"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 2L,
+                            Code = "InUse",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در حال استفاده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 3L,
+                            Code = "Assigned",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "تخصیص داده شده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 4L,
+                            Code = "UnderMaintenance",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در تعمیر / سرویس"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 5L,
+                            Code = "OutOfService",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "خارج از سرویس"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 6L,
+                            Code = "Damaged",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "آسیب‌دیده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 7L,
+                            Code = "Lost",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "مفقود"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 8L,
+                            Code = "Scrapped",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "اسقاط شده"
+                        },
+                        new
+                        {
+                            EquipmentStatusId = 9L,
+                            Code = "Decommissioned",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "از رده خارج"
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.EquipmentType", b =>
@@ -1242,6 +1388,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1250,6 +1397,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ProvinceId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Provinces_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Provinces", (string)null);
                 });
@@ -1389,11 +1541,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("SupportingDepartmentId");
 
-                    b.HasIndex("CityId");
-
-                    b.HasIndex("Title")
+                    b.HasIndex("CityId", "Title")
                         .IsUnique()
-                        .HasDatabaseName("UX_SupportingDepartments_Title")
+                        .HasDatabaseName("UX_SupportingDepartments_CityId_Title")
                         .HasFilter("[IsActive] = 1");
 
                     b.ToTable("SupportingDepartments", (string)null);
@@ -2128,11 +2278,18 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.EntityAttachment", b =>
                 {
+                    b.HasOne("EMS.Domain.Entities.AttachmentContent", "Content")
+                        .WithMany()
+                        .HasForeignKey("StreamId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("EMS.Domain.Entities.Table", "Table")
                         .WithMany("EntityAttachments")
                         .HasForeignKey("TableId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("Content");
 
                     b.Navigation("Table");
                 });

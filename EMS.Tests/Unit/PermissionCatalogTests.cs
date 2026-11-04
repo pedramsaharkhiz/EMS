@@ -29,14 +29,14 @@ namespace EMS.Tests.Unit
             Assert.Equal(Permissions.All.Count, Permissions.All.Distinct().Count());       // a copy-pasted value would collide here
             Assert.Equal(Permissions.All.OrderBy(p => p, StringComparer.Ordinal), Permissions.All);
             Assert.True(groups.Length >= 12);
-            Assert.Contains(Permissions.Brands.View, Permissions.All);
+            Assert.Contains(Permissions.Skills.View, Permissions.All);
             Assert.Contains(Permissions.Roles.ManagePermissions, Permissions.All);
         }
 
         [Fact]
         public void Every_permission_belongs_to_the_group_that_declares_it()
         {
-            // "Brands.View" must live in class Permissions.Brands: a wrong prefix would grant the wrong policy name.
+            // "Skills.View" must live in class Permissions.Brands: a wrong prefix would grant the wrong policy name.
             foreach (var group in typeof(Permissions).GetNestedTypes(BindingFlags.Public))
             {
                 foreach (var field in group.GetFields(BindingFlags.Public | BindingFlags.Static).Where(f => f.IsLiteral && f.FieldType == typeof(string)))
@@ -51,7 +51,7 @@ namespace EMS.Tests.Unit
         }
 
         [Fact]
-        public void Every_action_of_every_controller_except_the_identity_endpoints_requires_a_known_permission()
+        public void Every_action_of_every_controller_except_the_identity_endpoints_requires_a_known_permission_or_is_a_lookup_read()
         {
             var controllers = typeof(BaseApiController).Assembly.GetTypes()
                 .Where(t => typeof(BaseApiController).IsAssignableFrom(t) && !t.IsAbstract && t != typeof(IdentityController))
@@ -69,16 +69,40 @@ namespace EMS.Tests.Unit
                     var permission = action.GetCustomAttribute<PermissionAttribute>(inherit: true)
                                      ?? controller.GetCustomAttribute<PermissionAttribute>(inherit: true);
                     var allowsAnonymous = action.GetCustomAttribute<AllowAnonymousAttribute>() is not null;
+                    var isLookup = action.GetCustomAttribute<LookupAttribute>() is not null;
+                    var isEntityPermission = action.GetCustomAttribute<EntityPermissionAttribute>() is not null;   // authorizes in the action, per entity
 
                     var known = permission?.Policy is { } policy
                                 && Permissions.All.Contains(policy.Replace("Permission:", string.Empty));
-                    if (!known && !allowsAnonymous)
+                    if (!known && !allowsAnonymous && !isLookup && !isEntityPermission)
                         unprotected.Add($"{controller.Name}.{action.Name}");
                 }
             }
 
             Assert.True(unprotected.Count == 0,
-                "Actions without a registered [Permission]: " + string.Join(", ", unprotected));
+                "Actions without a registered [Permission] (or [Lookup] on a read, or [EntityPermission]): " + string.Join(", ", unprotected));
+        }
+
+        [Fact]
+        public void Lookup_is_only_used_on_read_actions()
+        {
+            var misuse = typeof(BaseApiController).Assembly.GetTypes()
+                .Where(t => typeof(BaseApiController).IsAssignableFrom(t) && !t.IsAbstract)
+                .SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                .Where(m => m.GetCustomAttribute<LookupAttribute>() is not null)
+                .Where(m => m.GetCustomAttributes().OfType<HttpMethodAttribute>().Any(a => !a.HttpMethods.All(v => v == "GET")))
+                .Select(m => $"{m.DeclaringType!.Name}.{m.Name}")
+                .ToList();
+
+            Assert.True(misuse.Count == 0, "[Lookup] on a non-GET action: " + string.Join(", ", misuse));
+        }
+
+        [Fact]
+        public void Retired_permissions_are_not_current_ones_and_follow_the_naming_convention()
+        {
+            Assert.NotEmpty(Permissions.Retired);
+            Assert.Empty(Permissions.Retired.Intersect(Permissions.All));
+            Assert.All(Permissions.Retired, p => Assert.Matches(@"^[A-Za-z]+\.[A-Za-z]+$", p));
         }
     }
 }

@@ -18,6 +18,8 @@ namespace EMS.Tests.Unit
             new object[] { new NotFoundException("no such brand", ErrorCodes.ParentNotFound), 404, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "parent_not_found" },
             new object[] { new ConflictException("duplicate"), 409, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "conflict" },
             new object[] { new ConflictException("duplicate title", ErrorCodes.DuplicateTitle), 409, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "duplicate_title" },
+            new object[] { new TooManyRequestsException("slow down", ErrorCodes.ExportBusy), 429, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "export_busy" },
+            new object[] { new BadRequestException("too large", ErrorCodes.ExportTooLarge), 400, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "export_too_large" },
             new object[] { new BadRequestException("bad"), 400, LogLevel.Information, "EMS.Presentation.Middlewares.GlobalExceptionMiddleware", "bad_request" },
             new object[] { new UnauthorizedAccessException("denied"), 401, LogLevel.Warning, "EMS.Security", "unauthorized" },
             new object[] { new UnauthorizedAppException("bad login", ErrorCodes.InvalidCredentials), 401, LogLevel.Warning, "EMS.Security", "invalid_credentials" },

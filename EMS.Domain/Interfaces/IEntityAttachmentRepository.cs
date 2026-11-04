@@ -7,10 +7,12 @@ namespace EMS.Domain.Interfaces
 {
     public interface IEntityAttachmentRepository : IRepository<EntityAttachment>
     {
-        Task<List<EntityAttachment>> GetByTableAndEntityAsync(long table , long entityId, CancellationToken cancellationToken = default);
+        /// <summary>Read-only query over all attachments (active or not) with their file metadata; the caller filters.</summary>
+        IQueryable<EMS.Domain.ReadModels.AttachmentRow> QueryRows();
 
-        Task<List<EntityAttachment>> GetByStreamIdAsync(Guid streamId, CancellationToken cancellationToken = default);
+        Task<int> CountActiveAsync(long tableId, long entityId, CancellationToken cancellationToken = default);
 
-        Task<bool> ExistsByTableAndEntityAsync(long tableId, long entityId, CancellationToken cancellationToken = default);
+        /// <summary>The attachment as tracked entity, active or not (null when it does not exist).</summary>
+        Task<EntityAttachment?> GetAsync(long attachmentId, CancellationToken cancellationToken = default);
     }
 }

@@ -1,41 +1,37 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
+using EMS.Domain.ReadModels;
 using EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace EMS.Infrastructure.Repositories
 {
-    //public class EntityAttachmentRepository : Repository<EntityAttachment>, IEntityAttachmentRepository
-    //{
-    //    public EntityAttachmentRepository(EMSDbContext context) : base(context)
-    //    {
-    //    }
+    public class EntityAttachmentRepository : Repository<EntityAttachment>, IEntityAttachmentRepository
+    {
+        public EntityAttachmentRepository(EMSDbContext context) : base(context) { }
 
-    //    public async Task<List<EntityAttachment>> GetByTableAndEntityAsync(long tableId, long entityId, CancellationToken cancellationToken = default)
-    //    {
-    //        return await _context.Set<EntityAttachment>()
-    //            .AsNoTracking()
-    //            .Include(x => x.FileTable)
-    //            .Where(x => x.TableId == tableId && x.EntityId == entityId)
-    //            .ToListAsync(cancellationToken);
-    //    }
+        public IQueryable<AttachmentRow> QueryRows() =>
+            from attachment in _context.EntityAttachments.AsNoTracking()
+            join content in _context.AttachmentContents.AsNoTracking() on attachment.StreamId equals (Guid?)content.StreamId
+            select new AttachmentRow
+            {
+                Id = attachment.EntityAttachmentId,
+                TableId = attachment.TableId,
+                EntityId = attachment.EntityId,
+                StreamId = content.StreamId,
+                FileName = content.FileName,
+                ContentType = content.ContentType,
+                SizeBytes = content.SizeBytes,
+                Description = attachment.Description,
+                IsActive = attachment.IsActive,
+                CreatedDateTime = attachment.CreatedDateTime,
+                CreatedByUserId = attachment.CreatedByUserId
+            };
 
-    //    public async Task<List<EntityAttachment>> GetByStreamIdAsync(Guid streamId, CancellationToken cancellationToken = default)
-    //    {
-    //        return await _context.Set<EntityAttachment>()
-    //            .AsNoTracking()
-    //            .Include(x => x.FileTable)
-    //            .Where(x => x.StreamId == streamId)
-    //            .ToListAsync(cancellationToken);
-    //    }
+        public Task<int> CountActiveAsync(long tableId, long entityId, CancellationToken cancellationToken = default) =>
+            _context.EntityAttachments.CountAsync(x => x.TableId == tableId && x.EntityId == entityId && x.IsActive, cancellationToken);
 
-    //    public async Task<bool> ExistsByTableAndEntityAsync(long tableId, long entityId, CancellationToken cancellationToken = default)
-    //    {
-    //        return await _context.Set<EntityAttachment>()
-    //            .AnyAsync(x => x.TableId == tableId && x.EntityId == entityId, cancellationToken);
-    //    }
-    //}
+        public Task<EntityAttachment?> GetAsync(long attachmentId, CancellationToken cancellationToken = default) =>
+            _context.EntityAttachments.FirstOrDefaultAsync(x => x.EntityAttachmentId == attachmentId, cancellationToken);
+    }
 }

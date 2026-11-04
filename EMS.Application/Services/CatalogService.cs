@@ -65,6 +65,13 @@ namespace EMS.Application.Services
 
         protected abstract TDetail ToDetail(TEntity entity);
 
+        /// <summary>
+        /// Detail used by every endpoint. Override it when the detail carries names of related records (a city's province
+        /// title, ...) that have to be queried; the default is <see cref="ToDetail"/>.
+        /// </summary>
+        protected virtual Task<TDetail> ToDetailAsync(TEntity entity, CancellationToken cancellationToken) =>
+            Task.FromResult(ToDetail(entity));
+
         /// <summary>Creates the entity. <paramref name="title"/> is already trimmed; set the other fields here.</summary>
         protected abstract TEntity NewEntity(TCreate request, string title);
 
@@ -82,6 +89,22 @@ namespace EMS.Application.Services
 
         /// <summary>Validate parents before updating. Optional.</summary>
         protected virtual Task BeforeUpdateAsync(TEntity entity, TUpdate request, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        /// <summary>
+        /// Titles are unique across the whole table by default. Override both to make them unique only within a group, e.g.
+        /// <c>x =&gt; x.CityId == request.CityId</c> for "a department title is unique within its city". The filtered unique
+        /// index in the EF configuration must be composite on the same columns.
+        /// </summary>
+        protected virtual Expression<Func<TEntity, bool>>? TitleScopeForCreate(TCreate request) => null;
+
+        /// <summary>See <see cref="TitleScopeForCreate"/>. Use the group the record will belong to after this update.</summary>
+        protected virtual Expression<Func<TEntity, bool>>? TitleScopeForUpdate(TEntity entity, TUpdate request) => null;
+
+        /// <summary>
+        /// Called before an active record is deactivated (update with <c>isActive=false</c> or delete), ahead of the dependents
+        /// check. Throw to refuse, e.g. for system rows the code depends on. Optional.
+        /// </summary>
+        protected virtual Task EnsureCanDeactivateAsync(TEntity entity, CancellationToken cancellationToken) => Task.CompletedTask;
 
         protected virtual string DuplicateMessage => $"{Label} دیگری با این عنوان وجود دارد.";
         protected virtual string NotFoundMessage => $"{Label} موردنظر پیدا نشد.";
@@ -110,7 +133,7 @@ namespace EMS.Application.Services
         public async Task<TDetail> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
             var entity = await LoadAsync(id, asNoTracking: true, cancellationToken);
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task<TDetail> CreateAsync(TCreate request, CancellationToken cancellationToken = default)
@@ -118,14 +141,14 @@ namespace EMS.Application.Services
             await BeforeCreateAsync(request, cancellationToken);
 
             var title = request.Title.Trim();
-            await EnsureTitleIsFreeAsync(title, exceptId: null, cancellationToken);
+            await EnsureTitleIsFreeAsync(title, exceptId: null, TitleScopeForCreate(request), cancellationToken);
 
             var entity = NewEntity(request, title);
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _audit.Created(typeof(TEntity).Name, _idOf.Value(entity));
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task<TDetail> UpdateAsync(long id, TUpdate request, CancellationToken cancellationToken = default)
@@ -142,7 +165,7 @@ namespace EMS.Application.Services
 
             // Only an active record reserves its title (consistent with the filtered unique index in the database).
             if (request.IsActive)
-                await EnsureTitleIsFreeAsync(title, _idOf.Value(entity), cancellationToken);
+                await EnsureTitleIsFreeAsync(title, _idOf.Value(entity), TitleScopeForUpdate(entity, request), cancellationToken);
 
             entity.Title = title;
             ApplyUpdate(entity, request);
@@ -151,14 +174,17 @@ namespace EMS.Application.Services
                 _repository.SetExpectedModifiedDateTime(entity, expectedVersion);
 
             if (entity.IsActive && !request.IsActive)
+            {
+                await EnsureCanDeactivateAsync(entity, cancellationToken);
                 await EnsureNoActiveDependentsAsync(entity, cancellationToken);
+            }
 
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _audit.Updated(typeof(TEntity).Name, _idOf.Value(entity));
-            return ToDetail(entity);
+            return await ToDetailAsync(entity, cancellationToken);
         }
 
         public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
@@ -166,7 +192,10 @@ namespace EMS.Application.Services
             var entity = await LoadAsync(id, asNoTracking: false, cancellationToken);
 
             if (entity.IsActive)
+            {
+                await EnsureCanDeactivateAsync(entity, cancellationToken);
                 await EnsureNoActiveDependentsAsync(entity, cancellationToken);
+            }
 
             entity.IsActive = false;
             _repository.Update(entity);
@@ -190,38 +219,23 @@ namespace EMS.Application.Services
         /// Requires the parent record to exist (404) and, when <paramref name="mustBeActive"/>, to be active (400).
         /// Use it from <see cref="BeforeCreateAsync"/> / <see cref="BeforeUpdateAsync"/>.
         /// </summary>
-        protected static async Task RequireParentAsync<TParent>(
+        protected static Task RequireParentAsync<TParent>(
             IRepository<TParent> repository,
             long id,
             Expression<Func<TParent, long>> key,
             string label,
             bool mustBeActive,
             CancellationToken cancellationToken)
-            where TParent : BaseEntity
-        {
-            var parameter = key.Parameters[0];
-            var matches = Expression.Equal(key.Body, Expression.Constant(id));
-
-            var exists = Expression.Lambda<Func<TParent, bool>>(matches, parameter);
-            if (!await repository.ExistsIncludingInactiveAsync(exists, cancellationToken))
-                throw new NotFoundException($"{label} یافت نشد.", ErrorCodes.ParentNotFound);
-
-            if (!mustBeActive)
-                return;
-
-            var existsAndActive = Expression.Lambda<Func<TParent, bool>>(
-                Expression.AndAlso(matches, Expression.Property(parameter, nameof(BaseEntity.IsActive))), parameter);
-            if (!await repository.ExistsAsync(existsAndActive, cancellationToken))
-                throw new BadRequestException($"{label} انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
-        }
+            where TParent : BaseEntity =>
+            ParentGuard.RequireAsync(repository, id, key, label, mustBeActive, cancellationToken);
 
         private async Task<TEntity> LoadAsync(long id, bool asNoTracking, CancellationToken cancellationToken) =>
             await _repository.GetByIdAsync(id, asNoTracking, cancellationToken)
             ?? throw new NotFoundException(NotFoundMessage, ErrorCodes.NotFound);
 
-        private async Task EnsureTitleIsFreeAsync(string title, long? exceptId, CancellationToken cancellationToken)
+        private async Task EnsureTitleIsFreeAsync(string title, long? exceptId, Expression<Func<TEntity, bool>>? scope, CancellationToken cancellationToken)
         {
-            if (await _repository.ExistsByTitleAsync(title, exceptId, cancellationToken))
+            if (await _repository.ExistsByTitleAsync(title, exceptId, scope, cancellationToken))
                 throw new ConflictException(DuplicateMessage, ErrorCodes.DuplicateTitle);
         }
 

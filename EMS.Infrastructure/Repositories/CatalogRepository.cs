@@ -2,6 +2,7 @@ using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace EMS.Infrastructure.Repositories
 {
@@ -38,13 +39,15 @@ namespace EMS.Infrastructure.Repositories
                 ? _dbSet.AsNoTracking()                                                       // the filter keeps only active records
                 : _dbSet.AsNoTracking().IncludingInactive().Where(x => !x.IsActive);          // lift it to see the deactivated ones
 
-        public async Task<bool> ExistsByTitleAsync(string title, long? exceptId = null, CancellationToken cancellationToken = default)
+        public async Task<bool> ExistsByTitleAsync(string title, long? exceptId = null, Expression<Func<T, bool>>? scope = null, CancellationToken cancellationToken = default)
         {
             var normalized = title.Trim().ToLower();
 
             // Only active records reserve a title: a deactivated record must not block its reuse
             // (the soft-delete filter hides deactivated records from this query).
             var query = _dbSet.Where(x => x.Title.ToLower() == normalized);
+            if (scope is not null)
+                query = query.Where(scope);
             if (exceptId.HasValue)
             {
                 var except = exceptId.Value;

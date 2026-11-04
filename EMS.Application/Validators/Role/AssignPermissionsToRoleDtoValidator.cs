@@ -11,7 +11,7 @@ namespace EMS.Application.Validators.Role
             RuleFor(x => x.RoleName).NotEmpty().WithMessage("نام نقش الزامی است.");
             RuleFor(x => x.Permissions).NotNull().WithMessage("فهرست دسترسی‌ها الزامی است.");
             RuleForEach(x => x.Permissions)
-                .Must(p => Permissions.All.Contains(p))
+                .Must(p => Permissions.All.Contains(p) || Permissions.Retired.Contains(p))
                 .WithMessage("دسترسی «{PropertyValue}» وجود ندارد.");
         }
     }

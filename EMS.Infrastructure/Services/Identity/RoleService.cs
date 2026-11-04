@@ -1,4 +1,5 @@
-﻿using EMS.Infrastructure.Persistence;
+using EMS.Application.Common.Security;
+using EMS.Infrastructure.Persistence;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Interfaces.Auth;
@@ -52,7 +53,8 @@ namespace EMS.Infrastructure.Services.Identity
             {
                 await _roleManager.RemoveClaimAsync(role, claim);
             }
-            var newPermissions = permissions.Distinct().ToList();
+            // Retired permissions (see Permissions.Retired) are accepted from older clients but no longer stored.
+            var newPermissions = permissions.Distinct().Where(p => !Permissions.Retired.Contains(p)).ToList();
             foreach (var permission in newPermissions)
             {
                 await _roleManager.AddClaimAsync(role, new Claim("permission", permission));
@@ -75,7 +77,7 @@ namespace EMS.Infrastructure.Services.Identity
             if (role is null)
                 throw new NotFoundException("نقش یافت نشد.", ErrorCodes.RoleNotFound);
             var claims = await _roleManager.GetClaimsAsync(role);
-            return claims.Where(x => x.Type == "permission").Select(x => x.Value).ToList();
+            return claims.Where(x => x.Type == "permission" && !Permissions.Retired.Contains(x.Value)).Select(x => x.Value).ToList();
         }
     }
 }

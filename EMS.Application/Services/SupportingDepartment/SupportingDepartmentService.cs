@@ -3,18 +3,21 @@ using EMS.Application.Common.Models;
 using EMS.Application.Dtos.SupportingDepartment;
 using EMS.Application.Interfaces.SupportingDepartment;
 using EMS.Domain.Interfaces;
-using EMS.Domain.Entities;
 using System.Linq.Expressions;
 using SupportingDepartmentEntity = EMS.Domain.Entities.SupportingDepartment;
 
 namespace EMS.Application.Services.SupportingDepartment
 {
-    /// <summary>Catalog "دپارتمان پشتیبانی". All CRUD behaviour comes from <see cref="CatalogService{TEntity, TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>.</summary>
+    /// <summary>
+    /// Catalog "دپارتمان پشتیبانی". All CRUD behaviour comes from <see cref="CatalogService{TEntity, TCreate, TUpdate, TDetail, TListItem, TListRequest}"/>.
+    /// A department title only has to be unique within its city.
+    /// </summary>
     public sealed class SupportingDepartmentService
         : CatalogService<SupportingDepartmentEntity, SupportingDepartmentCreateDto, SupportingDepartmentUpdateDto, SupportingDepartmentDetailDto, SupportingDepartmentListItemDto, SupportingDepartmentListRequestDto>, ISupportingDepartmentService
     {
-        private readonly IRepository<City> _cities;
-        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, IRepository<City> cities)
+        private readonly ICityRepository _cities;
+
+        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities)
             : base(repository, unitOfWork, audit)
         {
             _cities = cities;
@@ -22,14 +25,24 @@ namespace EMS.Application.Services.SupportingDepartment
 
         public const string EntityLabel = "دپارتمان پشتیبانی";
         protected override string Label => EntityLabel;
+        protected override string DuplicateMessage => "در این شهر دپارتمان پشتیبانی دیگری با این عنوان وجود دارد.";
         protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
 
         protected override Expression<Func<SupportingDepartmentEntity, SupportingDepartmentListItemDto>> ListItem =>
-            x => new SupportingDepartmentListItemDto { Id = x.SupportingDepartmentId, CityId = x.CityId, Title = x.Title, IsActive = x.IsActive };
+            x => new SupportingDepartmentListItemDto
+            {
+                Id = x.SupportingDepartmentId,
+                CityId = x.CityId,
+                CityTitle = x.City.Title,
+                ProvinceId = x.City.ProvinceId,
+                ProvinceTitle = x.City.Province.Title,
+                Title = x.Title,
+                IsActive = x.IsActive
+            };
 
         protected override void ConfigureSorting(SortBuilder<SupportingDepartmentEntity> sort) =>
-            sort.By("title", x => x.Title).By("cityid", x => x.CityId);
+            sort.By("title", x => x.Title).By("cityid", x => x.CityId).By("citytitle", x => x.City.Title);
 
         protected override IQueryable<SupportingDepartmentEntity> ApplyFilters(IQueryable<SupportingDepartmentEntity> query, SupportingDepartmentListRequestDto request)
         {
@@ -38,19 +51,35 @@ namespace EMS.Application.Services.SupportingDepartment
                 var cityId = request.CityId.Value;
                 query = query.Where(x => x.CityId == cityId);
             }
+
+            if (request.ProvinceId.HasValue)
+            {
+                var provinceId = request.ProvinceId.Value;
+                query = query.Where(x => x.City.ProvinceId == provinceId);
+            }
             return query;
+        }
+
+        protected override Expression<Func<SupportingDepartmentEntity, bool>>? TitleScopeForCreate(SupportingDepartmentCreateDto request) =>
+            x => x.CityId == request.CityId;
+
+        protected override Expression<Func<SupportingDepartmentEntity, bool>>? TitleScopeForUpdate(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request)
+        {
+            var cityId = request.CityId ?? entity.CityId;
+            return x => x.CityId == cityId;
         }
 
         protected override async Task BeforeCreateAsync(SupportingDepartmentCreateDto request, CancellationToken cancellationToken)
         {
-            await RequireParentAsync(_cities, request.CityId, x => x.CityId, "شهر", mustBeActive: false, cancellationToken);
+            await RequireParentAsync(_cities, request.CityId, x => x.CityId, "شهر", mustBeActive: true, cancellationToken);
         }
 
         protected override async Task BeforeUpdateAsync(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request, CancellationToken cancellationToken)
         {
             // A parent must be active when it is being changed or when this record is being re-activated.
             var reactivating = !entity.IsActive && request.IsActive;
-            await RequireParentAsync(_cities, request.CityId ?? entity.CityId, x => x.CityId, "شهر", mustBeActive: false, cancellationToken);
+            var cityId = request.CityId ?? entity.CityId;
+            await RequireParentAsync(_cities, cityId, x => x.CityId, "شهر", mustBeActive: cityId != entity.CityId || reactivating, cancellationToken);
         }
 
         protected override SupportingDepartmentEntity NewEntity(SupportingDepartmentCreateDto request, string title) =>
@@ -61,11 +90,20 @@ namespace EMS.Application.Services.SupportingDepartment
             entity.CityId = request.CityId ?? entity.CityId;
         }
 
-        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) =>
+        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) => Map(entity, null);
+
+        // The city and province titles need a query (the entity only carries the foreign key after a create / update).
+        protected override async Task<SupportingDepartmentDetailDto> ToDetailAsync(SupportingDepartmentEntity entity, CancellationToken cancellationToken) =>
+            Map(entity, await _cities.GetLocationAsync(entity.CityId, cancellationToken));
+
+        private static SupportingDepartmentDetailDto Map(SupportingDepartmentEntity entity, CityLocation? location) =>
             new()
             {
                 Id = entity.SupportingDepartmentId,
                 CityId = entity.CityId,
+                CityTitle = location?.CityTitle ?? string.Empty,
+                ProvinceId = location?.ProvinceId ?? 0,
+                ProvinceTitle = location?.ProvinceTitle ?? string.Empty,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
