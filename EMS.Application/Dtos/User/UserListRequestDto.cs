@@ -4,10 +4,6 @@ namespace EMS.Application.Dtos.User;
 
 public sealed class UserListRequestDto : PagedRequest
 {
-    // Used by GET /api/Users/groups:
-    // role | skill | department | post | isActive
-    public string? GroupBy { get; set; }
-
     public long? RoleId { get; set; }
 
     public long? SkillId { get; set; }
@@ -36,7 +32,6 @@ public sealed class UserListRequestDto : PagedRequest
 
     public long? SupportingDepartmentId { get; set; }
 
-    /// <summary>Only the users with this post.</summary>
     public long? PostId { get; set; }
 
     public bool? IsActive { get; set; }

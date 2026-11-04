@@ -25,7 +25,6 @@ public sealed class UsersController : BaseApiController
         _users = users;
         _assignmentService = assignmentService;
     }
-
     // GET: /api/Users
     [Permission(Permissions.Users.View)]
     [HttpGet]
@@ -34,18 +33,13 @@ public sealed class UsersController : BaseApiController
             [FromQuery] UserListRequestDto request,
             CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(request.GroupBy))
-        {
-            throw new BadRequestException(
-                "برای گروه‌بندی از /api/Users/groups استفاده کنید.");
-        }
-
         var result = await _users.GetPagedAsync(
             request,
             cancellationToken);
 
         return Paged(result);
     }
+
 
     // GET: /api/Users/groups
     // Counts cover all matching users; pagination is over groups.

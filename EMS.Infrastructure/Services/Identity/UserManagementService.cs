@@ -31,115 +31,50 @@ public sealed partial class UserManagementService : IUserManagementService
         UserListRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        ValidateListRequest(request, grouped: false);
+        if (request.RoleId <= 0 || request.SkillId <= 0)
+        {
+            throw new BadRequestException(
+                "شناسه نقش و مهارت باید مثبت باشد.");
+        }
 
         var pageNumber = Math.Max(1, request.PageNumber);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var query = BuildUserQuery(request);
-
-        var sortBy = request.SortBy?.Trim().ToLowerInvariant();
-
-        var descending =
-            request.SortDirection?.Trim().ToLowerInvariant() is "desc" or "dsc";
-
-        query = (sortBy, descending) switch
-        {
-            ("id", true) =>
-                query.OrderByDescending(x => x.Id),
-
-            ("id", false) =>
-                query.OrderBy(x => x.Id),
-
-            ("username", true) =>
-                query.OrderByDescending(x => x.UserName),
-
-            ("username", false) =>
-                query.OrderBy(x => x.UserName),
-
-            ("firstname", true) =>
-                query.OrderByDescending(x => x.FirstName),
-
-            ("firstname", false) =>
-                query.OrderBy(x => x.FirstName),
-
-            ("lastname", true) =>
-                query.OrderByDescending(x => x.LastName),
-
-            ("lastname", false) =>
-                query.OrderBy(x => x.LastName),
-
-            ("personnelcode", true) =>
-                query.OrderByDescending(x => x.PersonnelCode),
-
-            ("personnelcode", false) =>
-                query.OrderBy(x => x.PersonnelCode),
-
-            ("isactive", true) =>
-                query.OrderByDescending(x => x.IsActive),
-
-            ("isactive", false) =>
-                query.OrderBy(x => x.IsActive),
-
-            ("supportingdepartmentid", true) =>
-                query.OrderByDescending(x => x.SupportingDepartmentId),
-
-            ("supportingdepartmentid", false) =>
-                query.OrderBy(x => x.SupportingDepartmentId),
-
-            ("fullname", true) =>
-                query.OrderByDescending(x => x.FirstName + " " + x.LastName),
-
-            ("fullname", false) =>
-                query.OrderBy(x => x.FirstName + " " + x.LastName),
-
-            ("createddatetime", true) =>
-                query.OrderByDescending(x => x.CreatedDateTime),
-
-            ("createddatetime", false) =>
-                query.OrderBy(x => x.CreatedDateTime),
-
-            (_, true) =>
-                query.OrderByDescending(x => x.Id),
-
-            _ =>
-                query.OrderBy(x => x.Id)
-        };
-
-        // Stable ordering for pagination.
-        query = ((IOrderedQueryable<ApplicationUser>)query)
-            .ThenBy(x => x.Id);
-
-        var projected = query.Select(x => new UserListItemDto
-        {
-            Id = x.Id,
-            UserName = x.UserName ?? string.Empty,
-            FirstName = x.FirstName,
-            LastName = x.LastName,
-            PersonnelCode = x.PersonnelCode,
-            NationalCode = x.NationalCode,
-            PhoneNumber = x.PhoneNumber,
-            Email = x.Email,
-            SupportingDepartmentId = x.SupportingDepartmentId,
-            PostId = x.PostId,
-            IsActive = x.IsActive
-        });
+        var projected = BuildUserQuery(request)
+            .OrderBy(x => x.Id)
+            .Select(x => new UserListItemDto
+            {
+                Id = x.Id,
+                UserName = x.UserName ?? string.Empty,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                PersonnelCode = x.PersonnelCode,
+                NationalCode = x.NationalCode,
+                PhoneNumber = x.PhoneNumber,
+                Email = x.Email,
+                SupportingDepartmentId = x.SupportingDepartmentId,
+                PostId = x.PostId,
+                IsActive = x.IsActive
+            });
 
         var result = await projected.ToPagedResultAsync(
             pageNumber,
             pageSize,
             cancellationToken);
 
-        await UserPostLookup.FillAsync(_dbContext, result.Items, cancellationToken);
+        if (result.Items.Count == 0)
+        {
+            return result;
+        }
+
+        await UserPostLookup.FillAsync(
+            _dbContext,
+            result.Items,
+            cancellationToken);
 
         var userIds = result.Items
             .Select(x => x.Id)
             .ToArray();
-
-        if (userIds.Length == 0)
-        {
-            return result;
-        }
 
         var roleRows = await (
             from userRole in _dbContext.UserRoles.AsNoTracking()
