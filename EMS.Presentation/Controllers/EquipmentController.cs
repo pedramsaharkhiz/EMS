@@ -55,6 +55,16 @@ namespace EMS.Presentation.Controllers
             return CreatedAt(nameof(GetById), new { id = result.Id }, result);
         }
 
+        /// <summary>Creates several equipment at once (each item is a complete create request). All or nothing; max 200 items.</summary>
+        [Permission(Permissions.Equipments.Create)]
+        [HttpPost("bulk")]
+        [ProducesResponseType<ApiResponse<IReadOnlyList<EquipmentDetailDto>>>(StatusCodes.Status201Created)]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentDetailDto>>>> CreateBulk([FromBody] EquipmentBulkCreateDto request, CancellationToken cancellationToken)
+        {
+            var result = await _service.CreateBulkAsync(request, cancellationToken);
+            return CreatedAt(nameof(GetAllList), new { }, result);
+        }
+
         [Permission(Permissions.Equipments.Update)]
         [HttpPut("{id:long}")]
         public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> Update(long id, [FromBody] EquipmentUpdateDto request, CancellationToken cancellationToken) =>

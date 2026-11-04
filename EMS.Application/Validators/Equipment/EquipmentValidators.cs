@@ -42,6 +42,34 @@ namespace EMS.Application.Validators.Equipment
         }
     }
 
+    public sealed class BulkCreateEquipmentDtoValidator : AbstractValidator<EquipmentBulkCreateDto>
+    {
+        public BulkCreateEquipmentDtoValidator()
+        {
+            RuleFor(x => x.Items)
+                .NotEmpty().WithMessage("فهرست تجهیزات الزامی است و نباید خالی باشد.")
+                .Must(items => items is null || items.Count <= EquipmentConstraints.BulkCreateMaxItems)
+                .WithMessage($"در هر درخواست حداکثر {EquipmentConstraints.BulkCreateMaxItems} تجهیز مجاز است.");
+
+            RuleForEach(x => x.Items)
+                .NotNull().WithMessage("ردیف تجهیز نمی‌تواند خالی باشد.")
+                .SetValidator(new CreateEquipmentDtoValidator()!);
+
+            // The same Yaas code twice in one request: the later rows are refused.
+            RuleFor(x => x.Items).Custom((items, context) =>
+            {
+                if (items is null) return;
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                for (var i = 0; i < items.Count; i++)
+                {
+                    var code = items[i]?.YaasCode?.Trim();
+                    if (!string.IsNullOrEmpty(code) && !seen.Add(code))
+                        context.AddFailure($"Items[{i}].YaasCode", "یاس کد در این درخواست تکراری است.");
+                }
+            });
+        }
+    }
+
     public sealed class UpdateEquipmentDtoValidator : AbstractValidator<EquipmentUpdateDto>
     {
         public UpdateEquipmentDtoValidator()

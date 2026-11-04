@@ -417,6 +417,53 @@ POST api/Equipment
     envelope: success, message, data, meta, error, traceId
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
+POST api/Equipment/bulk
+  authorization: Permission:Equipments.Create
+  body: EquipmentBulkCreateDto
+    Items : List<EquipmentCreateDto>
+  response 201: ApiResponse<IReadOnlyList<EquipmentDetailDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      YaasCode : String
+      SerialNumber : String
+      AssetNumber : String
+      EquipmentTypeId : Int64?
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      BrandId : Int64?
+      BrandTitle : String
+      EffectiveTypeId : Int64?
+      EffectiveTypeTitle : String
+      CategoryId : Int64?
+      CategoryTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
+      TechnicianUserId : Int64?
+      TechnicianName : String
+      Description : String
+      IsActive : Boolean
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
 GET api/Equipment/export
   authorization: Permission:Equipments.View
   Query: AssetNumber : String
