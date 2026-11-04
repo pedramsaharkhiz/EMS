@@ -102,6 +102,34 @@ namespace EMS.Application.Common.Security
             public const string Delete = "FailureCategories.Delete";
         }
 
+        public static class FailureTypes
+        {
+            public const string Create = "FailureTypes.Create";
+            public const string Update = "FailureTypes.Update";
+            public const string Delete = "FailureTypes.Delete";
+        }
+
+        public static class ReportTypes
+        {
+            public const string Create = "ReportTypes.Create";
+            public const string Update = "ReportTypes.Update";
+            public const string Delete = "ReportTypes.Delete";
+        }
+
+        public static class Actions
+        {
+            public const string Create = "Actions.Create";
+            public const string Update = "Actions.Update";
+            public const string Delete = "Actions.Delete";
+        }
+
+        public static class FailureReportStatuses
+        {
+            public const string Create = "FailureReportStatuses.Create";
+            public const string Update = "FailureReportStatuses.Update";
+            public const string Delete = "FailureReportStatuses.Delete";
+        }
+
         public static class SupportingDepartments
         {
             public const string Create = "SupportingDepartments.Create";

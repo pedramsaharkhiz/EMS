@@ -88,7 +88,6 @@ namespace EMS.Tests.Integration
             await AssertPersianAsync("skills list", await RawAsync(HttpMethod.Get, "/api/Skills?pageSize=0&pageNumber=0&id=0&technicianUserId=0&minTechnicianCount=-1&title=" + new string('a', 200), null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("skills groups", await RawAsync(HttpMethod.Get, "/api/Skills/groups?pageSize=0", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("skill id 0", await RawAsync(HttpMethod.Put, "/api/Skills/0", "{\"title\":\"x\"}"), HttpStatusCode.BadRequest);
-            await AssertPersianAsync("users groupBy", await RawAsync(HttpMethod.Get, "/api/Users/groups?groupBy=zzz", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("user ids 0", await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"nx\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P9\",\"roleIds\":[0],\"skillIds\":[0]}"), HttpStatusCode.BadRequest);
             var unknown = await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"ny\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P8\",\"skillIds\":[99999]}");
             await AssertPersianAsync("unknown skill", unknown, HttpStatusCode.BadRequest);

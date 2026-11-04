@@ -1,9 +1,8 @@
-﻿using EMS.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using EMS.Domain.Entities;
 
 namespace EMS.Domain.Interfaces
 {
-    public interface IReportTypeRepository : IRepository<ReportType> { }
+    public interface IReportTypeRepository : ICatalogRepository<ReportType>
+    {
+    }
 }

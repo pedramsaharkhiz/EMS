@@ -56,6 +56,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -64,6 +65,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ActionId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ActionEntities_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("ActionEntities", (string)null);
                 });
@@ -1053,6 +1059,83 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("FailureReportActions", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
+                {
+                    b.Property<long>("FailureReportStatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("FailureReportStatusId"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("FailureReportStatusId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureReportStatuses_Title")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("FailureReportStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            FailureReportStatusId = 1L,
+                            Code = "Open",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "باز"
+                        },
+                        new
+                        {
+                            FailureReportStatusId = 2L,
+                            Code = "InProgress",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در حال رسیدگی"
+                        },
+                        new
+                        {
+                            FailureReportStatusId = 3L,
+                            Code = "Closed",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "بسته"
+                        });
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
                 {
                     b.Property<long>("FailureTypeId")
@@ -1086,6 +1169,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1095,7 +1179,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("FailureTypeId");
 
-                    b.HasIndex("FailureCategoryId");
+                    b.HasIndex("FailureCategoryId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureTypes_FailureCategoryId_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("FailureTypes", (string)null);
                 });
@@ -1513,6 +1600,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1522,7 +1610,68 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("ReportTypeId");
 
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ReportTypes_Title")
+                        .HasFilter("[IsActive] = 1");
+
                     b.ToTable("ReportTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            ReportTypeId = 1L,
+                            Code = "Failure",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "خرابی"
+                        },
+                        new
+                        {
+                            ReportTypeId = 2L,
+                            Code = "Incident",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "حادثه"
+                        },
+                        new
+                        {
+                            ReportTypeId = 3L,
+                            Code = "Complaint",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "ثبت شکایت"
+                        },
+                        new
+                        {
+                            ReportTypeId = 4L,
+                            Code = "Request",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "درخواست رسیدگی"
+                        },
+                        new
+                        {
+                            ReportTypeId = 5L,
+                            Code = "MaintenanceNeed",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "نیاز به تعمیر / سرویس"
+                        },
+                        new
+                        {
+                            ReportTypeId = 6L,
+                            Code = "InspectionResult",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "نتیجه‌ی بازرسی"
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.Skill", b =>

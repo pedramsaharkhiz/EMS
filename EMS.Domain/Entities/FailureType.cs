@@ -1,11 +1,11 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace EMS.Domain.Entities
 {
-    public class FailureType : BaseEntity, IAuditableEntity
+    public class FailureType : BaseEntity, IAuditableEntity, ICatalogEntity
     {
         public long FailureTypeId { get; set; }
         public long FailureCategoryId { get; set; }
