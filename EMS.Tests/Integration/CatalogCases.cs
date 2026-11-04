@@ -6,7 +6,11 @@ using EMS.Application.Dtos.EquipmentModel;
 using EMS.Application.Dtos.EquipmentStatus;
 using EMS.Application.Dtos.Post;
 using EMS.Application.Dtos.EquipmentType;
+using EMS.Application.Dtos.ActionEntity;
 using EMS.Application.Dtos.FailureCategory;
+using EMS.Application.Dtos.FailureReportStatus;
+using EMS.Application.Dtos.FailureType;
+using EMS.Application.Dtos.ReportType;
 using EMS.Application.Dtos.Province;
 using EMS.Application.Dtos.SupportingDepartment;
 using EMS.Domain.Entities;
@@ -49,6 +53,22 @@ namespace EMS.Tests.Integration
             new("FailureCategory", "/api/FailureCategory", "id", "FailureCategories", false, typeof(FailureCategoryDetailDto), typeof(FailureCategoryListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title })),
 
+            new("FailureType", "/api/FailureType", "id", "FailureTypes", true, typeof(FailureTypeDetailDto), typeof(FailureTypeListItemDto),
+                async (api, title) => new Dictionary<string, object?>
+                {
+                    ["failureCategoryId"] = await CatalogFixtures.PostAsync(api, "/api/FailureCategory", new { title = CatalogFixtures.Unique("fx-fcat") }, "id"),
+                    ["title"] = title, ["code"] = "FT"
+                }, ScopeKey: "failureCategoryId"),
+
+            new("ReportType", "/api/ReportType", "id", "ReportTypes", true, typeof(ReportTypeDetailDto), typeof(ReportTypeListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "RT" })),
+
+            new("ActionEntity", "/api/Action", "id", "Actions", true, typeof(ActionEntityDetailDto), typeof(ActionEntityListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "AC", ["description"] = "d" })),
+
+            new("FailureReportStatus", "/api/FailureReportStatus", "id", "FailureReportStatuses", true, typeof(FailureReportStatusDetailDto), typeof(FailureReportStatusListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "FS" })),
+
             new("EquipmentType", "/api/EquipmentType", "id", "EquipmentTypes", true, typeof(EquipmentTypeDetailDto), typeof(EquipmentTypeListItemDto),
                 async (api, title) => new Dictionary<string, object?>
                 {
@@ -84,7 +104,7 @@ namespace EMS.Tests.Integration
     /// <summary>Helpers that create the parent records some catalogs need.</summary>
     public static class CatalogFixtures
     {
-        private static string Unique(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
+        public static string Unique(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..30];
 
         public static async Task<long> PostAsync(ApiTestBase api, string url, object body, string idProperty)
         {

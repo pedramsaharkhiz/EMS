@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -11,8 +11,11 @@ namespace EMS.Domain.Entities
         public long EquipmentId { get; set; }
         public long FailureTypeId { get; set; }
         public long ReportTypeId { get; set; }
+        public long FailureReportStatusId { get; set; }
         public long OrganizationId { get; set; }
         public long? EmployeeId { get; set; }
+        /// <summary>The signed-in user who registered the report (set by the server, never edited).</summary>
+        public long ReportedByUserId { get; set; }
         public string? ReferenceNumber { get; set; }
         public int PriorityId { get; set; }
         public DateTime ReportedDateTime { get; set; }
@@ -21,6 +24,7 @@ namespace EMS.Domain.Entities
         public Equipment Equipment { get; set; } = null!;
         public FailureType FailureType { get; set; } = null!;
         public ReportType ReportType { get; set; } = null!;
+        public FailureReportStatus FailureReportStatus { get; set; } = null!;
         public Organization Organization { get; set; } = null!;
         public Employee? Employee { get; set; }
 

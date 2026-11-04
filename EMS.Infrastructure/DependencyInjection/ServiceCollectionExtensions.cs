@@ -229,6 +229,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGeographySeeder, GeographySeeder>();
         services.AddScoped<IAttachmentTableSeeder, AttachmentTableSeeder>();
         services.AddScoped<ISystemPostsGuard, SystemPostsGuard>();
+        services.AddScoped<ISystemCatalogsGuard, SystemCatalogsGuard>();
         services.AddScoped<IAttachmentTargetCatalog, AttachmentTargetCatalog>();
         services.AddScoped<IAttachmentBlobStore, SqlAttachmentBlobStore>();
         services.AddScoped<IAuthService, AuthService>(); 

@@ -239,6 +239,7 @@ try
 
         // The three system posts always exist (re-created if someone removed them directly in the database).
         await scope.ServiceProvider.GetRequiredService<ISystemPostsGuard>().EnsureAsync();
+        await scope.ServiceProvider.GetRequiredService<ISystemCatalogsGuard>().EnsureAsync();
 
         // The Tables registry follows the [Attachable] entities (a new attachable entity needs no seed of its own).
         await scope.ServiceProvider.GetRequiredService<IAttachmentTableSeeder>().SeedAsync();

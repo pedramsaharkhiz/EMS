@@ -56,6 +56,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -64,6 +65,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ActionId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ActionEntities_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("ActionEntities", (string)null);
                 });
@@ -966,6 +972,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long>("EquipmentId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("FailureReportStatusId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("FailureTypeId")
                         .HasColumnType("bigint");
 
@@ -978,6 +987,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<long>("OrganizationId")
@@ -993,6 +1003,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long>("ReportTypeId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ReportedByUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("ReportedDateTime")
                         .HasColumnType("datetime2");
 
@@ -1002,11 +1015,23 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EquipmentId");
 
+                    b.HasIndex("FailureReportStatusId");
+
                     b.HasIndex("FailureTypeId");
 
                     b.HasIndex("OrganizationId");
 
+                    b.HasIndex("ReferenceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureReports_ReferenceNumber")
+                        .HasFilter("[IsActive] = 1 AND [ReferenceNumber] IS NOT NULL");
+
                     b.HasIndex("ReportTypeId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("ReportedDateTime")
+                        .HasDatabaseName("IX_FailureReports_ReportedDateTime");
 
                     b.ToTable("FailureReports", (string)null);
                 });
@@ -1053,6 +1078,83 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("FailureReportActions", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
+                {
+                    b.Property<long>("FailureReportStatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("FailureReportStatusId"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("FailureReportStatusId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureReportStatuses_Title")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("FailureReportStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            FailureReportStatusId = 1L,
+                            Code = "Open",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "باز"
+                        },
+                        new
+                        {
+                            FailureReportStatusId = 2L,
+                            Code = "InProgress",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در حال رسیدگی"
+                        },
+                        new
+                        {
+                            FailureReportStatusId = 3L,
+                            Code = "Closed",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "بسته"
+                        });
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
                 {
                     b.Property<long>("FailureTypeId")
@@ -1086,6 +1188,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1095,7 +1198,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("FailureTypeId");
 
-                    b.HasIndex("FailureCategoryId");
+                    b.HasIndex("FailureCategoryId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureTypes_FailureCategoryId_Title")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("FailureTypes", (string)null);
                 });
@@ -1513,6 +1619,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
@@ -1522,7 +1629,68 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("ReportTypeId");
 
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ReportTypes_Title")
+                        .HasFilter("[IsActive] = 1");
+
                     b.ToTable("ReportTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            ReportTypeId = 1L,
+                            Code = "Failure",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "خرابی"
+                        },
+                        new
+                        {
+                            ReportTypeId = 2L,
+                            Code = "Incident",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "حادثه"
+                        },
+                        new
+                        {
+                            ReportTypeId = 3L,
+                            Code = "Complaint",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "ثبت شکایت"
+                        },
+                        new
+                        {
+                            ReportTypeId = 4L,
+                            Code = "Request",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "درخواست رسیدگی"
+                        },
+                        new
+                        {
+                            ReportTypeId = 5L,
+                            Code = "MaintenanceNeed",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "نیاز به تعمیر / سرویس"
+                        },
+                        new
+                        {
+                            ReportTypeId = 6L,
+                            Code = "InspectionResult",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "نتیجه‌ی بازرسی"
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.Skill", b =>
@@ -2514,6 +2682,12 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EMS.Domain.Entities.FailureReportStatus", "FailureReportStatus")
+                        .WithMany("FailureReports")
+                        .HasForeignKey("FailureReportStatusId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("EMS.Domain.Entities.FailureType", "FailureType")
                         .WithMany("FailureReports")
                         .HasForeignKey("FailureTypeId")
@@ -2532,9 +2706,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EMS.Infrastructure.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.Navigation("Employee");
 
                     b.Navigation("Equipment");
+
+                    b.Navigation("FailureReportStatus");
 
                     b.Navigation("FailureType");
 
@@ -2866,6 +3048,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("FailureReportActions");
 
                     b.Navigation("TechnicianAssignments");
+                });
+
+            modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
+                {
+                    b.Navigation("FailureReports");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>

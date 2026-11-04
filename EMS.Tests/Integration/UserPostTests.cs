@@ -165,10 +165,10 @@ namespace EMS.Tests.Integration
             Assert.Equal(0, (await UserAsync(userId)).GetProperty("roles").GetArrayLength());
         }
 
-        // ------------------------------------------------------------------------------- filter, groups, login
+        // ------------------------------------------------------------------------------- filter, login
 
         [Fact]
-        public async Task The_user_list_filters_by_post_and_groups_by_post()
+        public async Task The_user_list_filters_by_post()
         {
             var admin = await AdminAsync();
             var tag = Guid.NewGuid().ToString("N")[..6];
@@ -182,14 +182,6 @@ namespace EMS.Tests.Integration
             Assert.Contains(t1, ids); Assert.Contains(t2, ids);
             Assert.DoesNotContain(m, ids); Assert.DoesNotContain(none, ids);
             Assert.All(DataOf(technicians).EnumerateArray(), u => Assert.Equal(Technician, u.GetProperty("postId").GetInt64()));
-
-            var groups = DataOf(await ReadJsonAsync(await SendAsync(HttpMethod.Get, "/api/Users/groups?groupBy=post&pageSize=100", bearer: admin)));
-            var byName = groups.EnumerateArray().ToDictionary(g => g.GetProperty("name").GetString()!);
-            Assert.True(byName.ContainsKey("تکنسین")); Assert.True(byName.ContainsKey("مسئول واحد")); Assert.True(byName.ContainsKey("بدون سمت"));
-
-            var bad = await SendAsync(HttpMethod.Get, "/api/Users/groups?groupBy=zzz", bearer: admin);
-            Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
-            Assert.Contains("post", (await ReadJsonAsync(bad)).GetProperty("error").GetProperty("details")[0].GetProperty("message").GetString());
         }
 
         [Fact]

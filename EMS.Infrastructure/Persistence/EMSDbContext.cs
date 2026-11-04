@@ -46,6 +46,7 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<FailureCategory> FailureCategories => Set<FailureCategory>();
         public DbSet<FailureType> FailureTypes => Set<FailureType>();
         public DbSet<ReportType> ReportTypes => Set<ReportType>();
+        public DbSet<FailureReportStatus> FailureReportStatuses => Set<FailureReportStatus>();
         public DbSet<FailureReport> FailureReports => Set<FailureReport>();
         public DbSet<TechnicianAssignmentStatus> TechnicianAssignmentStatuses => Set<TechnicianAssignmentStatus>();
         public DbSet<TechnicianAssignment> TechnicianAssignments => Set<TechnicianAssignment>();

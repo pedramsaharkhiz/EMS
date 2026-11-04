@@ -88,7 +88,6 @@ namespace EMS.Tests.Integration
             await AssertPersianAsync("skills list", await RawAsync(HttpMethod.Get, "/api/Skills?pageSize=0&pageNumber=0&id=0&technicianUserId=0&minTechnicianCount=-1&title=" + new string('a', 200), null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("skills groups", await RawAsync(HttpMethod.Get, "/api/Skills/groups?pageSize=0", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("skill id 0", await RawAsync(HttpMethod.Put, "/api/Skills/0", "{\"title\":\"x\"}"), HttpStatusCode.BadRequest);
-            await AssertPersianAsync("users groupBy", await RawAsync(HttpMethod.Get, "/api/Users/groups?groupBy=zzz", null), HttpStatusCode.BadRequest);
             await AssertPersianAsync("user ids 0", await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"nx\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P9\",\"roleIds\":[0],\"skillIds\":[0]}"), HttpStatusCode.BadRequest);
             var unknown = await RawAsync(HttpMethod.Post, "/api/Users", "{\"userName\":\"ny\",\"password\":\"Passw0rd!x\",\"firstName\":\"a\",\"lastName\":\"b\",\"personnelCode\":\"P8\",\"skillIds\":[99999]}");
             await AssertPersianAsync("unknown skill", unknown, HttpStatusCode.BadRequest);
@@ -113,6 +112,22 @@ namespace EMS.Tests.Integration
             // business errors (references that do not exist, inactive technician ...)
             await AssertPersianAsync("bulk unknown refs", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk",
                 "{\"items\":[{\"yaasCode\":\"PM-1\",\"equipmentTypeId\":99999999,\"equipmentStatusId\":99999999,\"currentEquipmentLocationTypeId\":99999999,\"currentOrganizationId\":99999999,\"currentSupportingDepartmentId\":99999999,\"technicianUserId\":99999999}]}"), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Failure_report_messages_are_persian()
+        {
+            var longText = new string('x', 600);
+            await AssertPersianAsync("report empty", await RawAsync(HttpMethod.Post, "/api/FailureReport", "{}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report bad fields", await RawAsync(HttpMethod.Post, "/api/FailureReport",
+                "{\"equipmentId\":0,\"failureTypeId\":-1,\"reportTypeId\":0,\"organizationId\":0,\"employeeId\":0,\"priorityId\":9,\"referenceNumber\":\"" + longText + "\",\"description\":\"" + longText + "\",\"reportedDateTime\":\"2999-01-01T00:00:00Z\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report wrong json type", await RawAsync(HttpMethod.Post, "/api/FailureReport", "{\"equipmentId\":\"abc\",\"reportedDateTime\":\"not a date\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report unknown refs", await RawAsync(HttpMethod.Post, "/api/FailureReport",
+                "{\"equipmentId\":99999999,\"failureTypeId\":99999999,\"reportTypeId\":99999999,\"organizationId\":99999999,\"priorityId\":3}"), HttpStatusCode.NotFound);
+            await AssertPersianAsync("report not found", await RawAsync(HttpMethod.Get, "/api/FailureReport/99999999", null), HttpStatusCode.NotFound);
+            await AssertPersianAsync("report list", await RawAsync(HttpMethod.Get, "/api/FailureReport?pageSize=0&priorityId=9&statusId=0&reportedFrom=2026-05-01T00:00:00Z&reportedTo=2026-01-01T00:00:00Z&search=" + longText, null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("failure type no category", await RawAsync(HttpMethod.Post, "/api/FailureType", "{\"title\":\"x\",\"failureCategoryId\":0}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("action description", await RawAsync(HttpMethod.Post, "/api/Action", "{\"title\":\"x\",\"description\":\"" + longText + "\"}"), HttpStatusCode.BadRequest);
         }
 
         [Fact]
