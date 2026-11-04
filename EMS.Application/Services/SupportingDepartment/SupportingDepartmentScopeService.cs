@@ -32,12 +32,7 @@ namespace EMS.Application.Services.SupportingDepartment
         public async Task<SupportingDepartmentOrganizationsResultDto> AssignAsync(long departmentId, SupportingDepartmentOrganizationsDto request, CancellationToken cancellationToken = default)
         {
             await RequireDepartmentAsync(departmentId, mustBeActive: true, cancellationToken);
-            var selected = await SelectAsync(request, explicitMustBeActive: true, cancellationToken);
-            var organizations = await _departments.GetOrganizationsForUpdateAsync(selected, cancellationToken);
-
-            var others = organizations.Where(o => o.SupportingDepartmentId.HasValue && o.SupportingDepartmentId != departmentId).ToList();
-            if (others.Count > 0 && !request.MoveFromOtherDepartments)
-                throw await ConflictAsync(others, cancellationToken);
+            var organizations = await PrepareAssignmentAsync(departmentId, request, string.Empty, cancellationToken);
 
             int assigned = 0, moved = 0, unchanged = 0;
             foreach (var organization in organizations)
@@ -60,10 +55,22 @@ namespace EMS.Application.Services.SupportingDepartment
             };
         }
 
+        public async Task<IReadOnlyList<EMS.Domain.Entities.Organization>> PrepareAssignmentAsync(long? departmentId, SupportingDepartmentOrganizationsDto request, string fieldPrefix, CancellationToken cancellationToken = default)
+        {
+            var selected = await SelectAsync(request, explicitMustBeActive: true, fieldPrefix, cancellationToken);
+            var organizations = await _departments.GetOrganizationsForUpdateAsync(selected, cancellationToken);
+
+            var others = organizations.Where(o => o.SupportingDepartmentId.HasValue && o.SupportingDepartmentId != departmentId).ToList();
+            if (others.Count > 0 && !request.MoveFromOtherDepartments)
+                throw await ConflictAsync(others, fieldPrefix, cancellationToken);
+
+            return organizations;
+        }
+
         public async Task<SupportingDepartmentOrganizationsResultDto> RemoveAsync(long departmentId, SupportingDepartmentOrganizationsDto request, CancellationToken cancellationToken = default)
         {
             await RequireDepartmentAsync(departmentId, mustBeActive: false, cancellationToken);
-            var selected = await SelectAsync(request, explicitMustBeActive: false, cancellationToken);
+            var selected = await SelectAsync(request, explicitMustBeActive: false, string.Empty, cancellationToken);
             var organizations = await _departments.GetOrganizationsForUpdateAsync(selected, cancellationToken);
 
             var removed = 0;
@@ -100,7 +107,7 @@ namespace EMS.Application.Services.SupportingDepartment
         /// The distinct branch ids the request selects. Every id must exist (a group id must name a real field, management or zone;
         /// a branch id a real branch, and for assigning an active one); problems are reported together, per item.
         /// </summary>
-        private async Task<List<long>> SelectAsync(SupportingDepartmentOrganizationsDto request, bool explicitMustBeActive, CancellationToken cancellationToken)
+        private async Task<List<long>> SelectAsync(SupportingDepartmentOrganizationsDto request, bool explicitMustBeActive, string fieldPrefix, CancellationToken cancellationToken)
         {
             var organizationIds = request.OrganizationIds ?? new List<long>();
             var fieldIds = request.FieldIds ?? new List<long>();
@@ -112,7 +119,7 @@ namespace EMS.Application.Services.SupportingDepartment
             {
                 for (var i = 0; i < ids.Count; i++)
                     if (!existing.Contains(ids[i]))
-                        problems.Add(new ApiErrorDetail { Field = $"{field}[{i}]", Message = $"{label} با شناسه {ids[i]} یافت نشد." });
+                        problems.Add(new ApiErrorDetail { Field = $"{fieldPrefix}{field}[{i}]", Message = $"{label} با شناسه {ids[i]} یافت نشد." });
             }
 
             var existingOrganizations = await _departments.GetExistingIdsAsync("organization", organizationIds, cancellationToken);
@@ -128,7 +135,7 @@ namespace EMS.Application.Services.SupportingDepartment
                 var inactive = rows.Where(o => !o.IsActive).Select(o => o.OrganizationId).ToHashSet();
                 for (var i = 0; i < organizationIds.Count; i++)
                     if (inactive.Contains(organizationIds[i]))
-                        problems.Add(new ApiErrorDetail { Field = $"organizationIds[{i}]", Message = $"شعبه با شناسه {organizationIds[i]} غیرفعال است." });
+                        problems.Add(new ApiErrorDetail { Field = $"{fieldPrefix}organizationIds[{i}]", Message = $"شعبه با شناسه {organizationIds[i]} غیرفعال است." });
                 selected.ExceptWith(inactive);
             }
 
@@ -139,12 +146,12 @@ namespace EMS.Application.Services.SupportingDepartment
             return selected.ToList();
         }
 
-        private async Task<ConflictItemsException> ConflictAsync(List<EMS.Domain.Entities.Organization> others, CancellationToken cancellationToken)
+        private async Task<ConflictItemsException> ConflictAsync(List<EMS.Domain.Entities.Organization> others, string fieldPrefix, CancellationToken cancellationToken)
         {
             var titles = await _departments.GetTitlesAsync(others.Select(o => o.SupportingDepartmentId!.Value).ToList(), cancellationToken);
             var details = others.Take(MaxDetails).Select(o => new ApiErrorDetail
             {
-                Field = "organizations",
+                Field = fieldPrefix + "organizations",
                 Message = $"شعبه «{o.Title}» (شناسه {o.OrganizationId}) از قبل زیر دپارتمان «{titles.GetValueOrDefault(o.SupportingDepartmentId!.Value, string.Empty)}» است.",
             }).ToList();
 

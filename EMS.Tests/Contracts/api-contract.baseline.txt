@@ -2674,6 +2674,7 @@ POST api/SupportingDepartment
   body: SupportingDepartmentCreateDto
     CityId : Int64
     Title : String
+    Organizations : SupportingDepartmentOrganizationsDto
   response 201: ApiResponse<SupportingDepartmentDetailDto>
     envelope: success, message, data, meta, error, traceId
     data:
@@ -2737,6 +2738,7 @@ PUT api/SupportingDepartment/{id}
     Title : String
     IsActive : Boolean
     RowVersion : String
+    Organizations : SupportingDepartmentOrganizationsDto
   Path: id : Int64 (required)
   response 200: ApiResponse<SupportingDepartmentDetailDto>
     envelope: success, message, data, meta, error, traceId

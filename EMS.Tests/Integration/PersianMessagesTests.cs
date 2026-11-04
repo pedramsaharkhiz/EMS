@@ -138,6 +138,8 @@ namespace EMS.Tests.Integration
             await AssertPersianAsync("scope wrong json type", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/1/organizations", "{\"organizationIds\":\"abc\"}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("scope unknown department", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/99999999/organizations", "{\"organizationIds\":[1]}"), HttpStatusCode.NotFound);
             await AssertPersianAsync("remove unknown department", await RawAsync(HttpMethod.Delete, "/api/SupportingDepartment/99999999/organizations", "{\"organizationIds\":[1]}"), HttpStatusCode.NotFound);
+            await AssertPersianAsync("create with bad branches", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment", "{\"cityId\":1,\"title\":\"x\",\"organizations\":{\"organizationIds\":[0]}}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("update inactive with branches", await RawAsync(HttpMethod.Put, "/api/SupportingDepartment/1", "{\"isActive\":false,\"organizations\":{\"organizationIds\":[1]}}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("hierarchy department filter", await RawAsync(HttpMethod.Get, "/api/OrganizationHierarchy?searchLevel=zone&supportingDepartmentId=0&withoutSupportingDepartment=true", null), HttpStatusCode.BadRequest);
         }
 

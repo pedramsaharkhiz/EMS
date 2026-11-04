@@ -20,6 +20,10 @@ namespace EMS.Application.Validators.SupportingDepartment
             Ids(x => x.ZoneIds, "حوزه", MaxGroups);
         }
 
+        /// <summary>Does the selection name anything at all? (An empty selection inside a create or update request means "no branches".)</summary>
+        public static bool HasSelection(SupportingDepartmentOrganizationsDto? dto) =>
+            dto is not null && (Has(dto.OrganizationIds) || Has(dto.FieldIds) || Has(dto.OrganizationManagementIds) || Has(dto.ZoneIds));
+
         private static bool Has(List<long>? ids) => ids is { Count: > 0 };
 
         private void Ids(System.Linq.Expressions.Expression<Func<SupportingDepartmentOrganizationsDto, List<long>?>> ids, string name, int max)

@@ -285,6 +285,111 @@ namespace EMS.Tests.Integration
             Assert.Equal(JsonValueKind.Null, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport/{noDepartment}"))).GetProperty("supportingDepartmentId").ValueKind);
         }
 
+        // ------------------------------------------------------------------------------------ with the department's own create / update
+
+        private async Task<long> NewCityAsync()
+        {
+            var province = await CatalogFixtures.PostAsync(this, "/api/Province", new { title = Uniq("sdprov") }, "id");
+            return await CatalogFixtures.PostAsync(this, "/api/City", new { provinceId = province, title = Uniq("sdcity") }, "id");
+        }
+
+        private async Task<HttpResponseMessage> CreateDepartmentAsync(long city, string title, object? organizations = null) =>
+            await SendAdminAsync(HttpMethod.Post, "/api/SupportingDepartment", organizations is null ? new { cityId = city, title } : (object)new { cityId = city, title, organizations });
+
+        private async Task<int> CountByTitleAsync(string title) =>
+            DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/SupportingDepartment?title={title}&isActive=true"))).GetArrayLength();
+
+        [Fact]
+        public async Task A_department_can_be_created_with_no_branches_with_an_empty_selection_or_with_branches()
+        {
+            var city = await NewCityAsync();
+
+            var plain = await CreateDepartmentAsync(city, Uniq("none"));
+            Assert.Equal(HttpStatusCode.Created, plain.StatusCode);
+            Assert.Equal(0, (await ReadDataAsync(plain)).GetProperty("organizationCount").GetInt32());
+
+            var empty = await CreateDepartmentAsync(city, Uniq("empty"), new { });
+            Assert.Equal(HttpStatusCode.Created, empty.StatusCode);
+            Assert.Equal(0, (await ReadDataAsync(empty)).GetProperty("organizationCount").GetInt32());
+
+            var tree = await NewTreeAsync();
+            var created = await CreateDepartmentAsync(city, Uniq("with"), new { organizationIds = new[] { tree.A }, fieldIds = new[] { tree.FieldId }, organizationManagementIds = new[] { tree.ManagementId } });
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var json = await ReadDataAsync(created);
+            Assert.Equal(3, json.GetProperty("organizationCount").GetInt32());                  // A, B (field) and C (directly under the management)
+            Assert.Equal(Sorted(tree.A, tree.B, tree.C), await BranchesOfAsync(json.GetProperty("id").GetInt64()));
+        }
+
+        [Fact]
+        public async Task A_failed_branch_selection_stops_the_department_from_being_created()
+        {
+            var city = await NewCityAsync();
+            var other = await NewDepartmentAsync();
+            var tree = await NewTreeAsync();
+            await AssignAsync(other, new { organizationIds = new[] { tree.A } });
+
+            var badId = Uniq("badid");
+            var refused = await CreateDepartmentAsync(city, badId, new { organizationIds = new[] { tree.B, 99999999L } });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            var json = await ReadJsonAsync(refused);
+            Assert.Equal("bulk_items_invalid", ErrorCodeOf(json));
+            Assert.Contains("organizations.organizationIds[1]", ErrorFieldsOf(json));
+            Assert.Equal(0, await CountByTitleAsync(badId));
+
+            var conflictTitle = Uniq("conf");
+            var conflict = await CreateDepartmentAsync(city, conflictTitle, new { organizationIds = new[] { tree.A, tree.B } });
+            Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+            var conflictJson = await ReadJsonAsync(conflict);
+            Assert.Equal("organizations_already_assigned", ErrorCodeOf(conflictJson));
+            Assert.Contains("organizations.organizations", ErrorFieldsOf(conflictJson));
+            Assert.Equal(0, await CountByTitleAsync(conflictTitle));
+            Assert.Equal(Sorted(tree.A), await BranchesOfAsync(other));                          // untouched
+
+            // moving is explicit
+            var movedTitle = Uniq("moved");
+            var moved = await CreateDepartmentAsync(city, movedTitle, new { organizationIds = new[] { tree.A, tree.B }, moveFromOtherDepartments = true });
+            Assert.Equal(HttpStatusCode.Created, moved.StatusCode);
+            Assert.Empty(await BranchesOfAsync(other));
+            Assert.Equal(Sorted(tree.A, tree.B), await BranchesOfAsync((await ReadDataAsync(moved)).GetProperty("id").GetInt64()));
+        }
+
+        [Fact]
+        public async Task Updating_a_department_adds_branches_without_taking_any_off_and_leaving_the_field_out_changes_none()
+        {
+            var tree = await NewTreeAsync();
+            var city = await NewCityAsync();
+            var created = await ReadDataAsync(await CreateDepartmentAsync(city, Uniq("upd"), new { organizationIds = new[] { tree.A } }));
+            var id = created.GetProperty("id").GetInt64();
+            var title = created.GetProperty("title").GetString();
+
+            // no "organizations": only the name changes
+            var renamed = Uniq("renamed");
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/SupportingDepartment/{id}", new { title = renamed, isActive = true })).StatusCode);
+            Assert.Equal(Sorted(tree.A), await BranchesOfAsync(id));
+
+            // "organizations": B is added, A stays
+            var added = await SendAdminAsync(HttpMethod.Put, $"/api/SupportingDepartment/{id}", new { title = renamed, isActive = true, organizations = new { organizationIds = new[] { tree.B } } });
+            Assert.Equal(HttpStatusCode.OK, added.StatusCode);
+            Assert.Equal(2, (await ReadDataAsync(added)).GetProperty("organizationCount").GetInt32());
+            Assert.Equal(Sorted(tree.A, tree.B), await BranchesOfAsync(id));
+
+            // a branch that is already here is not a conflict; one of another department is, and then nothing at all changes (not even the title)
+            var other = await NewDepartmentAsync();
+            await AssignAsync(other, new { organizationIds = new[] { tree.C } });
+            var conflictTitle = Uniq("shouldnot");
+            var conflict = await SendAdminAsync(HttpMethod.Put, $"/api/SupportingDepartment/{id}", new { title = conflictTitle, isActive = true, organizations = new { organizationIds = new[] { tree.A, tree.C } } });
+            Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+            Assert.Equal("organizations_already_assigned", ErrorCodeOf(await ReadJsonAsync(conflict)));
+            Assert.Equal(renamed, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/SupportingDepartment/{id}"))).GetProperty("title").GetString());
+            Assert.Equal(Sorted(tree.C), await BranchesOfAsync(other));
+
+            // deactivating together with new branches makes no sense
+            var both = await SendAdminAsync(HttpMethod.Put, $"/api/SupportingDepartment/{id}", new { title = renamed, isActive = false, organizations = new { organizationIds = new[] { tree.B } } });
+            Assert.Equal(HttpStatusCode.BadRequest, both.StatusCode);
+            Assert.Contains("organizations", ErrorFieldsOf(await ReadJsonAsync(both)));
+            Assert.NotNull(title);
+        }
+
         // ------------------------------------------------------------------------------------ permissions
 
         [Fact]

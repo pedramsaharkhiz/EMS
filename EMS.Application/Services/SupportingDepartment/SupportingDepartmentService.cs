@@ -2,6 +2,7 @@ using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.SupportingDepartment;
 using EMS.Application.Interfaces.SupportingDepartment;
+using EMS.Application.Validators.SupportingDepartment;
 using EMS.Domain.Interfaces;
 using System.Linq.Expressions;
 using SupportingDepartmentEntity = EMS.Domain.Entities.SupportingDepartment;
@@ -17,12 +18,14 @@ namespace EMS.Application.Services.SupportingDepartment
     {
         private readonly ICityRepository _cities;
         private readonly ISupportingDepartmentRepository _departments;
+        private readonly ISupportingDepartmentScopeService _scope;
 
-        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities)
+        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities, ISupportingDepartmentScopeService scope)
             : base(repository, unitOfWork, audit)
         {
             _cities = cities;
             _departments = repository;
+            _scope = scope;
         }
 
         public const string EntityLabel = "دپارتمان پشتیبانی";
@@ -83,6 +86,28 @@ namespace EMS.Application.Services.SupportingDepartment
             var reactivating = !entity.IsActive && request.IsActive;
             var cityId = request.CityId ?? entity.CityId;
             await RequireParentAsync(_cities, cityId, x => x.CityId, "شهر", mustBeActive: cityId != entity.CityId || reactivating, cancellationToken);
+        }
+
+        // Branches are optional. When given they are saved together with the department (one save = one transaction).
+        protected override async Task OnCreatingAsync(SupportingDepartmentCreateDto request, SupportingDepartmentEntity entity, CancellationToken cancellationToken)
+        {
+            if (!SupportingDepartmentOrganizationsDtoValidator.HasSelection(request.Organizations))
+                return;
+
+            var organizations = await _scope.PrepareAssignmentAsync(null, request.Organizations!, "organizations.", cancellationToken);
+            foreach (var organization in organizations)
+                entity.Organizations.Add(organization);
+        }
+
+        // On update the branches are ADDED to the current ones; nothing is taken off (see the DELETE endpoint).
+        protected override async Task OnUpdatingAsync(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request, CancellationToken cancellationToken)
+        {
+            if (!SupportingDepartmentOrganizationsDtoValidator.HasSelection(request.Organizations))
+                return;
+
+            var organizations = await _scope.PrepareAssignmentAsync(entity.SupportingDepartmentId, request.Organizations!, "organizations.", cancellationToken);
+            foreach (var organization in organizations.Where(o => o.SupportingDepartmentId != entity.SupportingDepartmentId))
+                organization.SupportingDepartmentId = entity.SupportingDepartmentId;
         }
 
         protected override SupportingDepartmentEntity NewEntity(SupportingDepartmentCreateDto request, string title) =>

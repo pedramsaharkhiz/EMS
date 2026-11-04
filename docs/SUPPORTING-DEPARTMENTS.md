@@ -31,6 +31,20 @@
 
 پاسخ: `{ selected, assigned, moved, unchanged, removed, totalOrganizations }`. `assigned` شعب بدون دپارتمان قبلی، `moved` شعب جابه‌جاشده از دپارتمان دیگر، `unchanged` شعبی که از قبل زیر همین دپارتمان بودند، و `totalOrganizations` تعداد شعب فعال دپارتمان پس از عملیات.
 
+## هنگام ایجاد و ویرایش خود دپارتمان
+
+بدنه‌ی `POST /api/SupportingDepartment` و `PUT /api/SupportingDepartment/{id}` یک فیلد **اختیاری** `organizations` دارد، با همان چهار فهرست و `moveFromOtherDepartments` بالا:
+
+```json
+{ "cityId": 1, "title": "ستاد شمال", "organizations": { "fieldIds": [3], "organizationIds": [12] } }
+```
+
+- **اجباری نیست.** دپارتمان می‌تواند بدون هیچ شعبه‌ای ساخته شود. نفرستادن `organizations` یا فرستادن `{}` یعنی «بدون شعبه».
+- **اتمی:** دپارتمان و شعبه‌هایش در یک ذخیره (یک تراکنش) می‌آیند. اگر انتخاب خطا داشته باشد (شناسه‌ی ناموجود، شعبه‌ی غیرفعال، شعبه‌ی زیر دپارتمان دیگر) دپارتمان ساخته یا ویرایش **نمی‌شود** (حتی عنوانش). خطاها همان‌های بالاست، با پیشوند فیلد: `organizations.organizationIds[2]`.
+- **در ویرایش شعب اضافه می‌شوند.** شعب انتخاب‌شده به شعب فعلی **افزوده** می‌شوند و هیچ شعبه‌ای برداشته نمی‌شود. نفرستادن `organizations` شعب را دست نمی‌زند. برای برداشتن از `DELETE .../organizations` استفاده کنید.
+- در ویرایش، `isActive: false` همراه با شعبه‌ی جدید `400` می‌دهد.
+- endpoint جدا (`POST` و `DELETE .../organizations`) برای تغییر شعب یک دپارتمان موجود می‌ماند.
+
 ## برداشتن شعب
 
 `DELETE /api/SupportingDepartment/{id}/organizations` با **همان بدنه** (مجوز `SupportingDepartments.Update`؛ `moveFromOtherDepartments` نادیده گرفته می‌شود). فقط شعبی که زیر **همین** دپارتمان‌اند برداشته می‌شوند و بقیه دست‌نخورده می‌مانند (`unchanged`). دپارتمان غیرفعال هم قابل خالی‌شدن است.
