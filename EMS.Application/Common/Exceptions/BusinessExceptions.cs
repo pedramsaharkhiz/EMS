@@ -42,6 +42,7 @@ namespace EMS.Application.Common.Exceptions
         // equipment
         public const string DuplicateYaasCode = "duplicate_yaas_code";
         public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
+        public const string BulkItemsInvalid = "bulk_items_invalid";
 
         // exports
         public const string ExportTooLarge = "export_too_large";
@@ -105,6 +106,21 @@ namespace EMS.Application.Common.Exceptions
     public sealed class BadRequestException : AppException
     {
         public BadRequestException(string message, string? code = null) : base(message, code ?? ErrorCodes.BadRequest) { }
+    }
+
+    /// <summary>
+    /// A 400 for a bulk request in which some rows are refused (nothing was saved). <see cref="Details"/> has one entry per problem,
+    /// with the field spelled as in the body (<c>items[2].yaasCode</c>).
+    /// </summary>
+    public sealed class BulkItemsException : AppException
+    {
+        public IReadOnlyList<Models.ApiErrorDetail> Details { get; }
+
+        public BulkItemsException(IReadOnlyList<Models.ApiErrorDetail> details, int failedRows)
+            : base($"ثبت گروهی انجام نشد؛ {failedRows} ردیف خطا دارد و هیچ تجهیزی ثبت نشد.", ErrorCodes.BulkItemsInvalid)
+        {
+            Details = details;
+        }
     }
 
     /// <summary>A 401 with a stable error code (still an <see cref="UnauthorizedAccessException"/> for existing handlers).</summary>

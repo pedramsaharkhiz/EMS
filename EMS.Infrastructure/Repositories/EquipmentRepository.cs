@@ -179,6 +179,27 @@ namespace EMS.Infrastructure.Repositories
         public async Task<bool> IsEligibleTechnicianAsync(long userId, CancellationToken cancellationToken = default) =>
             await _context.Users.AnyAsync(u => u.Id == userId && u.IsActive, cancellationToken);
 
+        public async Task<HashSet<string>> FindReservedYaasCodesAsync(IReadOnlyCollection<string> yaasCodes, CancellationToken cancellationToken = default)
+        {
+            var lowered = yaasCodes.Select(c => c.Trim().ToLower()).Distinct().ToList();
+            var found = await _dbSet.Where(x => lowered.Contains(x.YaasCode.ToLower()))
+                .Select(x => x.YaasCode.ToLower()).ToListAsync(cancellationToken);
+            return found.ToHashSet();
+        }
+
+        public async Task<Dictionary<long, bool>> GetTechnicianStatesAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
+        {
+            var ids = userIds.Distinct().ToList();
+            return await _context.Users.Where(u => ids.Contains(u.Id))
+                .Select(u => new { u.Id, u.IsActive }).ToDictionaryAsync(u => u.Id, u => u.IsActive, cancellationToken);
+        }
+
+        public async Task<List<EquipmentRow>> GetRowsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)
+        {
+            var list = ids.ToList();
+            return await QueryRows(true).Where(r => list.Contains(r.Id)).ToListAsync(cancellationToken);
+        }
+
         public async Task<bool> TechnicianExistsAsync(long userId, CancellationToken cancellationToken = default) =>
             await _context.Users.AnyAsync(u => u.Id == userId, cancellationToken);
     }

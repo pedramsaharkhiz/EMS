@@ -10,6 +10,8 @@ namespace EMS.Application.Interfaces.Equipment
         Task<PagedResult<EquipmentListItemDto>> GetPagedAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
         Task<EquipmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
         Task<EquipmentDetailDto> CreateAsync(EquipmentCreateDto request, CancellationToken cancellationToken = default);
+        /// <summary>Creates all items or none; the result is in the order of the request.</summary>
+        Task<IReadOnlyList<EquipmentDetailDto>> CreateBulkAsync(EquipmentBulkCreateDto request, CancellationToken cancellationToken = default);
         Task<EquipmentDetailDto> UpdateAsync(long id, EquipmentUpdateDto request, CancellationToken cancellationToken = default);
 
         /// <summary>Soft delete: deactivates the equipment (idempotent). Restore with an update with <c>isActive = true</c>.</summary>

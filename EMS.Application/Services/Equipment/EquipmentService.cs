@@ -10,6 +10,7 @@ using EMS.Application.Dtos.EquipmentLocationHistory;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.Equipment;
 using EMS.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using EMS.Domain.ReadModels;
 using EquipmentEntity = EMS.Domain.Entities.Equipment;
 using EquipmentLocationHistoryEntity = EMS.Domain.Entities.EquipmentLocationHistory;
@@ -213,6 +214,100 @@ namespace EMS.Application.Services.Equipment
             return await DetailAsync(entity.EquipmentId, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<EquipmentDetailDto>> CreateBulkAsync(EquipmentBulkCreateDto request, CancellationToken cancellationToken = default)
+        {
+            var items = request.Items;
+            var problems = new List<ApiErrorDetail>();
+            var failedRows = new HashSet<int>();
+            void Fail(int index, string field, string message)
+            {
+                problems.Add(new ApiErrorDetail { Field = $"items[{index}].{field}", Message = message });
+                failedRows.Add(index);
+            }
+
+            // References are checked once per distinct id (not once per row): a missing id is "not found", a deactivated one "inactive".
+            var statuses = await ResolveAsync(_statuses, items.Select(i => i.EquipmentStatusId), x => x.EquipmentStatusId, "وضعیت تجهیز", cancellationToken);
+            var types = await ResolveAsync(_types, items.Where(i => i.EquipmentTypeId.HasValue).Select(i => i.EquipmentTypeId!.Value), x => x.EquipmentTypeId, "نوع تجهیز", cancellationToken);
+            var models = await ResolveAsync(_models, items.Where(i => i.EquipmentModelId.HasValue).Select(i => i.EquipmentModelId!.Value), x => x.EquipmentModelId, "مدل تجهیز", cancellationToken);
+            var locationTypes = await ResolveAsync(_locationTypes, items.Select(i => i.CurrentEquipmentLocationTypeId), x => x.EquipmentLocationTypeId, "نوع مکان", cancellationToken);
+            var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "سازمان", cancellationToken);
+            var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
+            var technicianStates = await _repository.GetTechnicianStatesAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
+            var reserved = await _repository.FindReservedYaasCodesAsync(items.Select(i => i.YaasCode.Trim()).ToList(), cancellationToken);
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                var item = items[i];
+                if (statuses.TryGetValue(item.EquipmentStatusId, out var statusError) && statusError is not null) Fail(i, "equipmentStatusId", statusError);
+                if (item.EquipmentTypeId is { } type && types[type] is { } typeError) Fail(i, "equipmentTypeId", typeError);
+                if (item.EquipmentModelId is { } model && models[model] is { } modelError) Fail(i, "equipmentModelId", modelError);
+                if (locationTypes[item.CurrentEquipmentLocationTypeId] is { } locationTypeError) Fail(i, "currentEquipmentLocationTypeId", locationTypeError);
+                if (item.CurrentOrganizationId is { } organization && organizations[organization] is { } organizationError) Fail(i, "currentOrganizationId", organizationError);
+                if (item.CurrentSupportingDepartmentId is { } department && departments[department] is { } departmentError) Fail(i, "currentSupportingDepartmentId", departmentError);
+
+                if (item.TechnicianUserId is { } technician)
+                {
+                    if (!technicianStates.TryGetValue(technician, out var active)) Fail(i, "technicianUserId", "تکنسین یافت نشد.");
+                    else if (!active) Fail(i, "technicianUserId", "تکنسین انتخاب‌شده غیرفعال است.");
+                }
+
+                if (reserved.Contains(item.YaasCode.Trim().ToLower()))
+                    Fail(i, "yaasCode", "تجهیز فعال دیگری با این یاس کد وجود دارد.");
+
+                try
+                {
+                    await _locationRule.ValidateAsync(ToLocation(item), cancellationToken);
+                }
+                catch (BadRequestException ex)
+                {
+                    Fail(i, "currentEquipmentLocationTypeId", ex.Message);
+                }
+            }
+
+            if (problems.Count > 0)
+                throw new BulkItemsException(problems, failedRows.Count);
+
+            var entities = new List<EquipmentEntity>(items.Count);
+            foreach (var item in items)
+            {
+                var location = ToLocation(item);
+                var entity = new EquipmentEntity
+                {
+                    YaasCode = item.YaasCode.Trim(),
+                    SerialNumber = Normalize(item.SerialNumber),
+                    AssetNumber = Normalize(item.AssetNumber),
+                    EquipmentTypeId = item.EquipmentTypeId,
+                    EquipmentModelId = item.EquipmentModelId,
+                    EquipmentStatusId = item.EquipmentStatusId,
+                    CurrentEquipmentLocationTypeId = location.LocationTypeId,
+                    CurrentOrganizationId = location.OrganizationId,
+                    CurrentSupportingDepartmentId = location.SupportingDepartmentId,
+                    TechnicianUserId = location.TechnicianUserId,
+                    Description = Normalize(item.Description),
+                };
+                entities.Add(entity);
+                _repository.AddLocationHistory(NewHistory(entity, location, FirstLocationNote));
+            }
+
+            // One save = one transaction: all rows or none.
+            await _repository.AddRangeAsync(entities, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var ids = entities.Select(e => e.EquipmentId).ToList();
+            foreach (var id in ids)
+                _audit.Created("Equipment", id);
+
+            var rows = (await _repository.GetRowsAsync(ids, cancellationToken)).ToDictionary(r => r.Id);
+            return ids.Select(id =>
+            {
+                var row = rows[id];
+                var detail = Fill(new EquipmentDetailDto(), row);
+                detail.ModifiedDateTime = row.ModifiedDateTime;
+                detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
+                return detail;
+            }).ToList();
+        }
+
         public async Task<EquipmentDetailDto> UpdateAsync(long id, EquipmentUpdateDto request, CancellationToken cancellationToken = default)
         {
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
@@ -374,6 +469,40 @@ namespace EMS.Application.Services.Equipment
 
             if (validateRule)
                 await _locationRule.ValidateAsync(location, cancellationToken);
+        }
+
+        private static EquipmentLocation ToLocation(EquipmentCreateDto item) =>
+            new(item.CurrentEquipmentLocationTypeId, item.CurrentOrganizationId, item.CurrentSupportingDepartmentId, item.TechnicianUserId);
+
+        /// <summary>
+        /// Checks a set of referenced ids with one query (plus one per id that is not active, to tell "missing" from "inactive").
+        /// The result maps every id to its error message, or null when it can be used.
+        /// </summary>
+        private static async Task<Dictionary<long, string?>> ResolveAsync<TParent>(
+            IRepository<TParent> repository, IEnumerable<long> ids, System.Linq.Expressions.Expression<Func<TParent, long>> key,
+            string label, CancellationToken cancellationToken)
+            where TParent : EMS.Domain.Entities.BaseEntity
+        {
+            var wanted = ids.Distinct().ToList();
+            var result = new Dictionary<long, string?>();
+            if (wanted.Count == 0)
+                return result;
+
+            var active = (await repository.Query().Select(key).Where(id => wanted.Contains(id)).ToListAsync(cancellationToken)).ToHashSet();
+            foreach (var id in wanted)
+            {
+                if (active.Contains(id)) { result[id] = null; continue; }
+                try
+                {
+                    await ParentGuard.RequireAsync(repository, id, key, label, mustBeActive: true, cancellationToken);
+                    result[id] = null;
+                }
+                catch (AppException ex)
+                {
+                    result[id] = ex.Message;
+                }
+            }
+            return result;
         }
 
         private async Task EnsureYaasCodeIsFreeAsync(string yaasCode, long? exceptId, CancellationToken cancellationToken)

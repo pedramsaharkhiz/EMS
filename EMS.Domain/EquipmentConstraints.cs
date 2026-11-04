@@ -7,5 +7,8 @@ namespace EMS.Domain
         public const int SerialNumberMaxLength = 50;
         public const int AssetNumberMaxLength = 50;
         public const int DescriptionMaxLength = 500;
+
+        /// <summary>The most equipment one bulk-create request may carry.</summary>
+        public const int BulkCreateMaxItems = 200;
     }
 }
