@@ -12,7 +12,7 @@ namespace EMS.Tests.Integration
 
         private static readonly Regex Persian = new(@"[؀-ۿ]");
         // words that legitimately appear inside Persian sentences
-        private static readonly Regex Latin = new(@"\b(?!asc\b|desc\b|role\b|skill\b|department\b|isActive\b|code\b|hasTechnician\b|rowVersion\b|application\b|json\b|Content\b|Type\b)[A-Za-z]{3,}\b");
+        private static readonly Regex Latin = new(@"\b(?!asc\b|desc\b|role\b|skill\b|department\b|post\b|isActive\b|code\b|hasTechnician\b|rowVersion\b|application\b|json\b|Content\b|Type\b)[A-Za-z]{3,}\b");
 
         private async Task AssertPersianAsync(string label, HttpResponseMessage response, HttpStatusCode status)
         {

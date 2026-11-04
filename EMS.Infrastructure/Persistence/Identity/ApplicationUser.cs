@@ -11,6 +11,7 @@ namespace EMS.Infrastructure.Persistence.Identity
         public string PersonnelCode { get; set; } = null!;
         public string? NationalCode { get; set; }
         public long? SupportingDepartmentId { get; set; }
+        public long? PostId { get; set; }
         public bool IsActive { get; set; } = true;
         public long? CreatedByUserId { get; set; }
         public DateTime CreatedDateTime { get; set; }
@@ -18,6 +19,7 @@ namespace EMS.Infrastructure.Persistence.Identity
         public DateTime? ModifiedDateTime { get; set; }
 
         public SupportingDepartment? SupportingDepartment { get; set; }
+        public Post? Post { get; set; }
         public ICollection<TechnicianSkill> TechnicianSkills { get; set; } = new List<TechnicianSkill>();
     }
 }

@@ -37,6 +37,7 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<EquipmentType> EquipmentTypes => Set<EquipmentType>();
         public DbSet<Brand> Brands => Set<Brand>();
         public DbSet<EquipmentModel> EquipmentModels => Set<EquipmentModel>();
+        public DbSet<Post> Posts => Set<Post>();
         public DbSet<EquipmentStatus> EquipmentStatuses => Set<EquipmentStatus>();
         public DbSet<EquipmentLocationType> EquipmentLocationTypes => Set<EquipmentLocationType>();
         public DbSet<Equipment> Equipments => Set<Equipment>();

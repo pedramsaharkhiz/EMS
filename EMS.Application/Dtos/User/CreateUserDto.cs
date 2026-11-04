@@ -24,5 +24,8 @@ public sealed class CreateUserDto
 
     public long? SupportingDepartmentId { get; set; }
 
+    /// <summary>Optional post (سمت) of the user.</summary>
+    public long? PostId { get; set; }
+
     public bool IsActive { get; set; } = true;
 }

@@ -74,6 +74,13 @@ namespace EMS.Application.Common.Security
             public const string Delete = "EquipmentModels.Delete";
         }
 
+        public static class Posts
+        {
+            public const string Create = "Posts.Create";
+            public const string Update = "Posts.Update";
+            public const string Delete = "Posts.Delete";
+        }
+
         public static class EquipmentStatuses
         {
             public const string Create = "EquipmentStatuses.Create";

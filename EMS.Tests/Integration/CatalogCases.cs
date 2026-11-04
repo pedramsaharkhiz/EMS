@@ -4,6 +4,7 @@ using EMS.Application.Dtos.EquipmentCategory;
 using EMS.Application.Dtos.EquipmentLocationType;
 using EMS.Application.Dtos.EquipmentModel;
 using EMS.Application.Dtos.EquipmentStatus;
+using EMS.Application.Dtos.Post;
 using EMS.Application.Dtos.EquipmentType;
 using EMS.Application.Dtos.FailureCategory;
 using EMS.Application.Dtos.Province;
@@ -38,6 +39,9 @@ namespace EMS.Tests.Integration
 
             new("EquipmentLocationType", "/api/EquipmentLocationType", "id", "EquipmentLocationTypes", true, typeof(EquipmentLocationTypeDetailDto), typeof(EquipmentLocationTypeListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "LT" })),
+
+            new("Post", "/api/Post", "id", "Posts", true, typeof(PostDetailDto), typeof(PostListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "PO" })),
 
             new("EquipmentStatus", "/api/EquipmentStatus", "id", "EquipmentStatuses", true, typeof(EquipmentStatusDetailDto), typeof(EquipmentStatusListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "ST" })),

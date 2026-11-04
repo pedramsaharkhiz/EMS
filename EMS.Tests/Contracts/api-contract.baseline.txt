@@ -1297,6 +1297,9 @@ POST api/Identity/Login
       UserId : Int64
       UserName : String
       FullName : String
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       Roles : IEnumerable<String>
       Permissions : IEnumerable<String>
       AccessToken : String
@@ -1317,6 +1320,9 @@ POST api/Identity/RefreshToken
       UserId : Int64
       UserName : String
       FullName : String
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       Roles : IEnumerable<String>
       Permissions : IEnumerable<String>
       AccessToken : String
@@ -1344,7 +1350,6 @@ POST api/Identity/RevokeRefreshToken
 GET api/OrganizationHierarchy
   authorization: Permission:OrganizationHierarchy.View
   Query: Code : String
-  Query: GroupBy : String
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -1352,15 +1357,112 @@ GET api/OrganizationHierarchy
   Query: ParentLevel : String
   Query: Search : String
   Query: SearchLevel : String
-  Query: SortBy : String
-  Query: SortDirection : String
   Query: Title : String
   response 200: ApiResponse<OrganizationHierarchyResponseDto>
     envelope: success, message, data, meta, error, traceId
     data:
-      Mode : String
       Items : IReadOnlyList<OrganizationHierarchyItemDto>
-      Groups : IReadOnlyList<OrganizationHierarchyGroupDto>
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Post
+  authorization: (authenticated)
+  Query: Code : String
+  Query: IsActive : Boolean?
+  Query: PageNumber : Int32
+  Query: PageSize : Int32
+  Query: SortBy : String
+  Query: SortDirection : String
+  Query: Title : String
+  response 200: ApiResponse<IReadOnlyList<PostListItemDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      Title : String
+      Code : String
+      IsActive : Boolean
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+POST api/Post
+  authorization: Permission:Posts.Create
+  body: PostCreateDto
+    Title : String
+    Code : String
+  response 201: ApiResponse<PostDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      Title : String
+      Code : String
+      IsActive : Boolean
+      RowVersion : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+DELETE api/Post/{id}
+  authorization: Permission:Posts.Delete
+  Path: id : Int64 (required)
+  response 200: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+GET api/Post/{id}
+  authorization: (authenticated)
+  Path: id : Int64 (required)
+  response 200: ApiResponse<PostDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      Title : String
+      Code : String
+      IsActive : Boolean
+      RowVersion : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+PUT api/Post/{id}
+  authorization: Permission:Posts.Update
+  body: PostUpdateDto
+    Title : String
+    Code : String
+    IsActive : Boolean
+    RowVersion : String
+  Path: id : Int64 (required)
+  response 200: ApiResponse<PostDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      Title : String
+      Code : String
+      IsActive : Boolean
+      RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1611,6 +1713,9 @@ GET api/Role/{roleId}/users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       IsActive : Boolean
       Roles : List<UserRoleSummaryDto>
       Skills : List<UserSkillSummaryDto>
@@ -1976,6 +2081,7 @@ GET api/Users
   Query: PageSize : Int32
   Query: PersonnelCode : String
   Query: PhoneNumber : String
+  Query: PostId : Int64?
   Query: RoleId : Int64?
   Query: Search : String
   Query: SkillId : Int64?
@@ -1996,6 +2102,9 @@ GET api/Users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       IsActive : Boolean
       Roles : List<UserRoleSummaryDto>
       Skills : List<UserSkillSummaryDto>
@@ -2021,6 +2130,7 @@ POST api/Users
     PhoneNumber : String
     Email : String
     SupportingDepartmentId : Int64?
+    PostId : Int64?
     IsActive : Boolean
   response 201: ApiResponse<UserDetailDto>
     envelope: success, message, data, meta, error, traceId
@@ -2040,6 +2150,9 @@ POST api/Users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       IsActive : Boolean
       Roles : List<UserRoleSummaryDto>
       Skills : List<UserSkillSummaryDto>
@@ -2066,6 +2179,7 @@ GET api/Users/groups
   Query: PageSize : Int32
   Query: PersonnelCode : String
   Query: PhoneNumber : String
+  Query: PostId : Int64?
   Query: RoleId : Int64?
   Query: Search : String
   Query: SkillId : Int64?
@@ -2121,6 +2235,9 @@ GET api/Users/{id}
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       IsActive : Boolean
       Roles : List<UserRoleSummaryDto>
       Skills : List<UserSkillSummaryDto>
@@ -2145,6 +2262,7 @@ PUT api/Users/{id}
     PhoneNumber : String
     Email : String
     SupportingDepartmentId : Int64?
+    PostId : Int64?
     IsActive : Boolean
     RowVersion : String
   Path: id : Int64 (required)
@@ -2166,6 +2284,9 @@ PUT api/Users/{id}
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      PostId : Int64?
+      PostCode : String
+      PostTitle : String
       IsActive : Boolean
       Roles : List<UserRoleSummaryDto>
       Skills : List<UserSkillSummaryDto>

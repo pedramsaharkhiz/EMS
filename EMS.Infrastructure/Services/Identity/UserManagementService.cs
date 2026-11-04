@@ -121,6 +121,7 @@ public sealed partial class UserManagementService : IUserManagementService
             PhoneNumber = x.PhoneNumber,
             Email = x.Email,
             SupportingDepartmentId = x.SupportingDepartmentId,
+            PostId = x.PostId,
             IsActive = x.IsActive
         });
 
@@ -128,6 +129,8 @@ public sealed partial class UserManagementService : IUserManagementService
             pageNumber,
             pageSize,
             cancellationToken);
+
+        await UserPostLookup.FillAsync(_dbContext, result.Items, cancellationToken);
 
         var userIds = result.Items
             .Select(x => x.Id)
@@ -264,6 +267,8 @@ public sealed partial class UserManagementService : IUserManagementService
             request.SupportingDepartmentId,
             cancellationToken);
 
+        await EnsurePostAsync(request.PostId, currentPostId: null, cancellationToken);
+
         var user = new ApplicationUser
         {
             UserName = userName,
@@ -274,6 +279,7 @@ public sealed partial class UserManagementService : IUserManagementService
             PhoneNumber = NormalizeOptional(request.PhoneNumber),
             Email = NormalizeOptional(request.Email),
             SupportingDepartmentId = request.SupportingDepartmentId,
+            PostId = request.PostId,
             IsActive = request.IsActive,
             LockoutEnabled = true
         };
@@ -363,6 +369,8 @@ public sealed partial class UserManagementService : IUserManagementService
             request.SupportingDepartmentId,
             cancellationToken);
 
+        await EnsurePostAsync(request.PostId, user.PostId, cancellationToken);
+
         user.UserName = newUserName;
         user.FirstName = request.FirstName.Trim();
         user.LastName = request.LastName.Trim();
@@ -371,6 +379,7 @@ public sealed partial class UserManagementService : IUserManagementService
         user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
         user.Email = NormalizeOptional(request.Email);
         user.SupportingDepartmentId = request.SupportingDepartmentId;
+        user.PostId = request.PostId;
         user.IsActive = request.IsActive;
 
         var result = await _userManager.UpdateAsync(user);
@@ -539,6 +548,26 @@ public sealed partial class UserManagementService : IUserManagementService
         }
     }
 
+    /// <summary>
+    /// The chosen post must exist (404) and be active (400). A user may keep a post that was deactivated after it was given to them, so
+    /// the check is skipped when the post is the one the user already has.
+    /// </summary>
+    private async Task EnsurePostAsync(long? postId, long? currentPostId, CancellationToken cancellationToken)
+    {
+        if (!postId.HasValue || postId == currentPostId)
+            return;
+
+        var post = await _dbContext.Posts.IncludingInactive().AsNoTracking()
+            .Where(x => x.PostId == postId.Value)
+            .Select(x => new { x.IsActive })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (post is null)
+            throw new NotFoundException("سمت انتخاب‌شده وجود ندارد.", ErrorCodes.ParentNotFound);
+        if (!post.IsActive)
+            throw new BadRequestException("سمت انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
+    }
+
     private async Task EnsureDepartmentExistsAsync(
         long? departmentId,
         CancellationToken cancellationToken)
@@ -634,6 +663,7 @@ public sealed partial class UserManagementService : IUserManagementService
             PhoneNumber = user.PhoneNumber,
             Email = user.Email,
             SupportingDepartmentId = user.SupportingDepartmentId,
+            PostId = user.PostId,
             IsActive = user.IsActive,
             EmailConfirmed = user.EmailConfirmed,
             PhoneNumberConfirmed = user.PhoneNumberConfirmed,

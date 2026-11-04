@@ -53,6 +53,10 @@ public sealed class UpdateUserDtoValidator
             .When(x => !string.IsNullOrWhiteSpace(x.Email))
             .MaximumLength(256).WithMessage("نشانی ایمیل نمی‌تواند بیشتر از ۲۵۶ کاراکتر باشد.");
 
+        RuleFor(x => x.PostId)
+            .GreaterThan(0).WithMessage("شناسه‌ی سمت باید بزرگ‌تر از صفر باشد.")
+            .When(x => x.PostId.HasValue);
+
         RuleFor(x => x.SupportingDepartmentId)
             .GreaterThan(0).WithMessage("شناسه‌ی واحد پشتیبانی باید بزرگ‌تر از صفر باشد.")
             .When(x => x.SupportingDepartmentId.HasValue);

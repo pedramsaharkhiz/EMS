@@ -35,6 +35,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
 
             builder.HasOne(x => x.SupportingDepartment).WithMany().HasForeignKey(x => x.SupportingDepartmentId).OnDelete(DeleteBehavior.NoAction);
+            builder.Property(x => x.PostId).IsRequired(false);
+            builder.HasOne(x => x.Post).WithMany().HasForeignKey(x => x.PostId).OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
