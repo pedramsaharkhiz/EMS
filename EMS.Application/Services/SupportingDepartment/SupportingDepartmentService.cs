@@ -16,17 +16,19 @@ namespace EMS.Application.Services.SupportingDepartment
         : CatalogService<SupportingDepartmentEntity, SupportingDepartmentCreateDto, SupportingDepartmentUpdateDto, SupportingDepartmentDetailDto, SupportingDepartmentListItemDto, SupportingDepartmentListRequestDto>, ISupportingDepartmentService
     {
         private readonly ICityRepository _cities;
+        private readonly ISupportingDepartmentRepository _departments;
 
         public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities)
             : base(repository, unitOfWork, audit)
         {
             _cities = cities;
+            _departments = repository;
         }
 
         public const string EntityLabel = "دپارتمان پشتیبانی";
         protected override string Label => EntityLabel;
         protected override string DuplicateMessage => "در این شهر دپارتمان پشتیبانی دیگری با این عنوان وجود دارد.";
-        protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
+        protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر، تجهیز یا شعبه‌ی فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
 
         protected override Expression<Func<SupportingDepartmentEntity, SupportingDepartmentListItemDto>> ListItem =>
@@ -38,7 +40,8 @@ namespace EMS.Application.Services.SupportingDepartment
                 ProvinceId = x.City.ProvinceId,
                 ProvinceTitle = x.City.Province.Title,
                 Title = x.Title,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                OrganizationCount = x.Organizations.Count(o => o.IsActive)
             };
 
         protected override void ConfigureSorting(SortBuilder<SupportingDepartmentEntity> sort) =>
@@ -90,13 +93,13 @@ namespace EMS.Application.Services.SupportingDepartment
             entity.CityId = request.CityId ?? entity.CityId;
         }
 
-        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) => Map(entity, null);
+        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) => Map(entity, null, 0);
 
         // The city and province titles need a query (the entity only carries the foreign key after a create / update).
         protected override async Task<SupportingDepartmentDetailDto> ToDetailAsync(SupportingDepartmentEntity entity, CancellationToken cancellationToken) =>
-            Map(entity, await _cities.GetLocationAsync(entity.CityId, cancellationToken));
+            Map(entity, await _cities.GetLocationAsync(entity.CityId, cancellationToken), await _departments.CountOrganizationsAsync(entity.SupportingDepartmentId, cancellationToken));
 
-        private static SupportingDepartmentDetailDto Map(SupportingDepartmentEntity entity, CityLocation? location) =>
+        private static SupportingDepartmentDetailDto Map(SupportingDepartmentEntity entity, CityLocation? location, int organizationCount) =>
             new()
             {
                 Id = entity.SupportingDepartmentId,
@@ -106,6 +109,7 @@ namespace EMS.Application.Services.SupportingDepartment
                 ProvinceTitle = location?.ProvinceTitle ?? string.Empty,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
+                OrganizationCount = organizationCount,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
     }

@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -23,6 +23,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
 
             builder.HasOne(x => x.Field).WithMany(x => x.Organizations).HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.OrganizationManagement).WithMany(x => x.Organizations).HasForeignKey(x => x.OrganizationManagementId).OnDelete(DeleteBehavior.NoAction);
+            builder.HasOne(x => x.SupportingDepartment).WithMany(x => x.Organizations).HasForeignKey(x => x.SupportingDepartmentId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.OrganizationType).WithMany(x => x.Organizations).HasForeignKey(x => x.OrganizationTypeId).OnDelete(DeleteBehavior.NoAction);
         }
     }

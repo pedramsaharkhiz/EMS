@@ -10,10 +10,12 @@ namespace EMS.Presentation.Controllers
     public class SupportingDepartmentController : BaseApiController
     {
         private readonly ISupportingDepartmentService _service;
+        private readonly ISupportingDepartmentScopeService _scope;
 
-        public SupportingDepartmentController(ISupportingDepartmentService service)
+        public SupportingDepartmentController(ISupportingDepartmentService service, ISupportingDepartmentScopeService scope)
         {
             _service = service;
+            _scope = scope;
         }
 
         [Lookup]
@@ -47,5 +49,21 @@ namespace EMS.Presentation.Controllers
             await _service.DeleteAsync(id, cancellationToken);
             return Deleted("با موفقیت غیرفعال شد.");
         }
+
+        /// <summary>
+        /// Puts branches under this department, one by one (organizationIds) and/or by group (fieldIds, organizationManagementIds, zoneIds:
+        /// all their active branches). All or nothing. A branch has one department: one that already belongs to another refuses the
+        /// request (409) unless moveFromOtherDepartments is true.
+        /// </summary>
+        [Permission(Permissions.SupportingDepartments.Update)]
+        [HttpPost("{id:long}/organizations")]
+        public async Task<ActionResult<ApiResponse<SupportingDepartmentOrganizationsResultDto>>> AssignOrganizations(long id, [FromBody] SupportingDepartmentOrganizationsDto request, CancellationToken cancellationToken) =>
+            Success(await _scope.AssignAsync(id, request, cancellationToken), "شعبه‌ها به دپارتمان پشتیبانی اختصاص یافتند.");
+
+        /// <summary>Takes the selected branches (same selection as assigning) off this department; branches of other departments are left alone.</summary>
+        [Permission(Permissions.SupportingDepartments.Update)]
+        [HttpDelete("{id:long}/organizations")]
+        public async Task<ActionResult<ApiResponse<SupportingDepartmentOrganizationsResultDto>>> RemoveOrganizations(long id, [FromBody] SupportingDepartmentOrganizationsDto request, CancellationToken cancellationToken) =>
+            Success(await _scope.RemoveAsync(id, request, cancellationToken), "شعبه‌ها از دپارتمان پشتیبانی برداشته شدند.");
     }
 }

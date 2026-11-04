@@ -77,6 +77,7 @@ namespace EMS.Application.Validators.FailureReport
             Ids(x => x.ReportTypeIds, "نوع گزارش");
             Ids(x => x.StatusIds, "وضعیت");
             Ids(x => x.OrganizationIds, "شعبه");
+            Ids(x => x.SupportingDepartmentIds, "دپارتمان پشتیبانی");
             Ids(x => x.EmployeeIds, "کارمند");
             Ids(x => x.ReportedByUserIds, "ثبت‌کننده");
             RuleFor(x => x.PriorityIds)

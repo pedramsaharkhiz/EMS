@@ -20,6 +20,8 @@ namespace EMS.Application.Dtos.FailureReport
         [FromQuery(Name = "statusId")] public long[]? StatusIds { get; set; }
         [FromQuery(Name = "priorityId")] public int[]? PriorityIds { get; set; }
         [FromQuery(Name = "organizationId")] public long[]? OrganizationIds { get; set; }
+        /// <summary>The department that serves the report's branch.</summary>
+        [FromQuery(Name = "supportingDepartmentId")] public long[]? SupportingDepartmentIds { get; set; }
         [FromQuery(Name = "employeeId")] public long[]? EmployeeIds { get; set; }
         [FromQuery(Name = "reportedByUserId")] public long[]? ReportedByUserIds { get; set; }
         /// <summary>Reported at or after (UTC, ISO 8601).</summary>

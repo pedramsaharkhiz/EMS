@@ -131,6 +131,17 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task Supporting_department_scope_messages_are_persian()
+        {
+            await AssertPersianAsync("scope empty", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/1/organizations", "{}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("scope bad ids", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/1/organizations", "{\"organizationIds\":[0],\"fieldIds\":[-1]}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("scope wrong json type", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/1/organizations", "{\"organizationIds\":\"abc\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("scope unknown department", await RawAsync(HttpMethod.Post, "/api/SupportingDepartment/99999999/organizations", "{\"organizationIds\":[1]}"), HttpStatusCode.NotFound);
+            await AssertPersianAsync("remove unknown department", await RawAsync(HttpMethod.Delete, "/api/SupportingDepartment/99999999/organizations", "{\"organizationIds\":[1]}"), HttpStatusCode.NotFound);
+            await AssertPersianAsync("hierarchy department filter", await RawAsync(HttpMethod.Get, "/api/OrganizationHierarchy?searchLevel=zone&supportingDepartmentId=0&withoutSupportingDepartment=true", null), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
         public async Task A_non_json_body_is_a_415_in_the_error_envelope_in_persian()
         {
             var response = await RawAsync(HttpMethod.Post, "/api/Brand", "hello", "text/plain");

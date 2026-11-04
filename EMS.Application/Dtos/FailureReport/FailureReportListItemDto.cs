@@ -18,6 +18,9 @@ namespace EMS.Application.Dtos.FailureReport
         public string? FailureReportStatusCode { get; set; }
         public long OrganizationId { get; set; }
         public string? OrganizationTitle { get; set; }
+        /// <summary>The supporting department that serves the report's branch (null when the branch has none yet).</summary>
+        public long? SupportingDepartmentId { get; set; }
+        public string? SupportingDepartmentTitle { get; set; }
         public long? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public long ReportedByUserId { get; set; }

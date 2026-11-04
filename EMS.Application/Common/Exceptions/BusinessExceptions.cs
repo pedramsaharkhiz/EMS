@@ -42,6 +42,7 @@ namespace EMS.Application.Common.Exceptions
         // equipment
         public const string DuplicateYaasCode = "duplicate_yaas_code";
         public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
+        public const string OrganizationsAlreadyAssigned = "organizations_already_assigned";
         public const string DuplicateReferenceNumber = "duplicate_reference_number";
         public const string BulkItemsInvalid = "bulk_items_invalid";
 
@@ -118,7 +119,24 @@ namespace EMS.Application.Common.Exceptions
         public IReadOnlyList<Models.ApiErrorDetail> Details { get; }
 
         public BulkItemsException(IReadOnlyList<Models.ApiErrorDetail> details, int failedRows)
-            : base($"ثبت گروهی انجام نشد؛ {failedRows} ردیف خطا دارد و هیچ تجهیزی ثبت نشد.", ErrorCodes.BulkItemsInvalid)
+            : this(details, $"ثبت گروهی انجام نشد؛ {failedRows} ردیف خطا دارد و هیچ تجهیزی ثبت نشد.")
+        {
+        }
+
+        public BulkItemsException(IReadOnlyList<Models.ApiErrorDetail> details, string message)
+            : base(message, ErrorCodes.BulkItemsInvalid)
+        {
+            Details = details;
+        }
+    }
+
+    /// <summary>A 409 that lists what conflicts (e.g. branches already served by another department); nothing was changed.</summary>
+    public sealed class ConflictItemsException : AppException
+    {
+        public IReadOnlyList<Models.ApiErrorDetail> Details { get; }
+
+        public ConflictItemsException(IReadOnlyList<Models.ApiErrorDetail> details, string message, string code)
+            : base(message, code)
         {
             Details = details;
         }

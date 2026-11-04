@@ -46,6 +46,8 @@ namespace EMS.Infrastructure.Repositories
                 StatusCode = r.FailureReportStatus.Code,
                 OrganizationId = r.OrganizationId,
                 OrganizationTitle = r.Organization.Title,
+                SupportingDepartmentId = r.Organization.SupportingDepartmentId,
+                SupportingDepartmentTitle = r.Organization.SupportingDepartment!.Title,
                 EmployeeId = r.EmployeeId,
                 EmployeeName = r.Employee != null ? r.Employee.FirstName + " " + r.Employee.LastName : null,
                 ReportedByUserId = r.ReportedByUserId,

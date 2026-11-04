@@ -1,4 +1,4 @@
-﻿using EMS.Application.Dtos.OrganizationHierarchy;
+using EMS.Application.Dtos.OrganizationHierarchy;
 using FluentValidation;
 
 namespace EMS.Application.Validators.OrganizationHierarchy;
@@ -57,6 +57,23 @@ public sealed class OrganizationHierarchyRequestDtoValidator
                     <= int.MaxValue)
             .WithMessage(
                 "شماره صفحه خارج از محدوده مجاز است.");
+
+        RuleFor(x => x.SupportingDepartmentId)
+            .GreaterThan(0)
+            .When(x => x.SupportingDepartmentId.HasValue)
+            .WithMessage("شناسه دپارتمان پشتیبانی باید بزرگ‌تر از صفر باشد.");
+
+        RuleFor(x => x)
+            .Must(x =>
+                (!x.SupportingDepartmentId.HasValue && !x.WithoutSupportingDepartment.HasValue) ||
+                OrganizationHierarchyRules.Normalize(x.SearchLevel) == "organization")
+            .WithName("supportingDepartmentId")
+            .WithMessage("فیلتر دپارتمان پشتیبانی فقط برای سطح «organization» (شعبه) معتبر است.");
+
+        RuleFor(x => x)
+            .Must(x => !(x.SupportingDepartmentId.HasValue && x.WithoutSupportingDepartment == true))
+            .WithName("supportingDepartmentId")
+            .WithMessage("فیلتر دپارتمان پشتیبانی و فیلتر شعبه‌های بدون دپارتمان هم‌زمان قابل استفاده نیستند.");
 
         RuleFor(x => x.Search)
             .MaximumLength(500)

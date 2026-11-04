@@ -1,4 +1,4 @@
-﻿using EMS.Application.Common.Models;
+using EMS.Application.Common.Models;
 
 namespace EMS.Application.Dtos.OrganizationHierarchy;
 
@@ -26,6 +26,11 @@ public sealed class OrganizationHierarchyItemDto
     public bool IsActive { get; init; }
 
     public OrganizationHierarchyReferenceDto? Parent { get; init; }
+
+    // فقط برای سطح organization: دپارتمان پشتیبانی شعبه (در سطح‌های دیگر null).
+    public long? SupportingDepartmentId { get; init; }
+
+    public string? SupportingDepartmentTitle { get; init; }
 
     // اجداد بالاتر از والد مستقیم، از بالاترین سطح به پایین.
     public IReadOnlyList<OrganizationHierarchyReferenceDto> Ancestors

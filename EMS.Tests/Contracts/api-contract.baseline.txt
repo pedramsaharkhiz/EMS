@@ -1459,6 +1459,7 @@ GET api/FailureReport
   Query: reportTypeId : Int64[]
   Query: reportedByUserId : Int64[]
   Query: statusId : Int64[]
+  Query: supportingDepartmentId : Int64[]
   response 200: ApiResponse<IReadOnlyList<FailureReportListItemDto>>
     envelope: success, message, data, meta, error, traceId
     data:
@@ -1477,6 +1478,8 @@ GET api/FailureReport
       FailureReportStatusCode : String
       OrganizationId : Int64
       OrganizationTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
       ReportedByUserId : Int64
@@ -1527,6 +1530,8 @@ POST api/FailureReport
       FailureReportStatusCode : String
       OrganizationId : Int64
       OrganizationTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
       ReportedByUserId : Int64
@@ -1581,6 +1586,8 @@ GET api/FailureReport/{id}
       FailureReportStatusCode : String
       OrganizationId : Int64
       OrganizationTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
       ReportedByUserId : Int64
@@ -1635,6 +1642,8 @@ PUT api/FailureReport/{id}
       FailureReportStatusCode : String
       OrganizationId : Int64
       OrganizationTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
       ReportedByUserId : Int64
@@ -1933,7 +1942,9 @@ GET api/OrganizationHierarchy
   Query: ParentLevel : String
   Query: Search : String
   Query: SearchLevel : String
+  Query: SupportingDepartmentId : Int64?
   Query: Title : String
+  Query: WithoutSupportingDepartment : Boolean?
   response 200: ApiResponse<OrganizationHierarchyResponseDto>
     envelope: success, message, data, meta, error, traceId
     data:
@@ -2649,6 +2660,7 @@ GET api/SupportingDepartment
       ProvinceTitle : String
       Title : String
       IsActive : Boolean
+      OrganizationCount : Int32
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -2672,6 +2684,7 @@ POST api/SupportingDepartment
       ProvinceTitle : String
       Title : String
       IsActive : Boolean
+      OrganizationCount : Int32
       RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -2707,6 +2720,7 @@ GET api/SupportingDepartment/{id}
       ProvinceTitle : String
       Title : String
       IsActive : Boolean
+      OrganizationCount : Int32
       RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -2734,7 +2748,60 @@ PUT api/SupportingDepartment/{id}
       ProvinceTitle : String
       Title : String
       IsActive : Boolean
+      OrganizationCount : Int32
       RowVersion : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+DELETE api/SupportingDepartment/{id}/organizations
+  authorization: Permission:SupportingDepartments.Update
+  body: SupportingDepartmentOrganizationsDto
+    OrganizationIds : List<Int64>
+    FieldIds : List<Int64>
+    OrganizationManagementIds : List<Int64>
+    ZoneIds : List<Int64>
+    MoveFromOtherDepartments : Boolean
+  Path: id : Int64 (required)
+  response 200: ApiResponse<SupportingDepartmentOrganizationsResultDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Selected : Int32
+      Assigned : Int32
+      Moved : Int32
+      Unchanged : Int32
+      Removed : Int32
+      TotalOrganizations : Int32
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+POST api/SupportingDepartment/{id}/organizations
+  authorization: Permission:SupportingDepartments.Update
+  body: SupportingDepartmentOrganizationsDto
+    OrganizationIds : List<Int64>
+    FieldIds : List<Int64>
+    OrganizationManagementIds : List<Int64>
+    ZoneIds : List<Int64>
+    MoveFromOtherDepartments : Boolean
+  Path: id : Int64 (required)
+  response 200: ApiResponse<SupportingDepartmentOrganizationsResultDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Selected : Int32
+      Assigned : Int32
+      Moved : Int32
+      Unchanged : Int32
+      Removed : Int32
+      TotalOrganizations : Int32
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>

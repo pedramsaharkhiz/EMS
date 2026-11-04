@@ -1311,6 +1311,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<long?>("SupportingDepartmentId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1323,6 +1326,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationManagementId");
 
                     b.HasIndex("OrganizationTypeId");
+
+                    b.HasIndex("SupportingDepartmentId");
 
                     b.ToTable("Organizations", (string)null);
                 });
@@ -2784,11 +2789,18 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EMS.Domain.Entities.SupportingDepartment", "SupportingDepartment")
+                        .WithMany("Organizations")
+                        .HasForeignKey("SupportingDepartmentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Field");
 
                     b.Navigation("OrganizationManagement");
 
                     b.Navigation("OrganizationType");
+
+                    b.Navigation("SupportingDepartment");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.OrganizationManagement", b =>
@@ -3115,6 +3127,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("CurrentEquipments");
 
                     b.Navigation("EquipmentLocationHistories");
+
+                    b.Navigation("Organizations");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.Table", b =>

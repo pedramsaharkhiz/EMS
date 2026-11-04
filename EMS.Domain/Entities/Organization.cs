@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
 {
@@ -8,6 +8,8 @@ namespace EMS.Domain.Entities
         public long? FieldId { get; set; }
         public long? OrganizationManagementId { get; set; }
         public long OrganizationTypeId { get; set; }
+        /// <summary>The supporting department that serves this branch (one department per branch; null = none yet).</summary>
+        public long? SupportingDepartmentId { get; set; }
         public string Title { get; set; } = null!;
         public string? Code { get; set; }
         public string? Address { get; set; }
@@ -18,6 +20,7 @@ namespace EMS.Domain.Entities
         public Field? Field { get; set; }
         public OrganizationManagement? OrganizationManagement { get; set; }
         public OrganizationType OrganizationType { get; set; } = null!;
+        public SupportingDepartment? SupportingDepartment { get; set; }
         public ICollection<Equipment> CurrentEquipments { get; set; } = new List<Equipment>();
         public ICollection<EquipmentLocationHistory> EquipmentLocationHistories { get; set; } = new List<EquipmentLocationHistory>();
         public ICollection<FailureReport> FailureReports { get; set; } = new List<FailureReport>();
