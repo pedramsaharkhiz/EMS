@@ -295,9 +295,12 @@ public sealed class UserRoleAssignmentService
                 PhoneNumber = user.PhoneNumber,
                 Email = user.Email,
                 SupportingDepartmentId = user.SupportingDepartmentId,
+                PostId = user.PostId,
                 IsActive = user.IsActive
             })
             .ToListAsync(cancellationToken);
+
+        await UserPostLookup.FillAsync(_dbContext, items, cancellationToken);
 
         return new PagedResult<UserListItemDto>
         {

@@ -23,6 +23,9 @@ public sealed class UpdateUserDto
 
     public long? SupportingDepartmentId { get; set; }
 
+    /// <summary>Optional post (سمت); like the other fields, an update replaces it (null clears it).</summary>
+    public long? PostId { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     /// <summary>

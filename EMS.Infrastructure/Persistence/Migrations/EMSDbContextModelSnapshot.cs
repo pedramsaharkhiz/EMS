@@ -1358,6 +1358,83 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("OrganizationTypes", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.Post", b =>
+                {
+                    b.Property<long>("PostId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("PostId"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("PostId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Posts_Title")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("Posts", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            PostId = 1L,
+                            Code = "Technician",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "تکنسین"
+                        },
+                        new
+                        {
+                            PostId = 2L,
+                            Code = "UnitManager",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "مسئول واحد"
+                        },
+                        new
+                        {
+                            PostId = 3L,
+                            Code = "Registrar",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "ثبت‌کننده"
+                        });
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.Province", b =>
                 {
                     b.Property<long>("ProvinceId")
@@ -2088,6 +2165,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<long?>("PostId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("SecurityStamp")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -2112,6 +2192,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("PostId");
 
                     b.HasIndex("SupportingDepartmentId");
 
@@ -2654,10 +2736,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Infrastructure.Persistence.Identity.ApplicationUser", b =>
                 {
+                    b.HasOne("EMS.Domain.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("EMS.Domain.Entities.SupportingDepartment", "SupportingDepartment")
                         .WithMany()
                         .HasForeignKey("SupportingDepartmentId")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Post");
 
                     b.Navigation("SupportingDepartment");
                 });

@@ -22,6 +22,13 @@ public class UserListItemDto
 
     public long? SupportingDepartmentId { get; set; }
 
+    /// <summary>The user's post (سمت), optional; the three system posts have the codes Technician, UnitManager and Registrar.</summary>
+    public long? PostId { get; set; }
+
+    public string? PostCode { get; set; }
+
+    public string? PostTitle { get; set; }
+
     public bool IsActive { get; set; }
 
     public List<UserRoleSummaryDto> Roles { get; set; } = [];

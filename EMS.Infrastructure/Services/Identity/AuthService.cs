@@ -140,6 +140,7 @@ namespace EMS.Infrastructure.Services.Identity
             }
 
             var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
+            var post = await GetPostAsync(user.PostId, cancellationToken);
             var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
@@ -150,6 +151,9 @@ namespace EMS.Infrastructure.Services.Identity
                 UserId = user.Id,
                 UserName = user.UserName ?? string.Empty,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                PostId = user.PostId,
+                PostCode = post?.Code,
+                PostTitle = post?.Title,
                 Roles = roles.ToList(),
                 Permissions = permissions.ToList(),
                 AccessToken = accessTokenResult.Token,
@@ -216,6 +220,7 @@ namespace EMS.Infrastructure.Services.Identity
         private async Task<AuthResponseDto> BuildAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
         {
             var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
+            var post = await GetPostAsync(user.PostId, cancellationToken);
             var tokenUser = new TokenUserDto(Id: user.Id, UserName: user.UserName ?? string.Empty, Email: user.Email ?? string.Empty, Roles: roles.ToList(), Permissions: permissions.ToList(), FirstName: user.FirstName, LastName: user.LastName, SecurityStamp: user.SecurityStamp);
             var accessTokenResult = await _tokenService.GenerateAccessTokenAsync(tokenUser);
 
@@ -262,6 +267,9 @@ namespace EMS.Infrastructure.Services.Identity
                 UserId = user.Id,
                 UserName = user.UserName ?? string.Empty,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                PostId = user.PostId,
+                PostCode = post?.Code,
+                PostTitle = post?.Title,
                 Roles = roles.ToList(),
                 Permissions = permissions.ToList(),
                 AccessToken = accessTokenResult.Token,
@@ -276,6 +284,19 @@ namespace EMS.Infrastructure.Services.Identity
         /// removing a role from a user or deactivating a role is a soft change (IsActive = false), and
         /// UserManager.GetRolesAsync would still report such roles.
         /// </summary>
+        /// <summary>The user's post (a deactivated post is still reported: the user keeps the post they had).</summary>
+        private async Task<(string? Code, string? Title)?> GetPostAsync(long? postId, CancellationToken cancellationToken)
+        {
+            if (!postId.HasValue)
+                return null;
+
+            var post = await _dbContext.Posts.IncludingInactive().AsNoTracking()
+                .Where(p => p.PostId == postId.Value)
+                .Select(p => new { p.Code, p.Title })
+                .FirstOrDefaultAsync(cancellationToken);
+            return post is null ? null : (post.Code, post.Title);
+        }
+
         private async Task<(List<string> Roles, List<string> Permissions)> GetActiveAccessAsync(long userId, CancellationToken cancellationToken)
         {
             var activeRoles = await (

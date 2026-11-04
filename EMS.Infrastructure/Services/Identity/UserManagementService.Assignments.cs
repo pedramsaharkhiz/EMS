@@ -102,6 +102,25 @@ public sealed partial class UserManagementService
                     };
                 break;
 
+            case "post":
+                members =
+                    from user in users
+                    join post in _dbContext.Posts
+                            .IncludingInactive()
+                        on user.PostId
+                        equals (long?)post.PostId
+                        into matches
+                    from post in matches.DefaultIfEmpty()
+                    select new GroupMember
+                    {
+                        UserId = user.Id,
+                        Key = user.PostId,
+                        Name = post == null
+                            ? "بدون سمت"
+                            : post.Title
+                    };
+                break;
+
             default: // isActive
                 members = users.Select(u => new GroupMember
                 {
@@ -180,11 +199,11 @@ public sealed partial class UserManagementService
             .ToLowerInvariant();
 
         if (grouped &&
-            group is not ("role" or "skill" or "department" or "isactive"))
+            group is not ("role" or "skill" or "department" or "post" or "isactive"))
         {
             throw new FluentValidation.ValidationException(new[]
             {
-                new FluentValidation.Results.ValidationFailure("groupBy", "گروه‌بندی باید role، skill، department یا isActive باشد.")
+                new FluentValidation.Results.ValidationFailure("groupBy", "گروه‌بندی باید role، skill، department، post یا isActive باشد.")
             });
         }
 
@@ -375,6 +394,7 @@ public sealed partial class UserManagementService
         CancellationToken ct)
     {
         var detail = MapDetail(user);
+        await UserPostLookup.FillAsync(_dbContext, new[] { detail }, ct);
 
         detail.Roles = await ActiveRoleMembers()
             .Where(x => x.UserId == user.Id)
@@ -483,6 +503,11 @@ public sealed partial class UserManagementService
             query = query.Where(x =>
                 x.SupportingDepartmentId ==
                 request.SupportingDepartmentId.Value);
+        }
+
+        if (request.PostId.HasValue)
+        {
+            query = query.Where(x => x.PostId == request.PostId.Value);
         }
 
         if (request.IsActive.HasValue)
