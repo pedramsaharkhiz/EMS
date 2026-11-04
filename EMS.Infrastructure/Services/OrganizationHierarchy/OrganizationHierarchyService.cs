@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using EMS.Application.Common.Models;
+﻿using EMS.Application.Common.Models;
 using EMS.Application.Dtos.OrganizationHierarchy;
 using EMS.Application.Interfaces.OrganizationHierarchy;
 using EMS.Infrastructure.Persistence;
@@ -33,7 +32,6 @@ public sealed class OrganizationHierarchyService
 
         var level = Normalize(request.SearchLevel);
         var parentLevel = Normalize(request.ParentLevel);
-        var groupBy = Normalize(request.GroupBy);
 
         var query = BuildQuery(level);
 
@@ -61,6 +59,7 @@ public sealed class OrganizationHierarchyService
             };
         }
 
+        // وضعیت فقط روی رکورد سطح نتیجه اعمال می‌شود.
         if (request.IsActive.HasValue)
         {
             var isActive = request.IsActive.Value;
@@ -91,17 +90,29 @@ public sealed class OrganizationHierarchyService
             query = query.Where(x => x.Code == code);
         }
 
-        return groupBy.Length == 0
-            ? await GetListAsync(
-                query,
-                level,
-                request,
-                cancellationToken)
-            : await GetGroupsAsync(
-                query,
-                groupBy,
-                request,
-                cancellationToken);
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var skip = checked(
+            (int)(((long)request.PageNumber - 1) * request.PageSize));
+
+        // مرتب‌سازی ثابت و قطعی برای صفحه‌بندی.
+        var rows = await query
+            .OrderBy(x => x.Title)
+            .ThenBy(x => x.Id)
+            .Skip(skip)
+            .Take(request.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new OrganizationHierarchyResult
+        {
+            Data = new OrganizationHierarchyResponseDto
+            {
+                Items = rows
+                    .Select(x => MapItem(x, level))
+                    .ToList()
+            },
+            Pagination = CreatePagination(request, totalCount)
+        };
     }
 
     private IQueryable<HierarchyRow> BuildQuery(string level)
@@ -229,211 +240,6 @@ public sealed class OrganizationHierarchyService
         };
     }
 
-    private static async Task<OrganizationHierarchyResult> GetListAsync(
-        IQueryable<HierarchyRow> query,
-        string level,
-        OrganizationHierarchyRequestDto request,
-        CancellationToken cancellationToken)
-    {
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var descending = Normalize(request.SortDirection) == "desc";
-
-        var sortBy = Normalize(request.SortBy);
-
-        IOrderedQueryable<HierarchyRow> ordered = sortBy switch
-        {
-            "id" => descending
-                ? query.OrderByDescending(x => x.Id)
-                : query.OrderBy(x => x.Id),
-
-            "code" => descending
-                ? query.OrderByDescending(x => x.Code).ThenBy(x => x.Id)
-                : query.OrderBy(x => x.Code).ThenBy(x => x.Id),
-
-            _ => descending
-                ? query.OrderByDescending(x => x.Title).ThenBy(x => x.Id)
-                : query.OrderBy(x => x.Title).ThenBy(x => x.Id)
-        };
-
-        var rows = await ordered
-            .Skip(GetSkip(request))
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var items = rows
-            .Select(x => MapItem(x, level))
-            .ToList();
-
-        return new OrganizationHierarchyResult
-        {
-            Data = new OrganizationHierarchyResponseDto
-            {
-                Mode = "list",
-                Items = items,
-                Groups = null
-            },
-            Pagination = CreatePagination(request, totalCount)
-        };
-    }
-
-    private static async Task<OrganizationHierarchyResult> GetGroupsAsync(
-        IQueryable<HierarchyRow> query,
-        string groupBy,
-        OrganizationHierarchyRequestDto request,
-        CancellationToken cancellationToken)
-    {
-        var keys = BuildGroupKeys(query, groupBy);
-
-        var groups = keys
-            .GroupBy(x => new
-            {
-                x.Id,
-                x.Level,
-                x.Name,
-                x.State
-            })
-            .Select(x => new GroupRow
-            {
-                Id = x.Key.Id,
-                Level = x.Key.Level,
-                Name = x.Key.Name,
-                State = x.Key.State,
-                Count = x.Count()
-            });
-
-        // تعداد گروه‌ها، نه تعداد اعضای گروه‌ها.
-        var totalCount = await groups.CountAsync(cancellationToken);
-
-        var descending = Normalize(request.SortDirection) == "desc";
-
-        var sortBy = Normalize(request.SortBy);
-
-        IOrderedQueryable<GroupRow> ordered = sortBy switch
-        {
-            "count" => descending
-                ? groups.OrderByDescending(x => x.Count)
-                : groups.OrderBy(x => x.Count),
-
-            "key" when groupBy == "isactive" => descending
-                ? groups.OrderByDescending(x => x.State)
-                : groups.OrderBy(x => x.State),
-
-            "key" => descending
-                ? groups.OrderByDescending(x => x.Level)
-                    .ThenByDescending(x => x.Id)
-                : groups.OrderBy(x => x.Level)
-                    .ThenBy(x => x.Id),
-
-            _ => descending
-                ? groups.OrderByDescending(x => x.Name)
-                : groups.OrderBy(x => x.Name)
-        };
-
-        // ترتیب قطعی برای صفحه‌بندی پایدار.
-        var rows = await ordered
-            .ThenBy(x => x.Level)
-            .ThenBy(x => x.Id)
-            .ThenBy(x => x.State)
-            .Skip(GetSkip(request))
-            .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
-
-        var result = rows.Select(x =>
-            new OrganizationHierarchyGroupDto
-            {
-                Key = GetGroupKey(x, groupBy),
-                Level = x.Level,
-                Name = x.Name,
-                Count = x.Count
-            }).ToList();
-
-        return new OrganizationHierarchyResult
-        {
-            Data = new OrganizationHierarchyResponseDto
-            {
-                Mode = "grouped",
-                Items = null,
-                Groups = result
-            },
-            Pagination = CreatePagination(request, totalCount)
-        };
-    }
-
-    private static IQueryable<GroupKeyRow> BuildGroupKeys(
-        IQueryable<HierarchyRow> query,
-        string groupBy)
-    {
-        return groupBy switch
-        {
-            "zone" => query.Select(x => new GroupKeyRow
-            {
-                Id = x.ZoneId,
-                Level = "zone",
-                Name = x.ZoneTitle ?? "بدون ناحیه",
-                State = null
-            }),
-
-            "organizationmanagement" => query.Select(x => new GroupKeyRow
-            {
-                Id = x.ManagementId,
-                Level = "organizationManagement",
-                Name = x.ManagementTitle ?? "بدون مدیریت شعب",
-                State = null
-            }),
-
-            "field" => query.Select(x => new GroupKeyRow
-            {
-                Id = x.FieldId,
-                Level = "field",
-                Name = x.FieldTitle ?? "بدون حوزه",
-                State = null
-            }),
-
-            "parent" => query.Select(x => new GroupKeyRow
-            {
-                Id = x.ParentId,
-                Level = x.ParentLevel ?? "none",
-                Name = x.ParentTitle ?? "بدون والد",
-                State = null
-            }),
-
-            "isactive" => query.Select(x => new GroupKeyRow
-            {
-                Id = null,
-                Level = "isActive",
-                Name = x.IsActive ? "فعال" : "غیرفعال",
-                State = x.IsActive
-            }),
-
-            _ => throw new InvalidOperationException(
-                "گروه‌بندی باید پیش از اجرای Query اعتبارسنجی شود.")
-        };
-    }
-
-    private static string? GetGroupKey(
-        GroupRow row,
-        string groupBy)
-    {
-        if (groupBy == "isactive")
-        {
-            return row.State == true ? "true" : "false";
-        }
-
-        if (!row.Id.HasValue)
-        {
-            return null;
-        }
-
-        var id = row.Id.Value.ToString(CultureInfo.InvariantCulture);
-
-        // شناسه حوزه و مدیریت ممکن است یکسان باشد.
-        // در گروه‌بندی والد، هویت گروه باید سطح‌دار باشد.
-        return groupBy == "parent"
-            ? $"{row.Level}:{id}"
-            : id;
-    }
-
     private static OrganizationHierarchyItemDto MapItem(
         HierarchyRow row,
         string level)
@@ -488,7 +294,14 @@ public sealed class OrganizationHierarchyService
             Code = row.Code,
             IsActive = row.IsActive,
             Parent = parent,
+
+            // والد مستقیم در Ancestors تکرار نمی‌شود.
             Ancestors = ancestors
+                .Where(x =>
+                    parent == null ||
+                    x.Id != parent.Id ||
+                    x.Level != parent.Level)
+                .ToList()
         };
     }
 
@@ -523,13 +336,6 @@ public sealed class OrganizationHierarchyService
             HasPreviousPage = request.PageNumber > 1,
             HasNextPage = request.PageNumber < totalPages
         };
-    }
-
-    private static int GetSkip(
-        OrganizationHierarchyRequestDto request)
-    {
-        return checked(
-            (int)(((long)request.PageNumber - 1) * request.PageSize));
     }
 
     private static string Normalize(string? value)
@@ -572,29 +378,5 @@ public sealed class OrganizationHierarchyService
         public string? ParentTitle { get; set; }
 
         public string? ParentCode { get; set; }
-    }
-
-    private sealed class GroupKeyRow
-    {
-        public long? Id { get; set; }
-
-        public string Level { get; set; } = string.Empty;
-
-        public string Name { get; set; } = string.Empty;
-
-        public bool? State { get; set; }
-    }
-
-    private sealed class GroupRow
-    {
-        public long? Id { get; set; }
-
-        public string Level { get; set; } = string.Empty;
-
-        public string Name { get; set; } = string.Empty;
-
-        public bool? State { get; set; }
-
-        public int Count { get; set; }
     }
 }

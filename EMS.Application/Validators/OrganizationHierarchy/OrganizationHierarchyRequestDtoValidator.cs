@@ -28,7 +28,8 @@ public sealed class OrganizationHierarchyRequestDtoValidator
         RuleFor(x => x.ParentId)
             .GreaterThan(0)
             .When(x => x.ParentId.HasValue)
-            .WithMessage("شناسه والد باید بزرگ‌تر از صفر باشد.");
+            .WithMessage(
+                "شناسه والد باید بزرگ‌تر از صفر باشد.");
 
         RuleFor(x => x.ParentLevel)
             .Must((request, parentLevel) =>
@@ -38,42 +39,24 @@ public sealed class OrganizationHierarchyRequestDtoValidator
             .WithMessage(
                 "سطح والد باید بالاتر از سطح جستجو باشد.");
 
-        RuleFor(x => x.GroupBy)
-            .Must((request, groupBy) =>
-                OrganizationHierarchyRules.IsValidGroup(
-                    request.SearchLevel,
-                    groupBy))
-            .WithMessage(
-                "گروه‌بندی انتخاب‌شده برای این سطح جستجو معتبر نیست.");
-
-        RuleFor(x => x.SortBy)
-            .Must((request, sortBy) =>
-                OrganizationHierarchyRules.IsValidSort(
-                    request.GroupBy,
-                    sortBy))
-            .WithMessage(
-                "ستون مرتب‌سازی برای نوع خروجی انتخاب‌شده معتبر نیست.");
-
-        RuleFor(x => x.SortDirection)
-            .Must(x =>
-                OrganizationHierarchyRules.Normalize(x)
-                    is "asc" or "desc")
-            .WithMessage("جهت مرتب‌سازی باید asc یا desc باشد.");
-
         RuleFor(x => x.PageNumber)
             .GreaterThanOrEqualTo(1)
-            .WithMessage("شماره صفحه باید حداقل ۱ باشد.");
+            .WithMessage(
+                "شماره صفحه باید حداقل ۱ باشد.");
 
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100)
-            .WithMessage("اندازه صفحه باید بین ۱ تا ۱۰۰ باشد.");
+            .WithMessage(
+                "اندازه صفحه باید بین ۱ تا ۱۰۰ باشد.");
 
         RuleFor(x => x)
             .Must(x =>
                 x.PageNumber < 1 ||
                 x.PageSize < 1 ||
-                ((long)x.PageNumber - 1) * x.PageSize <= int.MaxValue)
-            .WithMessage("شماره صفحه خارج از محدوده مجاز است.");
+                ((long)x.PageNumber - 1) * x.PageSize
+                    <= int.MaxValue)
+            .WithMessage(
+                "شماره صفحه خارج از محدوده مجاز است.");
 
         RuleFor(x => x.Search)
             .MaximumLength(500)

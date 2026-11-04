@@ -19,13 +19,8 @@ public sealed class OrganizationHierarchyController : BaseApiController
 
     [HttpGet]
     [Permission(Permissions.OrganizationHierarchy.View)]
-    [ProducesResponseType<
-        ApiResponse<OrganizationHierarchyResponseDto>>(
-        StatusCodes.Status200OK)]
-    public async Task<
-        ActionResult<ApiResponse<OrganizationHierarchyResponseDto>>>
-        Get(
-            [FromQuery] OrganizationHierarchyRequestDto request,
+    [ProducesResponseType<ApiResponse<OrganizationHierarchyResponseDto>>( StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<OrganizationHierarchyResponseDto>>> Get([FromQuery] OrganizationHierarchyRequestDto request,
             CancellationToken cancellationToken)
     {
         var result = await _service.GetAsync(

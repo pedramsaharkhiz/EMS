@@ -27,6 +27,7 @@ public sealed class OrganizationHierarchyItemDto
 
     public OrganizationHierarchyReferenceDto? Parent { get; init; }
 
+    // اجداد بالاتر از والد مستقیم، از بالاترین سطح به پایین.
     public IReadOnlyList<OrganizationHierarchyReferenceDto> Ancestors
     {
         get;
@@ -34,36 +35,17 @@ public sealed class OrganizationHierarchyItemDto
     } = [];
 }
 
-public sealed class OrganizationHierarchyGroupDto
-{
-    public string? Key { get; init; }
-
-    public string Level { get; init; } = string.Empty;
-
-    public string Name { get; init; } = string.Empty;
-
-    public int Count { get; init; }
-}
-
 public sealed class OrganizationHierarchyResponseDto
 {
-    public string Mode { get; init; } = "list";
-
-    public IReadOnlyList<OrganizationHierarchyItemDto>? Items
+    public IReadOnlyList<OrganizationHierarchyItemDto> Items
     {
         get;
         init;
-    }
-
-    public IReadOnlyList<OrganizationHierarchyGroupDto>? Groups
-    {
-        get;
-        init;
-    }
+    } = [];
 }
 
-// نتیجه داخلی سرویس؛ Controller اطلاعات صفحه‌بندی را
-// در meta.pagination قرار می‌دهد.
+// نتیجه داخلی سرویس.
+// Controller اطلاعات Pagination را در meta.pagination قرار می‌دهد.
 public sealed class OrganizationHierarchyResult
 {
     public OrganizationHierarchyResponseDto Data { get; init; } = new();
