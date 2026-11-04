@@ -42,6 +42,7 @@ namespace EMS.Application.Common.Exceptions
         // equipment
         public const string DuplicateYaasCode = "duplicate_yaas_code";
         public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
+        public const string DuplicateReferenceNumber = "duplicate_reference_number";
         public const string BulkItemsInvalid = "bulk_items_invalid";
 
         // exports

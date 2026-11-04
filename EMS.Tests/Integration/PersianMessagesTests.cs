@@ -115,6 +115,22 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task Failure_report_messages_are_persian()
+        {
+            var longText = new string('x', 600);
+            await AssertPersianAsync("report empty", await RawAsync(HttpMethod.Post, "/api/FailureReport", "{}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report bad fields", await RawAsync(HttpMethod.Post, "/api/FailureReport",
+                "{\"equipmentId\":0,\"failureTypeId\":-1,\"reportTypeId\":0,\"organizationId\":0,\"employeeId\":0,\"priorityId\":9,\"referenceNumber\":\"" + longText + "\",\"description\":\"" + longText + "\",\"reportedDateTime\":\"2999-01-01T00:00:00Z\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report wrong json type", await RawAsync(HttpMethod.Post, "/api/FailureReport", "{\"equipmentId\":\"abc\",\"reportedDateTime\":\"not a date\"}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("report unknown refs", await RawAsync(HttpMethod.Post, "/api/FailureReport",
+                "{\"equipmentId\":99999999,\"failureTypeId\":99999999,\"reportTypeId\":99999999,\"organizationId\":99999999,\"priorityId\":3}"), HttpStatusCode.NotFound);
+            await AssertPersianAsync("report not found", await RawAsync(HttpMethod.Get, "/api/FailureReport/99999999", null), HttpStatusCode.NotFound);
+            await AssertPersianAsync("report list", await RawAsync(HttpMethod.Get, "/api/FailureReport?pageSize=0&priorityId=9&statusId=0&reportedFrom=2026-05-01T00:00:00Z&reportedTo=2026-01-01T00:00:00Z&search=" + longText, null), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("failure type no category", await RawAsync(HttpMethod.Post, "/api/FailureType", "{\"title\":\"x\",\"failureCategoryId\":0}"), HttpStatusCode.BadRequest);
+            await AssertPersianAsync("action description", await RawAsync(HttpMethod.Post, "/api/Action", "{\"title\":\"x\",\"description\":\"" + longText + "\"}"), HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
         public async Task A_non_json_body_is_a_415_in_the_error_envelope_in_persian()
         {
             var response = await RawAsync(HttpMethod.Post, "/api/Brand", "hello", "text/plain");

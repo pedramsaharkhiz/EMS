@@ -1,22 +1,22 @@
-﻿using EMS.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using EMS.Domain.Entities;
+using EMS.Domain.ReadModels;
 
 namespace EMS.Domain.Interfaces
 {
     public interface IFailureReportRepository : IRepository<FailureReport>
     {
-        Task<FailureReport?> GetDetailsAsync(long id, CancellationToken cancellationToken = default);
+        /// <summary>Loads a report for modification, active or not (a deactivated one can still be edited and restored).</summary>
+        Task<FailureReport?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default);
 
-        Task<List<FailureReport>> GetByOrganizationIdAsync(long organizationId, CancellationToken cancellationToken = default);
+        /// <summary>Read-only flattened reports: the active ones, or with false the deactivated ones.</summary>
+        IQueryable<FailureReportRow> QueryRows(bool active);
 
-        Task<List<FailureReport>> GetByReportTypeIdAsync(long reportTypeId, CancellationToken cancellationToken = default);
+        Task<FailureReportRow?> GetRowAsync(long id, CancellationToken cancellationToken = default);
 
-        Task<List<FailureReport>> GetByFailureTypeIdAsync(long failureTypeId, CancellationToken cancellationToken = default);
+        /// <summary>Is the reference number used by another ACTIVE report? (any casing; a deactivated one does not reserve it)</summary>
+        Task<bool> ReferenceNumberExistsAsync(string referenceNumber, long? exceptId = null, CancellationToken cancellationToken = default);
 
-        //Task<List<FailureReport>> GetByStatusIdAsync(long failureReportStatusId, CancellationToken cancellationToken = default);
-
-        Task<List<FailureReport>> GetOpenReportsAsync(CancellationToken cancellationToken = default);
+        /// <summary>The registering user must exist (any user, active or not, is a valid history).</summary>
+        Task<string?> GetUserNameAsync(long userId, CancellationToken cancellationToken = default);
     }
 }
