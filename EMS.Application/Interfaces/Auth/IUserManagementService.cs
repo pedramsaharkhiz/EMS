@@ -8,11 +8,6 @@ public interface IUserManagementService
     Task<PagedResult<UserListItemDto>> GetPagedAsync(
         UserListRequestDto request,
         CancellationToken cancellationToken = default);
-
-    Task<PagedResult<UserGroupDto>> GetGroupedAsync(
-        UserListRequestDto request,
-        CancellationToken cancellationToken = default);
-
     Task<UserDetailDto?> GetByIdAsync(
         long id,
         CancellationToken cancellationToken = default);

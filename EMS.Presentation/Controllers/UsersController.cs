@@ -41,22 +41,6 @@ public sealed class UsersController : BaseApiController
     }
 
 
-    // GET: /api/Users/groups
-    // Counts cover all matching users; pagination is over groups.
-    [Permission(Permissions.Users.View)]
-    [HttpGet("groups")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<UserGroupDto>>>>
-        GetGrouped(
-            [FromQuery] UserListRequestDto request,
-            CancellationToken cancellationToken)
-    {
-        var result = await _users.GetGroupedAsync(
-            request,
-            cancellationToken);
-
-        return Paged(result);
-    }
-
     // GET: /api/Users/10
     [Permission(Permissions.Users.View)]
     [HttpGet("{id:long}")]
