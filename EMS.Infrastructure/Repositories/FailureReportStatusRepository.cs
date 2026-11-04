@@ -9,11 +9,9 @@ namespace EMS.Infrastructure.Repositories
     {
         public FailureReportStatusRepository(EMSDbContext context) : base(context) { }
 
-        public override Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
+        public override async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
         {
-            // TODO: return true while ACTIVE records still reference this one, e.g.
-            //   return await _context.SomethingElse.AnyAsync(x => x.FailureReportStatusId == id && x.IsActive, cancellationToken);
-            return Task.FromResult(false);
+            return await _context.FailureReports.AnyAsync(x => x.FailureReportStatusId == id && x.IsActive, cancellationToken);
         }
     }
 }

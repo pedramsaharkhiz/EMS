@@ -972,6 +972,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long>("EquipmentId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("FailureReportStatusId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("FailureTypeId")
                         .HasColumnType("bigint");
 
@@ -984,6 +987,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<long>("OrganizationId")
@@ -999,6 +1003,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long>("ReportTypeId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ReportedByUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("ReportedDateTime")
                         .HasColumnType("datetime2");
 
@@ -1008,11 +1015,23 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EquipmentId");
 
+                    b.HasIndex("FailureReportStatusId");
+
                     b.HasIndex("FailureTypeId");
 
                     b.HasIndex("OrganizationId");
 
+                    b.HasIndex("ReferenceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FailureReports_ReferenceNumber")
+                        .HasFilter("[IsActive] = 1 AND [ReferenceNumber] IS NOT NULL");
+
                     b.HasIndex("ReportTypeId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("ReportedDateTime")
+                        .HasDatabaseName("IX_FailureReports_ReportedDateTime");
 
                     b.ToTable("FailureReports", (string)null);
                 });
@@ -2663,6 +2682,12 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EMS.Domain.Entities.FailureReportStatus", "FailureReportStatus")
+                        .WithMany("FailureReports")
+                        .HasForeignKey("FailureReportStatusId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.HasOne("EMS.Domain.Entities.FailureType", "FailureType")
                         .WithMany("FailureReports")
                         .HasForeignKey("FailureTypeId")
@@ -2681,9 +2706,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("EMS.Infrastructure.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
                     b.Navigation("Employee");
 
                     b.Navigation("Equipment");
+
+                    b.Navigation("FailureReportStatus");
 
                     b.Navigation("FailureType");
 
@@ -3015,6 +3048,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("FailureReportActions");
 
                     b.Navigation("TechnicianAssignments");
+                });
+
+            modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
+                {
+                    b.Navigation("FailureReports");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
