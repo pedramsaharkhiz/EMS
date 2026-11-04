@@ -462,6 +462,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("Owner")
+                        .HasColumnType("int");
+
                     b.Property<string>("SerialNumber")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");

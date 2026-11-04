@@ -1,3 +1,5 @@
+using EMS.Domain.Enums;
+
 namespace EMS.Domain.ReadModels
 {
     /// <summary>
@@ -8,6 +10,7 @@ namespace EMS.Domain.ReadModels
     public sealed class EquipmentRow
     {
         public long Id { get; set; }
+        public EquipmentOwner Owner { get; set; }
         public string YaasCode { get; set; } = string.Empty;
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }

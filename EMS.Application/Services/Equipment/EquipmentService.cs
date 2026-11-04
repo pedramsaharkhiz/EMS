@@ -35,6 +35,7 @@ namespace EMS.Application.Services.Equipment
             .Contains(r => r.YaasCode, x => x.YaasCode)
             .Contains(r => r.SerialNumber, x => x.SerialNumber)
             .Contains(r => r.AssetNumber, x => x.AssetNumber)
+            .AnyOf(r => r.Owners, x => x.Owner)
             .AnyOf(r => r.StatusIds, x => x.StatusId)
             .AnyOf(r => r.CategoryIds, x => x.CategoryId)
             .AnyOf(r => r.TypeIds, x => x.EffectiveTypeId)
@@ -54,6 +55,7 @@ namespace EMS.Application.Services.Equipment
 
         // The sortBy values the list accepts (the default order is by id).
         private static readonly SortBuilder<EquipmentRow> Sorting = new SortBuilder<EquipmentRow>()
+            .By("owner", x => x.Owner)
             .By("yaascode", x => x.YaasCode)
             .By("serialnumber", x => x.SerialNumber)
             .By("assetnumber", x => x.AssetNumber)
@@ -193,6 +195,7 @@ namespace EMS.Application.Services.Equipment
 
             var entity = new EquipmentEntity
             {
+                Owner = request.Owner,
                 YaasCode = yaasCode,
                 SerialNumber = Normalize(request.SerialNumber),
                 AssetNumber = Normalize(request.AssetNumber),
@@ -273,6 +276,7 @@ namespace EMS.Application.Services.Equipment
                 var location = ToLocation(item);
                 var entity = new EquipmentEntity
                 {
+                    Owner = item.Owner,
                     YaasCode = item.YaasCode.Trim(),
                     SerialNumber = Normalize(item.SerialNumber),
                     AssetNumber = Normalize(item.AssetNumber),
@@ -332,6 +336,7 @@ namespace EMS.Application.Services.Equipment
             if (request.IsActive && (reactivating || !string.Equals(entity.YaasCode, yaasCode, StringComparison.OrdinalIgnoreCase)))
                 await EnsureYaasCodeIsFreeAsync(yaasCode, id, cancellationToken);
 
+            entity.Owner = request.Owner;
             entity.YaasCode = yaasCode;
             entity.SerialNumber = Normalize(request.SerialNumber);
             entity.AssetNumber = Normalize(request.AssetNumber);
@@ -410,6 +415,7 @@ namespace EMS.Application.Services.Equipment
         private static TDto Fill<TDto>(TDto dto, EquipmentRow row) where TDto : EquipmentListItemDto
         {
             dto.Id = row.Id;
+            dto.Owner = row.Owner;
             dto.YaasCode = row.YaasCode;
             dto.SerialNumber = row.SerialNumber;
             dto.AssetNumber = row.AssetNumber;

@@ -1,4 +1,5 @@
 using EMS.Application.Common.Models;
+using EMS.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EMS.Application.Dtos.Equipment
@@ -6,7 +7,7 @@ namespace EMS.Application.Dtos.Equipment
     /// <summary>
     /// The equipment list and the Excel export take the same filters (the export ignores paging). Id filters accept several
     /// values: <c>?statusId=1&amp;statusId=2</c>. Text filters contain-match. Everything is optional and combined with AND.
-    /// Sort with <c>sortBy</c>: yaasCode, serialNumber, assetNumber, category, type, model, brand, status, locationType,
+    /// Sort with <c>sortBy</c>: owner, yaasCode, serialNumber, assetNumber, category, type, model, brand, status, locationType,
     /// organization, department, city, province, technician, createdDateTime (default: id).
     /// </summary>
     public class EquipmentListRequestDto : PagedRequest
@@ -17,6 +18,7 @@ namespace EMS.Application.Dtos.Equipment
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }
 
+        [FromQuery(Name = "owner")] public EquipmentOwner[]? Owners { get; set; }
         [FromQuery(Name = "statusId")] public long[]? StatusIds { get; set; }
         [FromQuery(Name = "categoryId")] public long[]? CategoryIds { get; set; }
         /// <summary>Matches the effective type (the equipment's own type, or the type of its model).</summary>

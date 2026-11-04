@@ -3,6 +3,7 @@ using EMS.Application.Common.Security;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Dtos.EquipmentLocationHistory;
 using EMS.Application.Interfaces.Equipment;
+using EMS.Domain.Enums;
 using EMS.Presentation.Conventions;
 using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
@@ -83,5 +84,31 @@ namespace EMS.Presentation.Controllers
             await _service.DeleteAsync(id, cancellationToken);
             return Deleted("با موفقیت غیرفعال شد.");
         }
+
+        /// <summary>
+        /// فهرست مالکان قابل انتخاب برای تجهیز.
+        /// </summary>
+        [Permission(Permissions.Equipments.View)]
+        [HttpGet("owners")]
+        public ActionResult<ApiResponse<IReadOnlyList<EquipmentOwnerItemDto>>> GetOwners()
+        {
+            IReadOnlyList<EquipmentOwnerItemDto> owners =
+                Enum.GetValues<EquipmentOwner>()
+                    .Select(owner => new EquipmentOwnerItemDto
+                    {
+                        Id = (int)owner,
+                        Name = owner.ToString(),
+                        Title = owner switch
+                        {
+                            EquipmentOwner.Company => "شرکت",
+                            EquipmentOwner.Bank => "بانک",
+                            _ => owner.ToString()
+                        }
+                    })
+                    .ToList();
+
+            return Success(owners);
+        }
+
     }
 }

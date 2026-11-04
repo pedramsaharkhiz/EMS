@@ -82,6 +82,7 @@ namespace EMS.Infrastructure.Repositories
             source.Select(e => new EquipmentRow
             {
                 Id = e.EquipmentId,
+                Owner = e.Owner,
                 YaasCode = e.YaasCode,
                 SerialNumber = e.SerialNumber,
                 AssetNumber = e.AssetNumber,

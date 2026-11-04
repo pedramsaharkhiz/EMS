@@ -1,8 +1,13 @@
+using EMS.Domain.Enums;
+
 namespace EMS.Application.Dtos.Equipment
 {
-    /// <summary>Creates an equipment. Exactly one of <see cref="EquipmentTypeId"/> / <see cref="EquipmentModelId"/> is required.</summary>
+    /// <summary>
+    /// Creates an equipment. Exactly one of EquipmentTypeId / EquipmentModelId is required.
+    /// </summary>
     public class EquipmentCreateDto
     {
+        public EquipmentOwner Owner { get; set; }
         public string YaasCode { get; set; } = string.Empty;
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }

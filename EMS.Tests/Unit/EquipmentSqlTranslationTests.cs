@@ -3,6 +3,7 @@ using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Services.Equipment;
+using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
 using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Persistence;
@@ -50,11 +51,27 @@ namespace EMS.Tests.Unit
 
         private static EquipmentListRequestDto EveryFilter() => new()
         {
-            Search = "ab", YaasCode = "y", SerialNumber = "s", AssetNumber = "a",
-            StatusIds = new long[] { 1, 2 }, CategoryIds = new long[] { 1 }, TypeIds = new long[] { 1, 2 }, ModelIds = new long[] { 3 }, BrandIds = new long[] { 4 },
-            LocationTypeIds = new long[] { 5 }, OrganizationIds = new long[] { 6 }, FieldIds = new long[] { 7 }, OrganizationManagementIds = new long[] { 8 }, ZoneIds = new long[] { 9 },
-            SupportingDepartmentIds = new long[] { 10 }, CityIds = new long[] { 11 }, ProvinceIds = new long[] { 12 }, TechnicianUserIds = new long[] { 13 },
-            CreatedFrom = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), CreatedTo = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Owners = new[] { EquipmentOwner.Company, EquipmentOwner.Bank },
+            Search = "ab",
+            YaasCode = "y",
+            SerialNumber = "s",
+            AssetNumber = "a",
+            StatusIds = new long[] { 1, 2 },
+            CategoryIds = new long[] { 1 },
+            TypeIds = new long[] { 1, 2 },
+            ModelIds = new long[] { 3 },
+            BrandIds = new long[] { 4 },
+            LocationTypeIds = new long[] { 5 },
+            OrganizationIds = new long[] { 6 },
+            FieldIds = new long[] { 7 },
+            OrganizationManagementIds = new long[] { 8 },
+            ZoneIds = new long[] { 9 },
+            SupportingDepartmentIds = new long[] { 10 },
+            CityIds = new long[] { 11 },
+            ProvinceIds = new long[] { 12 },
+            TechnicianUserIds = new long[] { 13 },
+            CreatedFrom = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            CreatedTo = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         };
 
         private static (EquipmentService Service, CapturingExporter Exporter, EMSDbContext Context) NewService()
