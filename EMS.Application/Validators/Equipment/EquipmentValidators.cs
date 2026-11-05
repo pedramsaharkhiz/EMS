@@ -58,18 +58,24 @@ namespace EMS.Application.Validators.Equipment
                 .NotNull().WithMessage("ردیف تجهیز نمی‌تواند خالی باشد.")
                 .SetValidator(new CreateEquipmentDtoValidator()!);
 
-            // The same Yaas code twice in one request: the later rows are refused.
+            // The same serial number or asset number twice in one request (they are unique): the later rows are refused. The Yaas code may repeat.
             RuleFor(x => x.Items).Custom((items, context) =>
             {
                 if (items is null) return;
-                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                for (var i = 0; i < items.Count; i++)
-                {
-                    var code = items[i]?.YaasCode?.Trim();
-                    if (!string.IsNullOrEmpty(code) && !seen.Add(code))
-                        context.AddFailure($"Items[{i}].YaasCode", "یاس کد در این درخواست تکراری است.");
-                }
+                FlagRepeats(items, context, i => i?.SerialNumber, "SerialNumber", "سریال نامبر در این درخواست تکراری است.");
+                FlagRepeats(items, context, i => i?.AssetNumber, "AssetNumber", "شماره دارایی در این درخواست تکراری است.");
             });
+        }
+
+        private static void FlagRepeats(List<EquipmentCreateDto> items, ValidationContext<EquipmentBulkCreateDto> context, Func<EquipmentCreateDto?, string?> value, string field, string message)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < items.Count; i++)
+            {
+                var text = value(items[i])?.Trim();
+                if (!string.IsNullOrEmpty(text) && !seen.Add(text))
+                    context.AddFailure($"Items[{i}].{field}", message);
+            }
         }
     }
 

@@ -40,7 +40,8 @@ namespace EMS.Application.Common.Exceptions
         public const string ReservedCode = "reserved_code";
 
         // equipment
-        public const string DuplicateYaasCode = "duplicate_yaas_code";
+        public const string DuplicateSerialNumber = "duplicate_serial_number";
+        public const string DuplicateAssetNumber = "duplicate_asset_number";
         public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
         public const string OrganizationsAlreadyAssigned = "organizations_already_assigned";
         public const string DuplicateReferenceNumber = "duplicate_reference_number";

@@ -309,7 +309,8 @@ namespace EMS.Application.Services.Equipment
 
             await RequireClassificationAsync(request.EquipmentStatusId, request.EquipmentTypeId, request.EquipmentModelId, mustBeActive: true, cancellationToken);
             await RequireLocationAsync(location, cancellationToken);
-            await EnsureYaasCodeIsFreeAsync(yaasCode, exceptId: null, cancellationToken);
+            await EnsureSerialNumberIsFreeAsync(Normalize(request.SerialNumber), exceptId: null, cancellationToken);
+            await EnsureAssetNumberIsFreeAsync(Normalize(request.AssetNumber), exceptId: null, cancellationToken);
 
             var entity = new EquipmentEntity
             {
@@ -352,7 +353,8 @@ namespace EMS.Application.Services.Equipment
             var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "سازمان", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
             var technicianStates = await _repository.GetTechnicianEligibilityAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
-            var reserved = await _repository.FindReservedYaasCodesAsync(items.Select(i => i.YaasCode.Trim()).ToList(), cancellationToken);
+            var takenSerials = await _repository.FindExistingSerialNumbersAsync(items.Select(i => Normalize(i.SerialNumber)).OfType<string>().ToList(), cancellationToken);
+            var takenAssets = await _repository.FindExistingAssetNumbersAsync(items.Select(i => Normalize(i.AssetNumber)).OfType<string>().ToList(), cancellationToken);
 
             for (var i = 0; i < items.Count; i++)
             {
@@ -371,8 +373,10 @@ namespace EMS.Application.Services.Equipment
                     else if (eligibility == TechnicianEligibility.NotTechnician) Fail(i, "technicianUserId", NotTechnicianMessage);
                 }
 
-                if (reserved.Contains(item.YaasCode.Trim().ToLower()))
-                    Fail(i, "yaasCode", "تجهیز فعال دیگری با این یاس کد وجود دارد.");
+                if (Normalize(item.SerialNumber) is { } serial && takenSerials.Contains(serial.ToLower()))
+                    Fail(i, "serialNumber", SerialTakenMessage);
+                if (Normalize(item.AssetNumber) is { } asset && takenAssets.Contains(asset.ToLower()))
+                    Fail(i, "assetNumber", AssetTakenMessage);
 
                 try
                 {
@@ -449,9 +453,13 @@ namespace EMS.Application.Services.Equipment
             if (statusChanged && !EquipmentStatusTransitions.IsAllowed(entity.EquipmentStatusId, request.EquipmentStatusId))
                 throw new BadRequestException("تغییر وضعیت تجهیز به وضعیت انتخاب‌شده مجاز نیست.", ErrorCodes.StatusTransitionNotAllowed);
 
-            // Only an active equipment reserves its Yaas code (consistent with the filtered unique index).
-            if (request.IsActive && (reactivating || !string.Equals(entity.YaasCode, yaasCode, StringComparison.OrdinalIgnoreCase)))
-                await EnsureYaasCodeIsFreeAsync(yaasCode, id, cancellationToken);
+            // Serial and asset numbers are unique among ALL equipment: only a changed value can collide (restoring keeps the equipment's own).
+            var serial = Normalize(request.SerialNumber);
+            var asset = Normalize(request.AssetNumber);
+            if (!string.Equals(entity.SerialNumber, serial, StringComparison.OrdinalIgnoreCase))
+                await EnsureSerialNumberIsFreeAsync(serial, id, cancellationToken);
+            if (!string.Equals(entity.AssetNumber, asset, StringComparison.OrdinalIgnoreCase))
+                await EnsureAssetNumberIsFreeAsync(asset, id, cancellationToken);
 
             entity.Owner = request.Owner;
             entity.YaasCode = yaasCode;
@@ -661,10 +669,20 @@ namespace EMS.Application.Services.Equipment
             return result;
         }
 
-        private async Task EnsureYaasCodeIsFreeAsync(string yaasCode, long? exceptId, CancellationToken cancellationToken)
+        private const string SerialTakenMessage = EquipmentMessages.SerialTaken;
+        private const string AssetTakenMessage = EquipmentMessages.AssetTaken;
+
+        // null / blank means "none": any number of equipment may have no serial number, only a given one must be unique.
+        private async Task EnsureSerialNumberIsFreeAsync(string? serialNumber, long? exceptId, CancellationToken cancellationToken)
         {
-            if (await _repository.YaasCodeExistsAsync(yaasCode, exceptId, cancellationToken))
-                throw new ConflictException("تجهیز فعال دیگری با این یاس کد وجود دارد.", ErrorCodes.DuplicateYaasCode);
+            if (serialNumber is not null && await _repository.SerialNumberExistsAsync(serialNumber, exceptId, cancellationToken))
+                throw new ConflictException(SerialTakenMessage, ErrorCodes.DuplicateSerialNumber);
+        }
+
+        private async Task EnsureAssetNumberIsFreeAsync(string? assetNumber, long? exceptId, CancellationToken cancellationToken)
+        {
+            if (assetNumber is not null && await _repository.AssetNumberExistsAsync(assetNumber, exceptId, cancellationToken))
+                throw new ConflictException(AssetTakenMessage, ErrorCodes.DuplicateAssetNumber);
         }
 
         private EquipmentLocationHistoryEntity NewHistory(EquipmentEntity equipment, EquipmentLocation location, string? description) =>

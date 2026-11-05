@@ -60,6 +60,10 @@ namespace EMS.Infrastructure.Persistence
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
             {
+                // a unique index that means something to the user says so (the service normally catches it first; this is the race)
+                if (UniqueConstraintMessages.Find(ex.InnerException?.Message) is { } known)
+                    throw new ConflictException(known.Message, known.Code);
+
                 throw new ConflictException("رکوردی با مقدار یکتا مشابه از قبل وجود دارد.", ErrorCodes.UniqueViolation);
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
