@@ -14,5 +14,9 @@ namespace EMS.Application.Dtos.Equipment
         public string? PostTitle { get; set; }
         public long? SupportingDepartmentId { get; set; }
         public string? SupportingDepartmentTitle { get; set; }
+        public long? CityId { get; set; }
+        public string? CityTitle { get; set; }
+        public long? ProvinceId { get; set; }
+        public string? ProvinceTitle { get; set; }
     }
 }

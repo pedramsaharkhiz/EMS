@@ -709,8 +709,15 @@ namespace EMS.Tests.Integration
             var viewer = await TokenWithAsync("eqv_", "Equipments.View");
             var assigner = await TokenWithAsync("eqa_", "Equipments.Assign");
 
+            // the dropdowns of the form (technicians, owners) are lookups: any signed-in user may read them, like every other lookup
+            foreach (var url in new[] { "/api/Equipment/technicians", "/api/Equipment/owners" })
+            {
+                Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, url, nobody));
+                Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Get, url)).StatusCode);
+            }
+
             foreach (var (method, url) in new[] { (HttpMethod.Get, "/api/Equipment"), (HttpMethod.Get, $"/api/Equipment/{id}"), (HttpMethod.Get, "/api/Equipment/export"),
-                                                  (HttpMethod.Get, "/api/Equipment/technicians"), (HttpMethod.Get, $"/api/Equipment/{id}/location-history") })
+                                                  (HttpMethod.Get, $"/api/Equipment/{id}/location-history"), (HttpMethod.Get, $"/api/Equipment/{id}/technician") })
             {
                 Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(method, url, nobody));
                 Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(method, url, viewer));

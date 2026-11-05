@@ -13,6 +13,8 @@ namespace EMS.Application.Dtos.Equipment
         /// <summary>How many active attachments (files) this equipment has. The list of them is in <see cref="EquipmentDetailWithAttachmentsDto.Attachments"/> (GET /api/Equipment/{id}).</summary>
         public int AttachmentCount { get; set; }
         public EquipmentOwner Owner { get; set; }
+        /// <summary>The Persian title of <see cref="Owner"/> (شرکت / بانک), so a client does not have to map the number.</summary>
+        public string OwnerTitle { get; set; } = string.Empty;
         public string YaasCode { get; set; } = string.Empty;
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }
@@ -29,11 +31,23 @@ namespace EMS.Application.Dtos.Equipment
 
         public long EquipmentStatusId { get; set; }
         public string? EquipmentStatusTitle { get; set; }
+        /// <summary>The stable code of the status (the name of <c>EquipmentStatusCode</c>, e.g. "InStock").</summary>
+        public string? EquipmentStatusCode { get; set; }
 
         public long CurrentEquipmentLocationTypeId { get; set; }
         public string? CurrentEquipmentLocationTypeTitle { get; set; }
         public long? CurrentOrganizationId { get; set; }
         public string? CurrentOrganizationTitle { get; set; }
+        // where the branch sits in the hierarchy (the same levels the list can be filtered by)
+        public long? FieldId { get; set; }
+        public string? FieldTitle { get; set; }
+        public long? OrganizationManagementId { get; set; }
+        public string? OrganizationManagementTitle { get; set; }
+        public long? ZoneId { get; set; }
+        public string? ZoneTitle { get; set; }
+        /// <summary>The supporting department that SERVES the branch (not the department the equipment is at: that is <c>currentSupportingDepartment...</c>).</summary>
+        public long? CurrentOrganizationSupportingDepartmentId { get; set; }
+        public string? CurrentOrganizationSupportingDepartmentTitle { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }
         public string? CurrentSupportingDepartmentTitle { get; set; }
         public long? CityId { get; set; }
@@ -42,6 +56,17 @@ namespace EMS.Application.Dtos.Equipment
         public string? ProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        /// <summary>Is the technician an active user? (an equipment keeps its technician after he is deactivated). Null when there is none.</summary>
+        public bool? TechnicianIsActive { get; set; }
+        public long? TechnicianPostId { get; set; }
+        public string? TechnicianPostTitle { get; set; }
+        // where the TECHNICIAN works: his own supporting department and its city and province (not where the equipment is)
+        public long? TechnicianSupportingDepartmentId { get; set; }
+        public string? TechnicianSupportingDepartmentTitle { get; set; }
+        public long? TechnicianCityId { get; set; }
+        public string? TechnicianCityTitle { get; set; }
+        public long? TechnicianProvinceId { get; set; }
+        public string? TechnicianProvinceTitle { get; set; }
 
         public string? Description { get; set; }
         public bool IsActive { get; set; }

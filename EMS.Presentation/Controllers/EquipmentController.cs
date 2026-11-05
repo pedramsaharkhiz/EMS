@@ -3,6 +3,7 @@ using EMS.Application.Common.Security;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Dtos.EquipmentLocationHistory;
 using EMS.Application.Interfaces.Equipment;
+using EMS.Domain;
 using EMS.Domain.Enums;
 using EMS.Presentation.Conventions;
 using EMS.Presentation.Security;
@@ -41,7 +42,7 @@ namespace EMS.Presentation.Controllers
             ExcelDownload(await _service.ExportAsync(request, cancellationToken));
 
         /// <summary>Users that can be chosen as the technician of an equipment (dropdown of the equipment form).</summary>
-        [Permission(Permissions.Equipments.View)]
+        [Lookup]
         [HttpGet("technicians")]
         public async Task<ActionResult<ApiResponse<IReadOnlyList<TechnicianItemDto>>>> GetTechnicians([FromQuery] TechnicianListRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetTechniciansAsync(request, cancellationToken));
@@ -137,7 +138,7 @@ namespace EMS.Presentation.Controllers
         /// <summary>
         /// فهرست مالکان قابل انتخاب برای تجهیز.
         /// </summary>
-        [Permission(Permissions.Equipments.View)]
+        [Lookup]
         [HttpGet("owners")]
         public ActionResult<ApiResponse<IReadOnlyList<EquipmentOwnerItemDto>>> GetOwners()
         {
@@ -147,12 +148,7 @@ namespace EMS.Presentation.Controllers
                     {
                         Id = (int)owner,
                         Name = owner.ToString(),
-                        Title = owner switch
-                        {
-                            EquipmentOwner.Company => "شرکت",
-                            EquipmentOwner.Bank => "بانک",
-                            _ => owner.ToString()
-                        }
+                        Title = EquipmentOwnerTitles.TitleOf(owner)
                     })
                     .ToList();
 

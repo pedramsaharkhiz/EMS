@@ -52,6 +52,23 @@
 
 افزودن فیلتر: یک خط در `EquipmentService.Filters` و یک property در `EquipmentListRequestDto`. افزودن ستون: property در `EquipmentRow` (و projection در `EquipmentRepository.ToRows`)، `EquipmentListItemDto`، و یک خط در `EquipmentExport`. جزئیات Excel در [EXPORTS.md](EXPORTS.md).
 
+## فیلدهای مشترک پاسخ‌ها
+
+لیست، جزئیات و هر پاسخی که جزئیات تجهیز دارد (ثبت، ویرایش، `move`، `bulk`، ثبت با فایل) **یک شکل** دارند و فایل Excel همان ستون‌ها را نشان می‌دهد:
+
+- **مالک:** `owner` (عدد) و `ownerTitle` (شرکت / بانک). عنوان‌ها فقط در `EquipmentOwnerTitles` نوشته شده‌اند.
+- **وضعیت:** `equipmentStatusId`، `equipmentStatusTitle` و `equipmentStatusCode` (نام `EquipmentStatusCode`، مثل `InStock`).
+- **جای شعبه در سلسله‌مراتب:** `zoneId/zoneTitle` (حوزه)، `organizationManagementId/Title` (مدیریت شعب)، `fieldId/fieldTitle` (ناحیه). همان سطح‌هایی که لیست روی آن‌ها فیلتر می‌شود.
+- **دپارتمان پشتیبانی:** دو چیز متفاوت‌اند و نامشان جداست: `currentSupportingDepartment...` (دپارتمانی که **تجهیز در آن است**) و `currentOrganizationSupportingDepartmentId/Title` (دپارتمانی که **شعبه را پشتیبانی می‌کند**). فیلتر لیست: `supportingDepartmentId` (اولی) و `organizationSupportingDepartmentId` (دومی).
+- **تکنسین و محل او:** `technicianUserId`، `technicianName`، `technicianIsActive`، `technicianPostId/Title`، و **محل کار تکنسین**: `technicianSupportingDepartmentId/Title`، `technicianCityId/Title`، `technicianProvinceId/Title` (دپارتمان خودِ کاربر و شهر و استان آن، نه جای تجهیز). برای تجهیز بدون تکنسین همه `null` است. در Excel: «دپارتمان تکنسین»، «شهر تکنسین»، «استان تکنسین».
+- **تاریخچه‌ی مکان** (`GET /{id}/location-history`): هر ردیف علاوه بر دپارتمان، `cityId/Title` و `provinceId/Title` همان دپارتمان را دارد، و محل کار **فعلی** تکنسین (`technicianSupportingDepartment...`، `technicianCity...`، `technicianProvince...`). ردیف تاریخچه محل کار تکنسین را در لحظه‌ی خودش ثبت نکرده است، پس محل «فعلی» نشان داده می‌شود.
+- **dropdown تکنسین‌ها** و `GET /{id}/technician` هم دپارتمان، شهر و استان او را دارند.
+- **نام‌گذاری:** `technicianName` یعنی نامِ تکنسین به‌عنوان **ارجاع از تجهیز** (مثل `reportedByName` در گزارش خرابی)، و `fullName` نامِ خودِ شخص در آیتم‌هایی است که خودِ تکنسین‌اند (dropdown و `/{id}/technician`).
+
+## دسترسی به dropdownهای فرم
+
+`GET /api/Equipment/technicians` و `GET /api/Equipment/owners` مثل بقیه‌ی lookupها (`[Lookup]`) برای **هر کاربر واردشده** باز است. پس کسی که فقط `Equipments.Create` دارد هم می‌تواند فرم ثبت را پر کند. لیست و جزئیات همچنان `Equipments.View` می‌خواهند.
+
 ## تکنسین تجهیز
 
 - **فقط کاربر فعالی که سمت «تکنسین» دارد** می‌تواند تکنسین یک تجهیز باشد. این در `GET /technicians`، ثبت (`POST`، `/bulk`، `/with-attachments`) و `move` اعمال می‌شود. کاربر ناموجود `404 parent_not_found`، غیرفعال `400 parent_inactive` و بدون سمت تکنسین `400 technician_post_required` می‌دهد (در ثبت گروهی همان پیام‌ها در `details` ردیف).
