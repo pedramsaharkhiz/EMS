@@ -8,7 +8,8 @@
 |---|---|---|
 | `GET /api/Equipment` | `Equipments.View` | لیست (فیلتر، مرتب‌سازی، صفحه‌بندی) |
 | `GET /api/Equipment/export` | `Equipments.View` | همان لیست، به‌صورت Excel (بدون صفحه‌بندی) |
-| `GET /api/Equipment/technicians` | `Equipments.View` | dropdown تکنسین (کاربران فعال) |
+| `GET /api/Equipment/technicians` | `Equipments.View` | dropdown تکنسین: کاربران **فعال با سمت «تکنسین»** |
+| `GET /api/Equipment/{id}/technician` | `Equipments.View` | تکنسین فعلی این تجهیز با سمت و دپارتمان پشتیبانی‌اش؛ `data` برای تجهیز بدون تکنسین `null` است (`404` برای تجهیز ناموجود) |
 | `GET /api/Equipment/{id}` | `Equipments.View` | جزئیات (فعال یا غیرفعال) |
 | `GET /api/Equipment/{id}/location-history` | `Equipments.View` | تاریخچه‌ی مکان، جدیدترین اول، صفحه‌بندی‌شده |
 | `POST /api/Equipment` | `Equipments.Create` | ایجاد (`201`) |
@@ -51,6 +52,12 @@
 
 افزودن فیلتر: یک خط در `EquipmentService.Filters` و یک property در `EquipmentListRequestDto`. افزودن ستون: property در `EquipmentRow` (و projection در `EquipmentRepository.ToRows`)، `EquipmentListItemDto`، و یک خط در `EquipmentExport`. جزئیات Excel در [EXPORTS.md](EXPORTS.md).
 
+## تکنسین تجهیز
+
+- **فقط کاربر فعالی که سمت «تکنسین» دارد** می‌تواند تکنسین یک تجهیز باشد. این در `GET /technicians`، ثبت (`POST`، `/bulk`، `/with-attachments`) و `move` اعمال می‌شود. کاربر ناموجود `404 parent_not_found`، غیرفعال `400 parent_inactive` و بدون سمت تکنسین `400 technician_post_required` می‌دهد (در ثبت گروهی همان پیام‌ها در `details` ردیف).
+- **تکنسین فعلی دست‌نخورده می‌ماند** حتی اگر سمت یا وضعیت آن کاربر بعداً عوض شود. تکنسین فقط با ثبت و `move` عوض می‌شود، پس ویرایش `PUT` به آن کاری ندارد. بازگردانی تجهیز غیرفعال فقط فعال بودن تکنسین قبلی را می‌خواهد، نه سمتش را.
+- **`GET /api/Equipment/{id}/technician`:** `id`، `fullName`، `personnelCode`، `isActive`، `postId`، `postTitle`، `supportingDepartmentId` و `supportingDepartmentTitle`. تلفن، ایمیل و کد ملی عمداً نیست. تکنسینِ غیرفعال‌شده یا تجهیز غیرفعال هم نشان داده می‌شود (`isActive: false`). تاریخچه‌ی تکنسین‌های قبلی از `GET /{id}/location-history` می‌آید.
+
 ## قاعده‌های باز (منتظر تصمیم کسب‌وکار)
 
 هر کدام در یک نقطه‌ی مشخص‌اند و عوض‌کردنشان به بقیه‌ی کد دست نمی‌زند:
@@ -59,7 +66,7 @@
 |---|---|---|
 | ترکیب معتبر نوع مکان، سازمان، دپارتمان و تکنسین | هر ترکیبی پذیرفته می‌شود | `IEquipmentLocationRule` (`PermissiveEquipmentLocationRule`) را با قاعده‌ی واقعی جایگزین کن |
 | انتقال‌های مجاز وضعیت | همه‌ی انتقال‌ها آزاد است | `EquipmentStatusTransitions.IsAllowed` |
-| چه کسی تکنسین می‌شود | هر کاربر فعال | `EquipmentRepository.QueryTechnicians` و `IsEligibleTechnicianAsync` |
+| چه کسی تکنسین می‌شود | **کاربر فعال با سمت «تکنسین»** (`PostCode.Technician`)، در dropdown و در هر ثبت و جابه‌جایی | `EquipmentRepository.QueryTechnicians` و `GetTechnicianEligibilityAsync` (یک نقطه‌ی تصمیم) |
 | مانع غیرفعال‌سازی (مثلاً گزارش خرابی باز) | ندارد | `EquipmentService.DeleteAsync` |
 
 وضعیت‌ها همان وضعیت‌های سیستمی `EquipmentStatusCode` هستند (شناسه = مقدار enum، [CATALOGS.md](CATALOGS.md)).

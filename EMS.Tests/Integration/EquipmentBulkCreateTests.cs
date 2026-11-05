@@ -168,7 +168,7 @@ namespace EMS.Tests.Integration
         {
             var f = await NewFixtureAsync();
             var admin = await AdminAsync();
-            var active = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x");
+            var active = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x", postId: (long)PostCode.Technician);
             var inactive = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x");
             await SendAsync(HttpMethod.Delete, $"/api/Users/{inactive}", bearer: admin);
 

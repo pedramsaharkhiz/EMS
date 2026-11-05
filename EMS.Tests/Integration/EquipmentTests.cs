@@ -71,7 +71,7 @@ namespace EMS.Tests.Integration
         private async Task<(long Id, string FullName)> NewTechnicianAsync()
         {
             var userName = "tc_" + Guid.NewGuid().ToString("N")[..10];
-            var id = await CreateUserAsync(await AdminAsync(), userName, "Passw0rd!x");
+            var id = await CreateUserAsync(await AdminAsync(), userName, "Passw0rd!x", postId: (long)PostCode.Technician);   // only users with the post "Technician" can be technicians
             return (id, "Test User");
         }
 

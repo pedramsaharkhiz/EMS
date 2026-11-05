@@ -899,6 +899,28 @@ POST api/Equipment/{id}/move
     envelope: success, message, data, meta, error, traceId
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
+GET api/Equipment/{id}/technician
+  authorization: Permission:Equipments.View
+  Path: id : Int64 (required)
+  response 200: ApiResponse<EquipmentTechnicianDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int64
+      FullName : String
+      PersonnelCode : String
+      IsActive : Boolean
+      PostId : Int64?
+      PostTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
 GET api/EquipmentCategory
   authorization: (authenticated)
   Query: IsActive : Boolean?
