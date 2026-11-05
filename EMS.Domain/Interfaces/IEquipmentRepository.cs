@@ -31,18 +31,21 @@ namespace EMS.Domain.Interfaces
 
         void AddLocationHistory(EquipmentLocationHistory entry);
 
-        /// <summary>Users that can be chosen as technician (currently every active user).</summary>
+        /// <summary>Users that can be chosen as technician: active users that hold the post "Technician".</summary>
         IQueryable<TechnicianInfo> QueryTechnicians();
 
-        /// <summary>Can this user be the technician of an equipment? The single place that decides it.</summary>
-        Task<bool> IsEligibleTechnicianAsync(long userId, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Can these users be the technician of an equipment? The single place that decides it (the dropdown and every create / move use it).
+        /// A user that does not exist is absent from the result.
+        /// </summary>
+        Task<Dictionary<long, TechnicianEligibility>> GetTechnicianEligibilityAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default);
+
+        /// <summary>The current technician of an equipment, or null when it has none (or the user vanished). Active or not.</summary>
+        Task<EquipmentTechnicianRow?> GetTechnicianOfEquipmentAsync(long equipmentId, CancellationToken cancellationToken = default);
 
         /// <summary>Which of the Yaas codes (already trimmed, compared case-insensitively) are reserved by an ACTIVE equipment? Returned in lower case.</summary>
         Task<HashSet<string>> FindReservedYaasCodesAsync(IReadOnlyCollection<string> yaasCodes, CancellationToken cancellationToken = default);
-        /// <summary>For each of the given users that exists: is it active? (a user that does not exist is absent from the result)</summary>
-        Task<Dictionary<long, bool>> GetTechnicianStatesAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default);
         /// <summary>The flattened rows of these equipment, active or not.</summary>
         Task<List<EquipmentRow>> GetRowsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default);
-        Task<bool> TechnicianExistsAsync(long userId, CancellationToken cancellationToken = default);
     }
 }

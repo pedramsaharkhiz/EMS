@@ -172,15 +172,49 @@ namespace EMS.Infrastructure.Repositories
 
         public void AddLocationHistory(EquipmentLocationHistory entry) => _context.EquipmentLocationHistories.Add(entry);
 
+        // A technician is an active user that holds the post "Technician" (the row of the Posts table whose id is PostCode.Technician).
+        private const long TechnicianPostId = (long)PostCode.Technician;
+
         public IQueryable<TechnicianInfo> QueryTechnicians() =>
             _context.Users.AsNoTracking()
-                .Where(u => u.IsActive)
+                .Where(u => u.IsActive && u.PostId == TechnicianPostId)
                 .OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ThenBy(u => u.Id)
                 .Select(u => new TechnicianInfo { Id = u.Id, FullName = u.FirstName + " " + u.LastName, PersonnelCode = u.PersonnelCode });
 
-        // Today every active user may be a technician. Change this (and QueryTechnicians) to restrict, e.g. by role or skill.
-        public async Task<bool> IsEligibleTechnicianAsync(long userId, CancellationToken cancellationToken = default) =>
-            await _context.Users.AnyAsync(u => u.Id == userId && u.IsActive, cancellationToken);
+        public async Task<Dictionary<long, TechnicianEligibility>> GetTechnicianEligibilityAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
+        {
+            var ids = userIds.Distinct().ToList();
+            var users = await _context.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
+                .Select(u => new { u.Id, u.IsActive, u.PostId }).ToListAsync(cancellationToken);
+            return users.ToDictionary(u => u.Id, u =>
+                !u.IsActive ? TechnicianEligibility.Inactive
+                : u.PostId == TechnicianPostId ? TechnicianEligibility.Eligible
+                : TechnicianEligibility.NotTechnician);
+        }
+
+        public async Task<EquipmentTechnicianRow?> GetTechnicianOfEquipmentAsync(long equipmentId, CancellationToken cancellationToken = default)
+        {
+            var technicianId = await _dbSet.IncludingInactive().AsNoTracking()
+                .Where(e => e.EquipmentId == equipmentId).Select(e => e.TechnicianUserId).FirstOrDefaultAsync(cancellationToken);
+            if (technicianId is null)
+                return null;
+
+            // The post and the department may have been deactivated since: lift the soft-delete filter so they still show.
+            return await _context.Users.IncludingInactive().AsNoTracking()
+                .Where(u => u.Id == technicianId)
+                .Select(u => new EquipmentTechnicianRow
+                {
+                    Id = u.Id,
+                    FullName = u.FirstName + " " + u.LastName,
+                    PersonnelCode = u.PersonnelCode,
+                    IsActive = u.IsActive,
+                    PostId = u.PostId,
+                    PostTitle = u.Post!.Title,
+                    SupportingDepartmentId = u.SupportingDepartmentId,
+                    SupportingDepartmentTitle = u.SupportingDepartment!.Title,
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
         public async Task<HashSet<string>> FindReservedYaasCodesAsync(IReadOnlyCollection<string> yaasCodes, CancellationToken cancellationToken = default)
         {
@@ -190,20 +224,10 @@ namespace EMS.Infrastructure.Repositories
             return found.ToHashSet();
         }
 
-        public async Task<Dictionary<long, bool>> GetTechnicianStatesAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
-        {
-            var ids = userIds.Distinct().ToList();
-            return await _context.Users.Where(u => ids.Contains(u.Id))
-                .Select(u => new { u.Id, u.IsActive }).ToDictionaryAsync(u => u.Id, u => u.IsActive, cancellationToken);
-        }
-
         public async Task<List<EquipmentRow>> GetRowsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)
         {
             var list = ids.ToList();
             return await QueryRows(true).Where(r => list.Contains(r.Id)).ToListAsync(cancellationToken);
         }
-
-        public async Task<bool> TechnicianExistsAsync(long userId, CancellationToken cancellationToken = default) =>
-            await _context.Users.AnyAsync(u => u.Id == userId, cancellationToken);
     }
 }

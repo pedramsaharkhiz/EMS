@@ -46,6 +46,15 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<IReadOnlyList<TechnicianItemDto>>>> GetTechnicians([FromQuery] TechnicianListRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetTechniciansAsync(request, cancellationToken));
 
+        /// <summary>
+        /// The technician of this equipment with his post and supporting department; <c>data</c> is null when it has none. Works for a
+        /// deactivated equipment too. (The dropdown of choosable technicians is GET /technicians.)
+        /// </summary>
+        [Permission(Permissions.Equipments.View)]
+        [HttpGet("{id:long}/technician")]
+        public async Task<ActionResult<ApiResponse<EquipmentTechnicianDto?>>> GetTechnician(long id, CancellationToken cancellationToken) =>
+            Success(await _service.GetTechnicianAsync(id, cancellationToken));
+
         [Permission(Permissions.Equipments.View)]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>

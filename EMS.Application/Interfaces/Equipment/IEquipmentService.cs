@@ -25,6 +25,8 @@ namespace EMS.Application.Interfaces.Equipment
         Task<EquipmentDetailDto> MoveAsync(long id, EquipmentMoveDto request, CancellationToken cancellationToken = default);
 
         Task<PagedResult<EquipmentLocationHistoryItemDto>> GetLocationHistoryAsync(long id, EquipmentLocationHistoryRequestDto request, CancellationToken cancellationToken = default);
+        /// <summary>The current technician of the equipment with his post and department, or null when it has none (404 when the equipment does not exist).</summary>
+        Task<EquipmentTechnicianDto?> GetTechnicianAsync(long equipmentId, CancellationToken cancellationToken = default);
         Task<PagedResult<TechnicianItemDto>> GetTechniciansAsync(TechnicianListRequestDto request, CancellationToken cancellationToken = default);
 
         /// <summary>The Excel file of the equipment that match the same filters as the list.</summary>

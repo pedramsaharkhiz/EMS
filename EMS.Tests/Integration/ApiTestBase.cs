@@ -81,7 +81,7 @@ namespace EMS.Tests.Integration
         protected async Task<(string AccessToken, string RefreshToken, long UserId)> LoginAdminAsync() =>
             await LoginAsync(AdminUserName, AdminPassword);
 
-        protected async Task<long> CreateUserAsync(string adminToken, string userName, string password)
+        protected async Task<long> CreateUserAsync(string adminToken, string userName, string password, long? postId = null)
         {
             var response = await SendAsync(HttpMethod.Post, "/api/Users", new
             {
@@ -89,7 +89,8 @@ namespace EMS.Tests.Integration
                 password,
                 firstName = "Test",
                 lastName = "User",
-                personnelCode = "PC-" + userName
+                personnelCode = "PC-" + userName,
+                postId
             }, bearer: adminToken);
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();

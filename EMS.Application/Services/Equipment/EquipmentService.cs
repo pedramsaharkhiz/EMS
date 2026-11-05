@@ -30,6 +30,7 @@ namespace EMS.Application.Services.Equipment
     /// </summary>
     public sealed class EquipmentService : IEquipmentService
     {
+        private const string NotTechnicianMessage = "کاربر انتخاب‌شده سمت «تکنسین» ندارد و نمی‌تواند تکنسین تجهیز باشد.";
         private const string FirstLocationNote = "ثبت اولیه تجهیز";
 
         // The filters of the list and of the export: one line each (add a filter = add a line and a property to the request).
@@ -169,6 +170,26 @@ namespace EMS.Application.Services.Equipment
             };
         }
 
+        public async Task<EquipmentTechnicianDto?> GetTechnicianAsync(long equipmentId, CancellationToken cancellationToken = default)
+        {
+            // an equipment that was deactivated still shows who had it
+            if (!await _repository.ExistsIncludingInactiveAsync(x => x.EquipmentId == equipmentId, cancellationToken))
+                throw NotFound();
+
+            var row = await _repository.GetTechnicianOfEquipmentAsync(equipmentId, cancellationToken);
+            return row is null ? null : new EquipmentTechnicianDto
+            {
+                Id = row.Id,
+                FullName = row.FullName,
+                PersonnelCode = row.PersonnelCode,
+                IsActive = row.IsActive,
+                PostId = row.PostId,
+                PostTitle = row.PostTitle,
+                SupportingDepartmentId = row.SupportingDepartmentId,
+                SupportingDepartmentTitle = row.SupportingDepartmentTitle,
+            };
+        }
+
         public async Task<PagedResult<TechnicianItemDto>> GetTechniciansAsync(TechnicianListRequestDto request, CancellationToken cancellationToken = default)
         {
             var query = _repository.QueryTechnicians();
@@ -291,7 +312,7 @@ namespace EMS.Application.Services.Equipment
             var locationTypes = await ResolveAsync(_locationTypes, items.Select(i => i.CurrentEquipmentLocationTypeId), x => x.EquipmentLocationTypeId, "نوع مکان", cancellationToken);
             var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "سازمان", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
-            var technicianStates = await _repository.GetTechnicianStatesAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
+            var technicianStates = await _repository.GetTechnicianEligibilityAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
             var reserved = await _repository.FindReservedYaasCodesAsync(items.Select(i => i.YaasCode.Trim()).ToList(), cancellationToken);
 
             for (var i = 0; i < items.Count; i++)
@@ -306,8 +327,9 @@ namespace EMS.Application.Services.Equipment
 
                 if (item.TechnicianUserId is { } technician)
                 {
-                    if (!technicianStates.TryGetValue(technician, out var active)) Fail(i, "technicianUserId", "تکنسین یافت نشد.");
-                    else if (!active) Fail(i, "technicianUserId", "تکنسین انتخاب‌شده غیرفعال است.");
+                    if (!technicianStates.TryGetValue(technician, out var eligibility)) Fail(i, "technicianUserId", "تکنسین یافت نشد.");
+                    else if (eligibility == TechnicianEligibility.Inactive) Fail(i, "technicianUserId", "تکنسین انتخاب‌شده غیرفعال است.");
+                    else if (eligibility == TechnicianEligibility.NotTechnician) Fail(i, "technicianUserId", NotTechnicianMessage);
                 }
 
                 if (reserved.Contains(item.YaasCode.Trim().ToLower()))
@@ -523,10 +545,23 @@ namespace EMS.Application.Services.Equipment
 
             if (location.TechnicianUserId is { } technician)
             {
-                if (!await _repository.TechnicianExistsAsync(technician, cancellationToken))
-                    throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
-                if (!await _repository.IsEligibleTechnicianAsync(technician, cancellationToken))
-                    throw new BadRequestException("تکنسین انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
+                var eligibility = (await _repository.GetTechnicianEligibilityAsync(new[] { technician }, cancellationToken))
+                    .GetValueOrDefault(technician, TechnicianEligibility.NotFound);
+
+                // The post is required of a NEW assignment (create, move). Restoring a deactivated equipment (validateRule: false) only
+                // needs its old technician to be active: a person who changed post meanwhile must not block the restore.
+                if (eligibility == TechnicianEligibility.NotTechnician && !validateRule)
+                    eligibility = TechnicianEligibility.Eligible;
+
+                switch (eligibility)
+                {
+                    case TechnicianEligibility.NotFound:
+                        throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
+                    case TechnicianEligibility.Inactive:
+                        throw new BadRequestException("تکنسین انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
+                    case TechnicianEligibility.NotTechnician:
+                        throw new BadRequestException(NotTechnicianMessage, ErrorCodes.TechnicianPostRequired);
+                }
             }
 
             if (validateRule)
