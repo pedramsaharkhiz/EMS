@@ -136,6 +136,7 @@ namespace EMS.Application.Validators.Equipment
             Ids(x => x.OrganizationManagementIds, "مدیریت سازمان");
             Ids(x => x.ZoneIds, "منطقه");
             Ids(x => x.SupportingDepartmentIds, "دپارتمان پشتیبانی");
+            Ids(x => x.OrganizationSupportingDepartmentIds, "دپارتمان پشتیبانی شعبه");
             Ids(x => x.CityIds, "شهر");
             Ids(x => x.ProvinceIds, "استان");
             Ids(x => x.TechnicianUserIds, "تکنسین");

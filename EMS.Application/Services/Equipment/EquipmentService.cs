@@ -52,6 +52,7 @@ namespace EMS.Application.Services.Equipment
             .AnyOf(r => r.OrganizationManagementIds, x => x.OrganizationManagementId)
             .AnyOf(r => r.ZoneIds, x => x.ZoneId)
             .AnyOf(r => r.SupportingDepartmentIds, x => x.SupportingDepartmentId)
+            .AnyOf(r => r.OrganizationSupportingDepartmentIds, x => x.OrganizationSupportingDepartmentId)
             .AnyOf(r => r.CityIds, x => x.CityId)
             .AnyOf(r => r.ProvinceIds, x => x.ProvinceId)
             .AnyOf(r => r.TechnicianUserIds, x => x.TechnicianUserId)
@@ -174,8 +175,18 @@ namespace EMS.Application.Services.Equipment
                     OrganizationTitle = h.OrganizationTitle,
                     SupportingDepartmentId = h.SupportingDepartmentId,
                     SupportingDepartmentTitle = h.SupportingDepartmentTitle,
+                    CityId = h.CityId,
+                    CityTitle = h.CityTitle,
+                    ProvinceId = h.ProvinceId,
+                    ProvinceTitle = h.ProvinceTitle,
                     TechnicianUserId = h.TechnicianUserId,
                     TechnicianName = h.TechnicianName,
+                    TechnicianSupportingDepartmentId = h.TechnicianSupportingDepartmentId,
+                    TechnicianSupportingDepartmentTitle = h.TechnicianSupportingDepartmentTitle,
+                    TechnicianCityId = h.TechnicianCityId,
+                    TechnicianCityTitle = h.TechnicianCityTitle,
+                    TechnicianProvinceId = h.TechnicianProvinceId,
+                    TechnicianProvinceTitle = h.TechnicianProvinceTitle,
                     AssignedDateTime = h.AssignedDateTime,
                     ChangedByUserId = h.ChangedByUserId,
                     ChangedByName = h.ChangedByName,
@@ -204,6 +215,10 @@ namespace EMS.Application.Services.Equipment
                 PostTitle = row.PostTitle,
                 SupportingDepartmentId = row.SupportingDepartmentId,
                 SupportingDepartmentTitle = row.SupportingDepartmentTitle,
+                CityId = row.CityId,
+                CityTitle = row.CityTitle,
+                ProvinceId = row.ProvinceId,
+                ProvinceTitle = row.ProvinceTitle,
             };
         }
 
@@ -219,7 +234,12 @@ namespace EMS.Application.Services.Equipment
             var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
             return new PagedResult<TechnicianItemDto>
             {
-                Items = page.Items.Select(t => new TechnicianItemDto { Id = t.Id, FullName = t.FullName, PersonnelCode = t.PersonnelCode }).ToList(),
+                Items = page.Items.Select(t => new TechnicianItemDto
+                {
+                    Id = t.Id, FullName = t.FullName, PersonnelCode = t.PersonnelCode,
+                    SupportingDepartmentId = t.SupportingDepartmentId, SupportingDepartmentTitle = t.SupportingDepartmentTitle,
+                    CityId = t.CityId, CityTitle = t.CityTitle, ProvinceId = t.ProvinceId, ProvinceTitle = t.ProvinceTitle,
+                }).ToList(),
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
@@ -514,6 +534,7 @@ namespace EMS.Application.Services.Equipment
         {
             dto.Id = row.Id;
             dto.Owner = row.Owner;
+            dto.OwnerTitle = row.OwnerTitle;
             dto.YaasCode = row.YaasCode;
             dto.SerialNumber = row.SerialNumber;
             dto.AssetNumber = row.AssetNumber;
@@ -528,10 +549,19 @@ namespace EMS.Application.Services.Equipment
             dto.CategoryTitle = row.CategoryTitle;
             dto.EquipmentStatusId = row.StatusId;
             dto.EquipmentStatusTitle = row.StatusTitle;
+            dto.EquipmentStatusCode = row.StatusCode;
             dto.CurrentEquipmentLocationTypeId = row.LocationTypeId;
             dto.CurrentEquipmentLocationTypeTitle = row.LocationTypeTitle;
             dto.CurrentOrganizationId = row.OrganizationId;
             dto.CurrentOrganizationTitle = row.OrganizationTitle;
+            dto.FieldId = row.FieldId;
+            dto.FieldTitle = row.FieldTitle;
+            dto.OrganizationManagementId = row.OrganizationManagementId;
+            dto.OrganizationManagementTitle = row.OrganizationManagementTitle;
+            dto.ZoneId = row.ZoneId;
+            dto.ZoneTitle = row.ZoneTitle;
+            dto.CurrentOrganizationSupportingDepartmentId = row.OrganizationSupportingDepartmentId;
+            dto.CurrentOrganizationSupportingDepartmentTitle = row.OrganizationSupportingDepartmentTitle;
             dto.CurrentSupportingDepartmentId = row.SupportingDepartmentId;
             dto.CurrentSupportingDepartmentTitle = row.SupportingDepartmentTitle;
             dto.CityId = row.CityId;
@@ -540,6 +570,15 @@ namespace EMS.Application.Services.Equipment
             dto.ProvinceTitle = row.ProvinceTitle;
             dto.TechnicianUserId = row.TechnicianUserId;
             dto.TechnicianName = row.TechnicianName;
+            dto.TechnicianIsActive = row.TechnicianIsActive;
+            dto.TechnicianPostId = row.TechnicianPostId;
+            dto.TechnicianPostTitle = row.TechnicianPostTitle;
+            dto.TechnicianSupportingDepartmentId = row.TechnicianSupportingDepartmentId;
+            dto.TechnicianSupportingDepartmentTitle = row.TechnicianSupportingDepartmentTitle;
+            dto.TechnicianCityId = row.TechnicianCityId;
+            dto.TechnicianCityTitle = row.TechnicianCityTitle;
+            dto.TechnicianProvinceId = row.TechnicianProvinceId;
+            dto.TechnicianProvinceTitle = row.TechnicianProvinceTitle;
             dto.Description = row.Description;
             dto.IsActive = row.IsActive;
             dto.CreatedDateTime = row.CreatedDateTime;

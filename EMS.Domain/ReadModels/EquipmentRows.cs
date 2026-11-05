@@ -38,8 +38,14 @@ namespace EMS.Domain.ReadModels
         public long? OrganizationId { get; set; }
         public string? OrganizationTitle { get; set; }
         public long? FieldId { get; set; }
+        public string? FieldTitle { get; set; }
         public long? OrganizationManagementId { get; set; }
+        public string? OrganizationManagementTitle { get; set; }
         public long? ZoneId { get; set; }
+        public string? ZoneTitle { get; set; }
+        /// <summary>The supporting department that serves the branch (not the department the equipment is at).</summary>
+        public long? OrganizationSupportingDepartmentId { get; set; }
+        public string? OrganizationSupportingDepartmentTitle { get; set; }
         public long? SupportingDepartmentId { get; set; }
         public string? SupportingDepartmentTitle { get; set; }
         public long? CityId { get; set; }
@@ -48,6 +54,16 @@ namespace EMS.Domain.ReadModels
         public string? ProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        public bool? TechnicianIsActive { get; set; }
+        public long? TechnicianPostId { get; set; }
+        public string? TechnicianPostTitle { get; set; }
+        /// <summary>Where the technician works (his own department, city and province), not where the equipment is.</summary>
+        public long? TechnicianSupportingDepartmentId { get; set; }
+        public string? TechnicianSupportingDepartmentTitle { get; set; }
+        public long? TechnicianCityId { get; set; }
+        public string? TechnicianCityTitle { get; set; }
+        public long? TechnicianProvinceId { get; set; }
+        public string? TechnicianProvinceTitle { get; set; }
 
         public string? Description { get; set; }
         public bool IsActive { get; set; }
@@ -66,8 +82,19 @@ namespace EMS.Domain.ReadModels
         public string? OrganizationTitle { get; set; }
         public long? SupportingDepartmentId { get; set; }
         public string? SupportingDepartmentTitle { get; set; }
+        public long? CityId { get; set; }
+        public string? CityTitle { get; set; }
+        public long? ProvinceId { get; set; }
+        public string? ProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        /// <summary>Where the technician works NOW (not when the entry was written).</summary>
+        public long? TechnicianSupportingDepartmentId { get; set; }
+        public string? TechnicianSupportingDepartmentTitle { get; set; }
+        public long? TechnicianCityId { get; set; }
+        public string? TechnicianCityTitle { get; set; }
+        public long? TechnicianProvinceId { get; set; }
+        public string? TechnicianProvinceTitle { get; set; }
         public DateTime AssignedDateTime { get; set; }
         public long? ChangedByUserId { get; set; }
         public string? ChangedByName { get; set; }
@@ -96,6 +123,10 @@ namespace EMS.Domain.ReadModels
         public string? PostTitle { get; set; }
         public long? SupportingDepartmentId { get; set; }
         public string? SupportingDepartmentTitle { get; set; }
+        public long? CityId { get; set; }
+        public string? CityTitle { get; set; }
+        public long? ProvinceId { get; set; }
+        public string? ProvinceTitle { get; set; }
     }
 
     public sealed class TechnicianInfo
@@ -103,5 +134,11 @@ namespace EMS.Domain.ReadModels
         public long Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string PersonnelCode { get; set; } = string.Empty;
+        public long? SupportingDepartmentId { get; set; }
+        public string? SupportingDepartmentTitle { get; set; }
+        public long? CityId { get; set; }
+        public string? CityTitle { get; set; }
+        public long? ProvinceId { get; set; }
+        public string? ProvinceTitle { get; set; }
     }
 }

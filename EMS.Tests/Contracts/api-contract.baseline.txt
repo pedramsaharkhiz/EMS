@@ -419,6 +419,7 @@ GET api/Equipment
   Query: modelId : Int64[]
   Query: organizationId : Int64[]
   Query: organizationManagementId : Int64[]
+  Query: organizationSupportingDepartmentId : Int64[]
   Query: owner : EquipmentOwner[]
   Query: provinceId : Int64[]
   Query: statusId : Int64[]
@@ -432,6 +433,7 @@ GET api/Equipment
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -446,10 +448,19 @@ GET api/Equipment
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -458,6 +469,15 @@ GET api/Equipment
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -492,6 +512,7 @@ POST api/Equipment
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -506,10 +527,19 @@ POST api/Equipment
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -518,6 +548,15 @@ POST api/Equipment
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -541,6 +580,7 @@ POST api/Equipment/bulk
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -555,10 +595,19 @@ POST api/Equipment/bulk
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -567,6 +616,15 @@ POST api/Equipment/bulk
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -599,6 +657,7 @@ GET api/Equipment/export
   Query: modelId : Int64[]
   Query: organizationId : Int64[]
   Query: organizationManagementId : Int64[]
+  Query: organizationSupportingDepartmentId : Int64[]
   Query: owner : EquipmentOwner[]
   Query: provinceId : Int64[]
   Query: statusId : Int64[]
@@ -616,7 +675,7 @@ GET api/Equipment/export
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/Equipment/owners
-  authorization: Permission:Equipments.View
+  authorization: (authenticated)
   response 200: ApiResponse<IReadOnlyList<EquipmentOwnerItemDto>>
     envelope: success, message, data, meta, error, traceId
     data:
@@ -632,7 +691,7 @@ GET api/Equipment/owners
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
 GET api/Equipment/technicians
-  authorization: Permission:Equipments.View
+  authorization: (authenticated)
   Query: PageNumber : Int32
   Query: PageSize : Int32
   Query: Search : String
@@ -644,6 +703,12 @@ GET api/Equipment/technicians
       Id : Int64
       FullName : String
       PersonnelCode : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -663,6 +728,7 @@ POST api/Equipment/with-attachments
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -677,10 +743,19 @@ POST api/Equipment/with-attachments
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -689,6 +764,15 @@ POST api/Equipment/with-attachments
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -725,6 +809,7 @@ GET api/Equipment/{id}
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -739,10 +824,19 @@ GET api/Equipment/{id}
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -751,6 +845,15 @@ GET api/Equipment/{id}
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -784,6 +887,7 @@ PUT api/Equipment/{id}
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -798,10 +902,19 @@ PUT api/Equipment/{id}
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -810,6 +923,15 @@ PUT api/Equipment/{id}
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -838,8 +960,18 @@ GET api/Equipment/{id}/location-history
       OrganizationTitle : String
       SupportingDepartmentId : Int64?
       SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       AssignedDateTime : DateTime
       ChangedByUserId : Int64?
       ChangedByName : String
@@ -870,6 +1002,7 @@ POST api/Equipment/{id}/move
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      OwnerTitle : String
       YaasCode : String
       SerialNumber : String
       AssetNumber : String
@@ -884,10 +1017,19 @@ POST api/Equipment/{id}/move
       CategoryTitle : String
       EquipmentStatusId : Int64
       EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       CurrentEquipmentLocationTypeId : Int64
       CurrentEquipmentLocationTypeTitle : String
       CurrentOrganizationId : Int64?
       CurrentOrganizationTitle : String
+      FieldId : Int64?
+      FieldTitle : String
+      OrganizationManagementId : Int64?
+      OrganizationManagementTitle : String
+      ZoneId : Int64?
+      ZoneTitle : String
+      CurrentOrganizationSupportingDepartmentId : Int64?
+      CurrentOrganizationSupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
       CityId : Int64?
@@ -896,6 +1038,15 @@ POST api/Equipment/{id}/move
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -921,6 +1072,10 @@ GET api/Equipment/{id}/technician
       PostTitle : String
       SupportingDepartmentId : Int64?
       SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>

@@ -1,3 +1,4 @@
+using EMS.Domain;
 using EMS.Domain.Entities;
 using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
@@ -68,11 +69,10 @@ namespace EMS.Infrastructure.Repositories
 
         public IQueryable<EquipmentRow> QueryRows(bool active)
         {
-            // Active: the soft-delete filter keeps only active equipment. Inactive: lift it (for the whole query, so a
-            // deactivated equipment is not dropped by a join to a catalog row that was deactivated afterwards).
-            var source = active
-                ? _dbSet.AsNoTracking()
-                : _dbSet.AsNoTracking().IncludingInactive().Where(x => !x.IsActive);
+            // The soft-delete filter is lifted for the whole query (so an equipment is not dropped by a join to a catalog row, a post or
+            // a department that was deactivated afterwards) and the equipment's own state is asked for explicitly.
+            var all = _dbSet.AsNoTracking().IncludingInactive();
+            var source = active ? all.Where(x => x.IsActive) : all.Where(x => !x.IsActive);
             return ToRows(source);
         }
 
@@ -84,7 +84,7 @@ namespace EMS.Infrastructure.Repositories
             {
                 Id = e.EquipmentId,
                 Owner = e.Owner,
-                OwnerTitle = e.Owner == EquipmentOwner.Company ? "شرکت" : e.Owner == EquipmentOwner.Bank ? "بانک" : "نامشخص",
+                OwnerTitle = e.Owner == EquipmentOwner.Company ? EquipmentOwnerTitles.Company : e.Owner == EquipmentOwner.Bank ? EquipmentOwnerTitles.Bank : EquipmentOwnerTitles.Unknown,
                 YaasCode = e.YaasCode,
                 SerialNumber = e.SerialNumber,
                 AssetNumber = e.AssetNumber,
@@ -113,10 +113,19 @@ namespace EMS.Infrastructure.Repositories
                 OrganizationId = e.CurrentOrganizationId,
                 OrganizationTitle = e.CurrentOrganization!.Title,
                 FieldId = e.CurrentOrganization!.FieldId,
+                FieldTitle = e.CurrentOrganization!.Field!.Title,
                 OrganizationManagementId = e.CurrentOrganization!.OrganizationManagementId ?? (long?)e.CurrentOrganization!.Field!.OrganizationManagementId,
+                OrganizationManagementTitle = e.CurrentOrganization!.OrganizationManagement != null
+                    ? e.CurrentOrganization!.OrganizationManagement!.Title
+                    : e.CurrentOrganization!.Field!.OrganizationManagement.Title,
                 ZoneId = e.CurrentOrganization!.OrganizationManagement != null
                     ? (long?)e.CurrentOrganization!.OrganizationManagement!.ZoneId
                     : (long?)e.CurrentOrganization!.Field!.OrganizationManagement.ZoneId,
+                ZoneTitle = e.CurrentOrganization!.OrganizationManagement != null
+                    ? e.CurrentOrganization!.OrganizationManagement!.Zone.Title
+                    : e.CurrentOrganization!.Field!.OrganizationManagement.Zone.Title,
+                OrganizationSupportingDepartmentId = e.CurrentOrganization!.SupportingDepartmentId,
+                OrganizationSupportingDepartmentTitle = e.CurrentOrganization!.SupportingDepartment!.Title,
                 SupportingDepartmentId = e.CurrentSupportingDepartmentId,
                 SupportingDepartmentTitle = e.CurrentSupportingDepartment!.Title,
                 CityId = (long?)e.CurrentSupportingDepartment!.CityId,
@@ -125,6 +134,15 @@ namespace EMS.Infrastructure.Repositories
                 ProvinceTitle = e.CurrentSupportingDepartment!.City.Province.Title,
                 TechnicianUserId = e.TechnicianUserId,
                 TechnicianName = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault(),
+                TechnicianIsActive = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (bool?)u.IsActive).FirstOrDefault(),
+                TechnicianPostId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.PostId).FirstOrDefault(),
+                TechnicianPostTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.Post!.Title).FirstOrDefault(),
+                TechnicianSupportingDepartmentId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartmentId).FirstOrDefault(),
+                TechnicianSupportingDepartmentTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.Title).FirstOrDefault(),
+                TechnicianCityId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.CityId).FirstOrDefault(),
+                TechnicianCityTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Title).FirstOrDefault(),
+                TechnicianProvinceId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.City.ProvinceId).FirstOrDefault(),
+                TechnicianProvinceTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Province.Title).FirstOrDefault(),
 
                 Description = e.Description,
                 IsActive = e.IsActive,
@@ -162,8 +180,18 @@ namespace EMS.Infrastructure.Repositories
                     OrganizationTitle = h.Organization!.Title,
                     SupportingDepartmentId = h.SupportingDepartmentId,
                     SupportingDepartmentTitle = h.SupportingDepartment!.Title,
+                    CityId = (long?)h.SupportingDepartment!.CityId,
+                    CityTitle = h.SupportingDepartment!.City.Title,
+                    ProvinceId = (long?)h.SupportingDepartment!.City.ProvinceId,
+                    ProvinceTitle = h.SupportingDepartment!.City.Province.Title,
                     TechnicianUserId = h.TechnicianUserId,
                     TechnicianName = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault(),
+                    TechnicianSupportingDepartmentId = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => u.SupportingDepartmentId).FirstOrDefault(),
+                    TechnicianSupportingDepartmentTitle = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => u.SupportingDepartment!.Title).FirstOrDefault(),
+                    TechnicianCityId = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.CityId).FirstOrDefault(),
+                    TechnicianCityTitle = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Title).FirstOrDefault(),
+                    TechnicianProvinceId = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.City.ProvinceId).FirstOrDefault(),
+                    TechnicianProvinceTitle = _context.Users.Where(u => u.Id == h.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Province.Title).FirstOrDefault(),
                     AssignedDateTime = h.AssignedDateTime,
                     ChangedByUserId = h.ChangedByUserId,
                     ChangedByName = _context.Users.Where(u => u.Id == h.ChangedByUserId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault(),
@@ -176,10 +204,21 @@ namespace EMS.Infrastructure.Repositories
         private const long TechnicianPostId = (long)PostCode.Technician;
 
         public IQueryable<TechnicianInfo> QueryTechnicians() =>
-            _context.Users.AsNoTracking()
+            _context.Users.AsNoTracking().IncludingInactive()   // a department that was deactivated still names where the technician works
                 .Where(u => u.IsActive && u.PostId == TechnicianPostId)
                 .OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ThenBy(u => u.Id)
-                .Select(u => new TechnicianInfo { Id = u.Id, FullName = u.FirstName + " " + u.LastName, PersonnelCode = u.PersonnelCode });
+                .Select(u => new TechnicianInfo
+                {
+                    Id = u.Id,
+                    FullName = u.FirstName + " " + u.LastName,
+                    PersonnelCode = u.PersonnelCode,
+                    SupportingDepartmentId = u.SupportingDepartmentId,
+                    SupportingDepartmentTitle = u.SupportingDepartment!.Title,
+                    CityId = (long?)u.SupportingDepartment!.CityId,
+                    CityTitle = u.SupportingDepartment!.City.Title,
+                    ProvinceId = (long?)u.SupportingDepartment!.City.ProvinceId,
+                    ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
+                });
 
         public async Task<Dictionary<long, TechnicianEligibility>> GetTechnicianEligibilityAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
         {
@@ -212,6 +251,10 @@ namespace EMS.Infrastructure.Repositories
                     PostTitle = u.Post!.Title,
                     SupportingDepartmentId = u.SupportingDepartmentId,
                     SupportingDepartmentTitle = u.SupportingDepartment!.Title,
+                    CityId = (long?)u.SupportingDepartment!.CityId,
+                    CityTitle = u.SupportingDepartment!.City.Title,
+                    ProvinceId = (long?)u.SupportingDepartment!.City.ProvinceId,
+                    ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
         }

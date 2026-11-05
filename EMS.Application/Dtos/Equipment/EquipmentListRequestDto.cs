@@ -8,7 +8,7 @@ namespace EMS.Application.Dtos.Equipment
     /// The equipment list and the Excel export take the same filters (the export ignores paging). Id filters accept several
     /// values: <c>?statusId=1&amp;statusId=2</c>. Text filters contain-match. Everything is optional and combined with AND.
     /// Sort with <c>sortBy</c>: owner, yaasCode, serialNumber, assetNumber, category, type, model, brand, status, locationType,
-    /// organization, department, city, province, technician, createdDateTime (default: id).
+    /// owner, organization, department, city, province, technician, createdDateTime (default: id).
     /// </summary>
     public class EquipmentListRequestDto : PagedRequest
     {
@@ -30,7 +30,10 @@ namespace EMS.Application.Dtos.Equipment
         [FromQuery(Name = "fieldId")] public long[]? FieldIds { get; set; }
         [FromQuery(Name = "organizationManagementId")] public long[]? OrganizationManagementIds { get; set; }
         [FromQuery(Name = "zoneId")] public long[]? ZoneIds { get; set; }
+        /// <summary>The department the equipment is at (<c>currentSupportingDepartment...</c>).</summary>
         [FromQuery(Name = "supportingDepartmentId")] public long[]? SupportingDepartmentIds { get; set; }
+        /// <summary>The department that serves the equipment's branch.</summary>
+        [FromQuery(Name = "organizationSupportingDepartmentId")] public long[]? OrganizationSupportingDepartmentIds { get; set; }
         [FromQuery(Name = "cityId")] public long[]? CityIds { get; set; }
         [FromQuery(Name = "provinceId")] public long[]? ProvinceIds { get; set; }
         [FromQuery(Name = "technicianUserId")] public long[]? TechnicianUserIds { get; set; }
