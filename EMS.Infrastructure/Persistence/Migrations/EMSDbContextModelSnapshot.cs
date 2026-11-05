@@ -500,6 +500,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Equipments", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Equipments_Owner", "[Owner] IN (1, 2)");
+
                             t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)");
                         });
                 });

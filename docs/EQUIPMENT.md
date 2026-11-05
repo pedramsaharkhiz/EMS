@@ -52,6 +52,12 @@
 
 افزودن فیلتر: یک خط در `EquipmentService.Filters` و یک property در `EquipmentListRequestDto`. افزودن ستون: property در `EquipmentRow` (و projection در `EquipmentRepository.ToRows`)، `EquipmentListItemDto`، و یک خط در `EquipmentExport`. جزئیات Excel در [EXPORTS.md](EXPORTS.md).
 
+## مالک تجهیز
+
+- `owner` الزامی است و فقط ۱ (شرکت) یا ۲ (بانک). هر مقدار دیگر (صفر، نامعتبر، یا نبودن) در ثبت، ویرایش، `bulk` و ثبت با فایل `400` فارسی می‌دهد («مالک تجهیز باید شرکت یا بانک باشد.»؛ `null` در JSON پیام عمومی «مقدار این فیلد نامعتبر است.»).
+- **جدول هم همین را می‌گوید:** قید `CK_Equipments_Owner` (`[Owner] IN (1, 2)`).
+- **تجهیزات موجود:** migration مالک (`AddEquipmentOwner`) ستون را با پیش‌فرض ۰ ساخته بود که مالک نیست. migration `EquipmentOwnerCheck` همه‌ی آن‌ها را **شرکت** می‌کند (تصمیم کسب‌وکار) و بعد قید را می‌گذارد. اسکریپت: `docs/sql/EquipmentOwnerCheck.sql`.
+
 ## فیلدهای مشترک پاسخ‌ها
 
 لیست، جزئیات و هر پاسخی که جزئیات تجهیز دارد (ثبت، ویرایش، `move`، `bulk`، ثبت با فایل) **یک شکل** دارند و فایل Excel همان ستون‌ها را نشان می‌دهد:

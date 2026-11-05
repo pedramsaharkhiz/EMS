@@ -1,5 +1,6 @@
 using EMS.Domain;
 using EMS.Domain.Entities;
+using EMS.Domain.Enums;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -31,6 +32,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.HasOne(x => x.CurrentSupportingDepartment).WithMany(x => x.CurrentEquipments).HasForeignKey(x => x.CurrentSupportingDepartmentId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.TechnicianUserId).OnDelete(DeleteBehavior.NoAction);
 
+            // The owner must be one of the defined values (the API refuses anything else; this keeps the table honest too).
+            builder.ToTable(t => t.HasCheckConstraint(EquipmentConstraints.OwnerCheckName, $"[Owner] IN ({string.Join(", ", Enum.GetValues<EquipmentOwner>().Select(owner => (int)owner))})"));
             builder.ToTable(t => t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)"));
         }
     }
