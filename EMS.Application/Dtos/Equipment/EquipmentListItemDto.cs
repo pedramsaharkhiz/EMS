@@ -10,6 +10,8 @@ namespace EMS.Application.Dtos.Equipment
     public class EquipmentListItemDto
     {
         public long Id { get; set; }
+        /// <summary>How many active attachments (files) this equipment has. The list of them is in <see cref="EquipmentDetailWithAttachmentsDto.Attachments"/> (GET /api/Equipment/{id}).</summary>
+        public int AttachmentCount { get; set; }
         public EquipmentOwner Owner { get; set; }
         public string YaasCode { get; set; } = string.Empty;
         public string? SerialNumber { get; set; }

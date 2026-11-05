@@ -24,6 +24,15 @@ namespace EMS.Application.Interfaces.Attachment
         /// <summary>Writes the audit entry of an upload made with <see cref="UploadInTransactionAsync"/> (after the commit).</summary>
         void AuditUploaded(AttachmentItemDto item);
 
+        /// <summary>
+        /// The active attachments of a record, newest first, without checking that the record exists (the caller has just loaded it, so a
+        /// deactivated record still lists its files). Empty when attachments are not enabled for the table.
+        /// </summary>
+        Task<IReadOnlyList<AttachmentItemDto>> ListActiveAsync(string tableName, long entityId, CancellationToken cancellationToken = default);
+
+        /// <summary>How many active attachments each of these records has (records with none are absent). One query for all of them.</summary>
+        Task<Dictionary<long, int>> CountActiveAsync(string tableName, IReadOnlyCollection<long> entityIds, CancellationToken cancellationToken = default);
+
         /// <summary>The file of an active attachment. The caller disposes it after streaming it to the client.</summary>
         Task<(AttachmentItemDto Item, AttachmentDownload File)> DownloadAsync(long attachmentId, CancellationToken cancellationToken = default);
 

@@ -31,6 +31,7 @@ namespace EMS.Application.Services.Equipment
     public sealed class EquipmentService : IEquipmentService
     {
         private const string NotTechnicianMessage = "کاربر انتخاب‌شده سمت «تکنسین» ندارد و نمی‌تواند تکنسین تجهیز باشد.";
+        private const string AttachmentsTable = "Equipments";
         private const string FirstLocationNote = "ثبت اولیه تجهیز";
 
         // The filters of the list and of the export: one line each (add a filter = add a line and a property to the request).
@@ -125,17 +126,33 @@ namespace EMS.Application.Services.Equipment
         public async Task<PagedResult<EquipmentListItemDto>> GetPagedAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default)
         {
             var page = await Query(request).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+
+            // one grouped query for the whole page, not one per row
+            var counts = await _attachments.CountActiveAsync(AttachmentsTable, page.Items.Select(r => r.Id).ToList(), cancellationToken);
+            var items = page.Items.Select(row => Fill(new EquipmentListItemDto(), row)).ToList();
+            foreach (var item in items)
+                item.AttachmentCount = counts.GetValueOrDefault(item.Id);
+
             return new PagedResult<EquipmentListItemDto>
             {
-                Items = page.Items.Select(row => Fill(new EquipmentListItemDto(), row)).ToList(),
+                Items = items,
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
             };
         }
 
-        public Task<EquipmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
-            DetailAsync(id, cancellationToken);
+        public async Task<EquipmentDetailWithAttachmentsDto> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+        {
+            var detail = await DetailAsync(id, cancellationToken);
+            var result = new EquipmentDetailWithAttachmentsDto();
+            CopyDetail(detail, result);
+
+            // an equipment that was deactivated still lists its files (the permission is the same Equipments.View)
+            result.Attachments = await _attachments.ListActiveAsync(AttachmentsTable, id, cancellationToken);
+            result.AttachmentCount = result.Attachments.Count;
+            return result;
+        }
 
         public async Task<ExcelFile> ExportAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default) =>
             await _exporter.ExportAsync(Query(request), EquipmentExport.Definition, cancellationToken);
@@ -226,7 +243,7 @@ namespace EMS.Application.Services.Equipment
         /// </summary>
         public async Task<EquipmentRegistrationDto> CreateWithAttachmentsAsync(EquipmentCreateDto request, IAsyncEnumerable<AttachmentUpload> files, CancellationToken cancellationToken = default)
         {
-            var target = await _attachments.GetTargetAsync("Equipments", cancellationToken);
+            var target = await _attachments.GetTargetAsync(AttachmentsTable, cancellationToken);
 
             EquipmentEntity entity;
             var stored = new List<AttachmentItemDto>();
@@ -251,8 +268,10 @@ namespace EMS.Application.Services.Equipment
                 _attachments.AuditUploaded(item);
 
             var detail = await DetailAsync(entity.EquipmentId, cancellationToken);
-            var registration = new EquipmentRegistrationDto { Attachments = stored };
+            var registration = new EquipmentRegistrationDto();
             CopyDetail(detail, registration);
+            registration.Attachments = stored;
+            registration.AttachmentCount = stored.Count;
             return registration;
         }
 
@@ -487,6 +506,7 @@ namespace EMS.Application.Services.Equipment
             var detail = Fill(new EquipmentDetailDto(), row);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
+            detail.AttachmentCount = (await _attachments.CountActiveAsync(AttachmentsTable, new[] { id }, cancellationToken)).GetValueOrDefault(id);
             return detail;
         }
 

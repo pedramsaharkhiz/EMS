@@ -9,7 +9,8 @@ namespace EMS.Application.Interfaces.Equipment
     public interface IEquipmentService
     {
         Task<PagedResult<EquipmentListItemDto>> GetPagedAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
-        Task<EquipmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
+        /// <summary>The equipment with its active attachments (metadata, newest first).</summary>
+        Task<EquipmentDetailWithAttachmentsDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
         Task<EquipmentDetailDto> CreateAsync(EquipmentCreateDto request, CancellationToken cancellationToken = default);
         /// <summary>Creates all items or none; the result is in the order of the request.</summary>
         Task<IReadOnlyList<EquipmentDetailDto>> CreateBulkAsync(EquipmentBulkCreateDto request, CancellationToken cancellationToken = default);

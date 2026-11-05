@@ -10,7 +10,7 @@
 | `GET /api/Equipment/export` | `Equipments.View` | همان لیست، به‌صورت Excel (بدون صفحه‌بندی) |
 | `GET /api/Equipment/technicians` | `Equipments.View` | dropdown تکنسین: کاربران **فعال با سمت «تکنسین»** |
 | `GET /api/Equipment/{id}/technician` | `Equipments.View` | تکنسین فعلی این تجهیز با سمت و دپارتمان پشتیبانی‌اش؛ `data` برای تجهیز بدون تکنسین `null` است (`404` برای تجهیز ناموجود) |
-| `GET /api/Equipment/{id}` | `Equipments.View` | جزئیات (فعال یا غیرفعال) |
+| `GET /api/Equipment/{id}` | `Equipments.View` | جزئیات (فعال یا غیرفعال) **همراه با پیوست‌های فعال** (`attachments`، جدیدترین اول) و `attachmentCount`؛ [توضیح](ATTACHMENTS.md#پیوست‌ها-در-جزئیات-و-لیست-تجهیز) |
 | `GET /api/Equipment/{id}/location-history` | `Equipments.View` | تاریخچه‌ی مکان، جدیدترین اول، صفحه‌بندی‌شده |
 | `POST /api/Equipment` | `Equipments.Create` | ایجاد (`201`) |
 | `POST /api/Equipment/with-attachments` | `Equipments.Create` | ثبت همراه با فایل‌ها در یک درخواست (`201`)، همه یا هیچ؛ [توضیح](ATTACHMENTS.md#ثبت-تجهیز-همراه-با-پیوست-یک-درخواست) |
