@@ -12,6 +12,7 @@
 | `GET /api/Equipment/{id}` | `Equipments.View` | جزئیات (فعال یا غیرفعال) |
 | `GET /api/Equipment/{id}/location-history` | `Equipments.View` | تاریخچه‌ی مکان، جدیدترین اول، صفحه‌بندی‌شده |
 | `POST /api/Equipment` | `Equipments.Create` | ایجاد (`201`) |
+| `POST /api/Equipment/with-attachments` | `Equipments.Create` | ثبت همراه با فایل‌ها در یک درخواست (`201`)، همه یا هیچ؛ [توضیح](ATTACHMENTS.md#ثبت-تجهیز-همراه-با-پیوست-یک-درخواست) |
 | `POST /api/Equipment/bulk` | `Equipments.Create` | ثبت گروهی (`201`)، همه یا هیچ؛ [توضیح](#ثبت-گروهی) |
 | `PUT /api/Equipment/{id}` | `Equipments.Update` | ویرایش |
 | `POST /api/Equipment/{id}/move` | `Equipments.Assign` | تغییر مکان (با ثبت تاریخچه) |

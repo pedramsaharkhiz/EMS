@@ -81,7 +81,7 @@ namespace EMS.Tests.Unit
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
                 new EquipmentLocationTypeRepository(context), new SupportingDepartmentRepository(context), new Repository<EMS.Domain.Entities.Organization>(context),
-                new PermissiveEquipmentLocationRule(), exporter, new NoUser(), new UnitOfWork(context), new NoAudit());
+                new PermissiveEquipmentLocationRule(), exporter, new NoUser(), new UnitOfWork(context), new NoAudit(), attachments: null!);
             return (service, exporter, context);
         }
 

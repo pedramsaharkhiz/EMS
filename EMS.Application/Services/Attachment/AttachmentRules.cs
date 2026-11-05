@@ -18,6 +18,15 @@ namespace EMS.Application.Services.Attachment
         /// <summary>The most active attachments one record can have.</summary>
         public const int MaxActivePerEntity = 20;
 
+        /// <summary>Files that may come with one equipment registration (POST /api/Equipment/with-attachments).</summary>
+        public const int MaxFilesPerRegistration = 5;
+
+        /// <summary>Total size of the files of one registration (each file is still limited by <see cref="MaxFileSizeBytes"/>).</summary>
+        public const long MaxRegistrationBytes = 50L * 1024 * 1024;
+
+        /// <summary>The request limit of that endpoint: the files plus the JSON part and the multipart framing.</summary>
+        public const long MaxRegistrationRequestBytes = MaxRegistrationBytes + 1024 * 1024;
+
         public const int MaxDescriptionLength = 500;
         public const int MaxFileNameLength = 200;
 

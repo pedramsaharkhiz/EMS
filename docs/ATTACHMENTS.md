@@ -56,6 +56,34 @@ Authorization: Bearer <token>
 ### دانلود
 پاسخ خام فایل است، نه پوشش JSON (`[FileDownloadResponse]`، مثل Excel یک استثنای مصوب قاعده‌ی پوشش). `Content-Type` همان است که هنگام پذیرش از روی پسوند ذخیره شده، و `Content-Disposition: attachment` است. خطاها همچنان پوشش JSON فارسی‌اند.
 
+## ثبت تجهیز همراه با پیوست (یک درخواست)
+
+برای اینکه فرانت هم بتواند تجهیز را **بدون** پیوست و هم **با** پیوست ثبت کند، یک endpoint جدا هست. `POST /api/Equipment` همان‌طور که بود می‌ماند و تغییری نکرده است.
+
+`POST /api/Equipment/with-attachments` (مجوز `Equipments.Create`؛ `Update` لازم نیست)
+
+بدنه `multipart/form-data` است و مثل آپلود معمولی **stream** می‌شود (نه در حافظه جمع می‌شود و نه روی دیسک سرور). ترتیب بخش‌ها مهم است:
+
+1. **بخش اول:** بخش متنی به نام `equipment` با **همان JSON** بدنه‌ی `POST /api/Equipment` (همان فیلدها، همان قواعد و همان خطاها).
+2. **بعد از آن:** هر تعداد فایل (حداکثر ۵). یک بخش متنی به نام `description` که **درست قبل از یک فایل** بیاید، توضیح همان فایل است (اختیاری). بخش‌های دیگر نادیده گرفته می‌شوند.
+
+```js
+const form = new FormData();
+form.append("equipment", JSON.stringify({ yaasCode: "Y-1001", owner: 1, equipmentTypeId: 3, equipmentStatusId: 1, currentEquipmentLocationTypeId: 2 }));  // اول
+form.append("description", "نمای کلی");     // اختیاری، برای فایل بعدی
+form.append("file", fileA);
+form.append("file", fileB);
+await fetch("/api/Equipment/with-attachments", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+```
+
+- **همه یا هیچ:** تجهیز، تاریخچه‌ی مکانش و همه‌ی فایل‌ها در **یک تراکنش** ذخیره می‌شوند. اگر هر فایلی رد شود یا هر مرحله‌ای خطا بدهد، هیچ تجهیز و فایلی نمی‌ماند. رکورد audit هم فقط بعد از commit نوشته می‌شود.
+- **پیوست اختیاری است:** بدون فایل، ثبت معمولی است و `attachments: []` برمی‌گردد.
+- **حدها:** حداکثر **۵ فایل** و **۵۰ مگابایت** کل (`AttachmentRules.MaxFilesPerRegistration` و `MaxRegistrationBytes`). هر فایل همچنان ≤ ۱۰ مگابایت و از همان نوع‌های مجاز است. فایل ششم `400 attachments_per_request_exceeded` می‌دهد (و کل ثبت لغو می‌شود). درخواست بزرگ‌تر از ۵۱ مگابایت `413`.
+- **پاسخ:** `201` با هدر `Location` و بدنه‌ی `EquipmentRegistrationDto`: همه‌ی فیلدهای `EquipmentDetailDto` (پس فرانت همان نوع ثبت معمولی را استفاده می‌کند) به‌علاوه‌ی `attachments` (فهرست پیوست‌های ذخیره‌شده، به ترتیب ارسال).
+- **خطاها:** JSON تجهیز اول خوانده و اعتبارسنجی می‌شود و اگر خطا داشته باشد هیچ فایلی خوانده نمی‌شود: `400 validation_failed` با همان فیلدهای ثبت معمولی. اگر بخش اول `equipment` نباشد یا JSON نامعتبر باشد: `400 validation_failed` با فیلد `equipment`. خطاهای فایل همان کدهای پیوست‌اند (`attachment_type_not_allowed`، `attachment_content_mismatch`، `attachment_too_large`). بدنه‌ی غیر multipart: `415`.
+- **ثبت گروهی (`/bulk`) فایل نمی‌گیرد.** برای ۲۰۰ تجهیز با فایل، نه سقف حجم می‌خواند و نه مدل.
+- **اجرا در دیتابیس:** پیش از شروع تراکنش، تراکنش باز می‌ماند تا آپلود فایل‌ها تمام شود (چند ثانیه برای فایل‌های بزرگ). ردیف تجهیز تا آن لحظه قفل است.
+
 ## قواعد و حدها
 
 | قاعده | مقدار |
@@ -95,4 +123,5 @@ Authorization: Bearer <token>
 
 ## تست
 - تست‌های API (`AttachmentTests`) روی دیتابیس in-memory اجرا می‌شوند، که SQL خام و stream را نمی‌تواند اجرا کند؛ برای همین `InMemoryAttachmentBlobStore` جایگزین می‌شود (بایت‌ها در حافظه‌ی تست). قواعد، permissionها، حدها و seeder با این‌ها پوشش داده شده‌اند.
+- **ثبت تجهیز با پیوست:** تست‌های API (`EquipmentWithAttachmentsTests`) روی in-memory اجرا می‌شوند که تراکنش را نادیده می‌گیرد؛ پس «فایل ردشده هیچ تجهیزی باقی نمی‌گذارد» فقط با `SqlEquipmentRegistrationTests` روی SQL Server واقعی (با `EMS_TEST_SQL`) اثبات می‌شود. تا وقتی آن تست اجرا نشده، این ویژگیِ اتمی‌بودن راستی‌آزمایی نشده است.
 - **مسیر SQL** (`SqlAttachmentBlobStore`: stream به SQL، `OUTPUT` اندازه و هش، دانلود با reader، rollback) فقط روی SQL Server واقعی قابل راستی‌آزمایی است: `SqlAttachmentBlobStoreTests`. به‌صورت پیش‌فرض Skip است. برای اجرا، یک دیتابیس **موقت** با نامی که `test` دارد بساز، connection string را در `EMS_TEST_SQL` بگذار و تست‌ها را اجرا کن (دیتابیس را drop و دوباره می‌سازد).
