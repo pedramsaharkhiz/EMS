@@ -71,6 +71,7 @@ namespace EMS.Application.Common.Exceptions
         public const string AttachmentTypeNotAllowed = "attachment_type_not_allowed";
         public const string AttachmentContentMismatch = "attachment_content_mismatch";
         public const string AttachmentLimitReached = "attachment_limit_reached";
+        public const string AttachmentsPerRequestExceeded = "attachments_per_request_exceeded";
         public const string UserAlreadyHasRole = "user_already_has_role";
         public const string SkillsInvalid = "skills_invalid";
         public const string RoleInUse = "role_in_use";

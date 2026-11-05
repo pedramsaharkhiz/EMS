@@ -93,6 +93,26 @@ namespace EMS.Application.Services.Attachment
 
         public async Task<AttachmentItemDto> UploadAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, CancellationToken cancellationToken = default)
         {
+            var item = await StoreAsync(target, entityId, upload, ownTransaction: true, cancellationToken);
+            AuditUploaded(item);
+            return item;
+        }
+
+        public Task<AttachmentItemDto> UploadInTransactionAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, CancellationToken cancellationToken = default)
+        {
+            if (!_unitOfWork.HasActiveTransaction)
+                throw new InvalidOperationException("UploadInTransactionAsync must run inside a transaction of the caller.");
+            return StoreAsync(target, entityId, upload, ownTransaction: false, cancellationToken);
+        }
+
+        public void AuditUploaded(AttachmentItemDto item) => _audit.Created("EntityAttachment", item.Id);
+
+        /// <summary>
+        /// Validates and stores one file. <paramref name="ownTransaction"/>: this call commits by itself; otherwise it runs in the caller's
+        /// transaction and the caller commits (and audits, with <see cref="AuditUploaded"/>, only after the commit).
+        /// </summary>
+        private async Task<AttachmentItemDto> StoreAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, bool ownTransaction, CancellationToken cancellationToken)
+        {
             if (!await _targets.EntityExistsAsync(target, entityId, cancellationToken))
                 throw TargetNotFound();
 
@@ -132,7 +152,7 @@ namespace EMS.Application.Services.Attachment
                 Description = description
             };
 
-            await using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
+            await using (var transaction = ownTransaction ? await _unitOfWork.BeginTransactionAsync(cancellationToken) : null)
             {
                 await _contents.AddAsync(content, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -143,10 +163,9 @@ namespace EMS.Application.Services.Attachment
 
                 await _attachments.AddAsync(attachment, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
+                if (transaction is not null)
+                    await transaction.CommitAsync(cancellationToken);
             }
-
-            _audit.Created("EntityAttachment", attachment.EntityAttachmentId);
 
             return new AttachmentItemDto
             {

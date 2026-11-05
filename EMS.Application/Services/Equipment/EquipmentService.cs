@@ -5,6 +5,9 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Dtos.Attachment;
+using EMS.Application.Interfaces.Attachment;
+using EMS.Application.Services.Attachment;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Dtos.EquipmentLocationHistory;
 using EMS.Application.Extensions;
@@ -84,6 +87,7 @@ namespace EMS.Application.Services.Equipment
         private readonly ICurrentUserService _currentUser;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
+        private readonly IAttachmentService _attachments;
 
         public EquipmentService(
             IEquipmentRepository repository,
@@ -97,7 +101,8 @@ namespace EMS.Application.Services.Equipment
             IExcelExporter exporter,
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
-            IAuditEventLogger audit)
+            IAuditEventLogger audit,
+            IAttachmentService attachments)
         {
             _repository = repository;
             _statuses = statuses;
@@ -111,6 +116,7 @@ namespace EMS.Application.Services.Equipment
             _currentUser = currentUser;
             _unitOfWork = unitOfWork;
             _audit = audit;
+            _attachments = attachments;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -186,6 +192,58 @@ namespace EMS.Application.Services.Equipment
 
         public async Task<EquipmentDetailDto> CreateAsync(EquipmentCreateDto request, CancellationToken cancellationToken = default)
         {
+            var entity = await AddEquipmentAsync(request, cancellationToken);
+
+            _audit.Created("Equipment", entity.EquipmentId);
+            return await DetailAsync(entity.EquipmentId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Registers an equipment together with its files, all or nothing: the equipment and every file are saved in ONE transaction, so if a
+        /// file is refused (type, content, size, count) or anything else fails, nothing at all is left behind. The files arrive as a lazy
+        /// sequence because they are streamed from the request body: each one is read to the end before the next is asked for.
+        /// </summary>
+        public async Task<EquipmentRegistrationDto> CreateWithAttachmentsAsync(EquipmentCreateDto request, IAsyncEnumerable<AttachmentUpload> files, CancellationToken cancellationToken = default)
+        {
+            var target = await _attachments.GetTargetAsync("Equipments", cancellationToken);
+
+            EquipmentEntity entity;
+            var stored = new List<AttachmentItemDto>();
+            await using (var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken))
+            {
+                entity = await AddEquipmentAsync(request, cancellationToken);
+
+                await foreach (var file in files.WithCancellation(cancellationToken))
+                {
+                    if (stored.Count >= AttachmentRules.MaxFilesPerRegistration)
+                        throw new BadRequestException($"در هر ثبت حداکثر {AttachmentRules.MaxFilesPerRegistration} فایل مجاز است.", ErrorCodes.AttachmentsPerRequestExceeded);
+
+                    stored.Add(await _attachments.UploadInTransactionAsync(target, entity.EquipmentId, file, cancellationToken));
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            // only now, when everything is committed, does anything count as created
+            _audit.Created("Equipment", entity.EquipmentId);
+            foreach (var item in stored)
+                _attachments.AuditUploaded(item);
+
+            var detail = await DetailAsync(entity.EquipmentId, cancellationToken);
+            var registration = new EquipmentRegistrationDto { Attachments = stored };
+            CopyDetail(detail, registration);
+            return registration;
+        }
+
+        private static void CopyDetail(EquipmentDetailDto from, EquipmentDetailDto to)
+        {
+            foreach (var property in typeof(EquipmentDetailDto).GetProperties().Where(p => p.CanRead && p.CanWrite))
+                property.SetValue(to, property.GetValue(from));
+        }
+
+        /// <summary>Validates and saves a new equipment with its first location history entry (no audit, no detail).</summary>
+        private async Task<EquipmentEntity> AddEquipmentAsync(EquipmentCreateDto request, CancellationToken cancellationToken)
+        {
             var yaasCode = request.YaasCode.Trim();
             var location = new EquipmentLocation(request.CurrentEquipmentLocationTypeId, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
 
@@ -212,9 +270,7 @@ namespace EMS.Application.Services.Equipment
             await _repository.AddAsync(entity, cancellationToken);
             _repository.AddLocationHistory(NewHistory(entity, location, FirstLocationNote));
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _audit.Created("Equipment", entity.EquipmentId);
-            return await DetailAsync(entity.EquipmentId, cancellationToken);
+            return entity;
         }
 
         public async Task<IReadOnlyList<EquipmentDetailDto>> CreateBulkAsync(EquipmentBulkCreateDto request, CancellationToken cancellationToken = default)
