@@ -2,6 +2,7 @@ using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.SupportingDepartment;
 using EMS.Application.Interfaces.SupportingDepartment;
+using EMS.Application.Validators.SupportingDepartment;
 using EMS.Domain.Interfaces;
 using System.Linq.Expressions;
 using SupportingDepartmentEntity = EMS.Domain.Entities.SupportingDepartment;
@@ -16,17 +17,21 @@ namespace EMS.Application.Services.SupportingDepartment
         : CatalogService<SupportingDepartmentEntity, SupportingDepartmentCreateDto, SupportingDepartmentUpdateDto, SupportingDepartmentDetailDto, SupportingDepartmentListItemDto, SupportingDepartmentListRequestDto>, ISupportingDepartmentService
     {
         private readonly ICityRepository _cities;
+        private readonly ISupportingDepartmentRepository _departments;
+        private readonly ISupportingDepartmentScopeService _scope;
 
-        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities)
+        public SupportingDepartmentService(ISupportingDepartmentRepository repository, IUnitOfWork unitOfWork, IAuditEventLogger audit, ICityRepository cities, ISupportingDepartmentScopeService scope)
             : base(repository, unitOfWork, audit)
         {
             _cities = cities;
+            _departments = repository;
+            _scope = scope;
         }
 
         public const string EntityLabel = "دپارتمان پشتیبانی";
         protected override string Label => EntityLabel;
         protected override string DuplicateMessage => "در این شهر دپارتمان پشتیبانی دیگری با این عنوان وجود دارد.";
-        protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر یا تجهیز فعال است و قابل غیرفعال‌سازی نیست.";
+        protected override string DependentsMessage => "این دپارتمان پشتیبانی دارای کاربر، تجهیز یا شعبه‌ی فعال است و قابل غیرفعال‌سازی نیست.";
         protected override Expression<Func<SupportingDepartmentEntity, long>> IdSelector => x => x.SupportingDepartmentId;
 
         protected override Expression<Func<SupportingDepartmentEntity, SupportingDepartmentListItemDto>> ListItem =>
@@ -38,7 +43,8 @@ namespace EMS.Application.Services.SupportingDepartment
                 ProvinceId = x.City.ProvinceId,
                 ProvinceTitle = x.City.Province.Title,
                 Title = x.Title,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                OrganizationCount = x.Organizations.Count(o => o.IsActive)
             };
 
         protected override void ConfigureSorting(SortBuilder<SupportingDepartmentEntity> sort) =>
@@ -82,6 +88,28 @@ namespace EMS.Application.Services.SupportingDepartment
             await RequireParentAsync(_cities, cityId, x => x.CityId, "شهر", mustBeActive: cityId != entity.CityId || reactivating, cancellationToken);
         }
 
+        // Branches are optional. When given they are saved together with the department (one save = one transaction).
+        protected override async Task OnCreatingAsync(SupportingDepartmentCreateDto request, SupportingDepartmentEntity entity, CancellationToken cancellationToken)
+        {
+            if (!SupportingDepartmentOrganizationsDtoValidator.HasSelection(request.Organizations))
+                return;
+
+            var organizations = await _scope.PrepareAssignmentAsync(null, request.Organizations!, "organizations.", cancellationToken);
+            foreach (var organization in organizations)
+                entity.Organizations.Add(organization);
+        }
+
+        // On update the branches are ADDED to the current ones; nothing is taken off (see the DELETE endpoint).
+        protected override async Task OnUpdatingAsync(SupportingDepartmentEntity entity, SupportingDepartmentUpdateDto request, CancellationToken cancellationToken)
+        {
+            if (!SupportingDepartmentOrganizationsDtoValidator.HasSelection(request.Organizations))
+                return;
+
+            var organizations = await _scope.PrepareAssignmentAsync(entity.SupportingDepartmentId, request.Organizations!, "organizations.", cancellationToken);
+            foreach (var organization in organizations.Where(o => o.SupportingDepartmentId != entity.SupportingDepartmentId))
+                organization.SupportingDepartmentId = entity.SupportingDepartmentId;
+        }
+
         protected override SupportingDepartmentEntity NewEntity(SupportingDepartmentCreateDto request, string title) =>
             new() { Title = title, CityId = request.CityId };
 
@@ -90,13 +118,13 @@ namespace EMS.Application.Services.SupportingDepartment
             entity.CityId = request.CityId ?? entity.CityId;
         }
 
-        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) => Map(entity, null);
+        protected override SupportingDepartmentDetailDto ToDetail(SupportingDepartmentEntity entity) => Map(entity, null, 0);
 
         // The city and province titles need a query (the entity only carries the foreign key after a create / update).
         protected override async Task<SupportingDepartmentDetailDto> ToDetailAsync(SupportingDepartmentEntity entity, CancellationToken cancellationToken) =>
-            Map(entity, await _cities.GetLocationAsync(entity.CityId, cancellationToken));
+            Map(entity, await _cities.GetLocationAsync(entity.CityId, cancellationToken), await _departments.CountOrganizationsAsync(entity.SupportingDepartmentId, cancellationToken));
 
-        private static SupportingDepartmentDetailDto Map(SupportingDepartmentEntity entity, CityLocation? location) =>
+        private static SupportingDepartmentDetailDto Map(SupportingDepartmentEntity entity, CityLocation? location, int organizationCount) =>
             new()
             {
                 Id = entity.SupportingDepartmentId,
@@ -106,6 +134,7 @@ namespace EMS.Application.Services.SupportingDepartment
                 ProvinceTitle = location?.ProvinceTitle ?? string.Empty,
                 Title = entity.Title,
                 IsActive = entity.IsActive,
+                OrganizationCount = organizationCount,
                 RowVersion = RowVersionToken.From(entity.ModifiedDateTime),
             };
     }

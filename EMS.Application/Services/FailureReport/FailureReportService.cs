@@ -37,6 +37,7 @@ namespace EMS.Application.Services.FailureReport
             .AnyOf(r => r.StatusIds, x => x.StatusId)
             .AnyOf(r => r.PriorityIds, x => x.PriorityId)
             .AnyOf(r => r.OrganizationIds, x => x.OrganizationId)
+            .AnyOf(r => r.SupportingDepartmentIds, x => x.SupportingDepartmentId)
             .AnyOf(r => r.EmployeeIds, x => x.EmployeeId)
             .AnyOf(r => r.ReportedByUserIds, x => x.ReportedByUserId)
             .AtLeast(r => r.ReportedFrom, x => x.ReportedDateTime)
@@ -225,6 +226,8 @@ namespace EMS.Application.Services.FailureReport
             dto.FailureReportStatusCode = row.StatusCode;
             dto.OrganizationId = row.OrganizationId;
             dto.OrganizationTitle = row.OrganizationTitle;
+            dto.SupportingDepartmentId = row.SupportingDepartmentId;
+            dto.SupportingDepartmentTitle = row.SupportingDepartmentTitle;
             dto.EmployeeId = row.EmployeeId;
             dto.EmployeeName = row.EmployeeName;
             dto.ReportedByUserId = row.ReportedByUserId;

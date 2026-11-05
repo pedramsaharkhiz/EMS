@@ -10,6 +10,8 @@ namespace EMS.Application.Validators.SupportingDepartment
         public CreateSupportingDepartmentDtoValidator() : base(SupportingDepartmentService.EntityLabel)
         {
             RuleFor(x => x.CityId).GreaterThan(0).WithMessage("شناسه شهر باید بزرگتر از صفر باشد.");
+            RuleFor(x => x.Organizations!).SetValidator(new SupportingDepartmentOrganizationsDtoValidator())
+                .When(x => SupportingDepartmentOrganizationsDtoValidator.HasSelection(x.Organizations));
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using EMS.Application.Common.Models;
+using EMS.Application.Common.Models;
 using EMS.Application.Dtos.OrganizationHierarchy;
 using EMS.Application.Interfaces.OrganizationHierarchy;
 using EMS.Infrastructure.Persistence;
@@ -57,6 +57,18 @@ public sealed class OrganizationHierarchyService
 
                 _ => query.Where(x => false)
             };
+        }
+
+        if (request.SupportingDepartmentId.HasValue)
+        {
+            var departmentId = request.SupportingDepartmentId.Value;
+
+            query = query.Where(x => x.SupportingDepartmentId == departmentId);
+        }
+
+        if (request.WithoutSupportingDepartment == true)
+        {
+            query = query.Where(x => x.SupportingDepartmentId == null);
         }
 
         // وضعیت فقط روی رکورد سطح نتیجه اعمال می‌شود.
@@ -184,6 +196,9 @@ public sealed class OrganizationHierarchyService
                     Code = x.Code,
                     IsActive = x.IsActive,
 
+                    SupportingDepartmentId = x.SupportingDepartmentId,
+                    SupportingDepartmentTitle = x.SupportingDepartment!.Title,
+
                     ZoneId = x.FieldId.HasValue
                         ? x.Field!.OrganizationManagement.Zone.ZoneId
                         : x.OrganizationManagement!.Zone.ZoneId,
@@ -294,6 +309,8 @@ public sealed class OrganizationHierarchyService
             Code = row.Code,
             IsActive = row.IsActive,
             Parent = parent,
+            SupportingDepartmentId = row.SupportingDepartmentId,
+            SupportingDepartmentTitle = row.SupportingDepartmentTitle,
 
             // والد مستقیم در Ancestors تکرار نمی‌شود.
             Ancestors = ancestors
@@ -352,6 +369,10 @@ public sealed class OrganizationHierarchyService
         public string? Code { get; set; }
 
         public bool IsActive { get; set; }
+
+        public long? SupportingDepartmentId { get; set; }
+
+        public string? SupportingDepartmentTitle { get; set; }
 
         public long? ZoneId { get; set; }
 

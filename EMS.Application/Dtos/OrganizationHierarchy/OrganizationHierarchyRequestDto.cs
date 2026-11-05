@@ -1,4 +1,4 @@
-﻿namespace EMS.Application.Dtos.OrganizationHierarchy;
+namespace EMS.Application.Dtos.OrganizationHierarchy;
 
 public sealed class OrganizationHierarchyRequestDto
 {
@@ -15,6 +15,12 @@ public sealed class OrganizationHierarchyRequestDto
     public string? Code { get; set; }
 
     public bool? IsActive { get; set; }
+
+    // فقط برای سطح organization: فقط شعبه‌های زیر این دپارتمان پشتیبانی.
+    public long? SupportingDepartmentId { get; set; }
+
+    // فقط برای سطح organization: true = فقط شعبه‌های بدون دپارتمان پشتیبانی.
+    public bool? WithoutSupportingDepartment { get; set; }
 
     public int PageNumber { get; set; } = 1;
 

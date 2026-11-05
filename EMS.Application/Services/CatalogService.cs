@@ -87,6 +87,12 @@ namespace EMS.Application.Services
         /// <summary>Validate parents before creating (see <see cref="RequireParentAsync{TParent}"/>). Optional.</summary>
         protected virtual Task BeforeCreateAsync(TCreate request, CancellationToken cancellationToken) => Task.CompletedTask;
 
+        /// <summary>Called with the new entity right before it is saved (same save, same transaction). Optional.</summary>
+        protected virtual Task OnCreatingAsync(TCreate request, TEntity entity, CancellationToken cancellationToken) => Task.CompletedTask;
+
+        /// <summary>Called after the fields were applied, right before the update is saved (same save, same transaction). Optional.</summary>
+        protected virtual Task OnUpdatingAsync(TEntity entity, TUpdate request, CancellationToken cancellationToken) => Task.CompletedTask;
+
         /// <summary>Validate parents before updating. Optional.</summary>
         protected virtual Task BeforeUpdateAsync(TEntity entity, TUpdate request, CancellationToken cancellationToken) => Task.CompletedTask;
 
@@ -144,6 +150,7 @@ namespace EMS.Application.Services
             await EnsureTitleIsFreeAsync(title, exceptId: null, TitleScopeForCreate(request), cancellationToken);
 
             var entity = NewEntity(request, title);
+            await OnCreatingAsync(request, entity, cancellationToken);
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -180,6 +187,7 @@ namespace EMS.Application.Services
             }
 
             entity.IsActive = request.IsActive;
+            await OnUpdatingAsync(entity, request, cancellationToken);
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 

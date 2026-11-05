@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Security.Principal;
@@ -13,6 +13,8 @@ namespace EMS.Domain.Entities
         public string Title { get; set; } = null!;
 
         public City City { get; set; } = null!;
+        /// <summary>The branches this department serves.</summary>
+        public ICollection<Organization> Organizations { get; set; } = new List<Organization>();
         public ICollection<Equipment> CurrentEquipments { get; set; } = new List<Equipment>();
         public ICollection<EquipmentLocationHistory> EquipmentLocationHistories { get; set; } = new List<EquipmentLocationHistory>();
     }
