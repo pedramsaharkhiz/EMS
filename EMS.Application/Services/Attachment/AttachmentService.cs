@@ -91,6 +91,46 @@ namespace EMS.Application.Services.Attachment
                 .ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<AttachmentItemDto>> ListActiveAsync(string tableName, long entityId, CancellationToken cancellationToken = default)
+        {
+            var target = await _targets.FindAsync(tableName, cancellationToken);
+            if (target is null)
+                return Array.Empty<AttachmentItemDto>();
+
+            return await _attachments.QueryRows()
+                .Where(x => x.TableId == target.TableId && x.EntityId == entityId && x.IsActive)
+                .OrderByDescending(x => x.Id)
+                .Take(AttachmentRules.MaxActivePerEntity)
+                .Select(x => new AttachmentItemDto
+                {
+                    Id = x.Id,
+                    TableName = target.TableName,
+                    EntityId = x.EntityId,
+                    FileName = x.FileName,
+                    ContentType = x.ContentType,
+                    SizeBytes = x.SizeBytes,
+                    Description = x.Description,
+                    IsActive = x.IsActive,
+                    CreatedDateTime = x.CreatedDateTime,
+                    CreatedByUserId = x.CreatedByUserId
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<Dictionary<long, int>> CountActiveAsync(string tableName, IReadOnlyCollection<long> entityIds, CancellationToken cancellationToken = default)
+        {
+            var target = await _targets.FindAsync(tableName, cancellationToken);
+            var ids = entityIds.Distinct().ToList();
+            if (target is null || ids.Count == 0)
+                return new Dictionary<long, int>();
+
+            return await _attachments.QueryRows()
+                .Where(x => x.TableId == target.TableId && x.IsActive && ids.Contains(x.EntityId))
+                .GroupBy(x => x.EntityId)
+                .Select(g => new { EntityId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.EntityId, g => g.Count, cancellationToken);
+        }
+
         public async Task<AttachmentItemDto> UploadAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, CancellationToken cancellationToken = default)
         {
             var item = await StoreAsync(target, entityId, upload, ownTransaction: true, cancellationToken);

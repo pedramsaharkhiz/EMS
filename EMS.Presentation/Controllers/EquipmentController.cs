@@ -57,7 +57,7 @@ namespace EMS.Presentation.Controllers
 
         [Permission(Permissions.Equipments.View)]
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>
+        public async Task<ActionResult<ApiResponse<EquipmentDetailWithAttachmentsDto>>> GetById(long id, CancellationToken cancellationToken) =>
             Success(await _service.GetByIdAsync(id, cancellationToken));
 
         [Permission(Permissions.Equipments.View)]

@@ -430,6 +430,7 @@ GET api/Equipment
     envelope: success, message, data, meta, error, traceId
     data:
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -489,6 +490,7 @@ POST api/Equipment
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -537,6 +539,7 @@ POST api/Equipment/bulk
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -658,6 +661,7 @@ POST api/Equipment/with-attachments
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -712,12 +716,14 @@ DELETE api/Equipment/{id}
 GET api/Equipment/{id}
   authorization: Permission:Equipments.View
   Path: id : Int64 (required)
-  response 200: ApiResponse<EquipmentDetailDto>
+  response 200: ApiResponse<EquipmentDetailWithAttachmentsDto>
     envelope: success, message, data, meta, error, traceId
     data:
+      Attachments : IReadOnlyList<AttachmentItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -776,6 +782,7 @@ PUT api/Equipment/{id}
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
@@ -861,6 +868,7 @@ POST api/Equipment/{id}/move
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
+      AttachmentCount : Int32
       Owner : EquipmentOwner
       YaasCode : String
       SerialNumber : String
