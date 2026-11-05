@@ -37,6 +37,7 @@ namespace EMS.Tests.Integration
             var created = await SendAsync(HttpMethod.Post, "/api/Equipment", new
             {
                 yaasCode = Uniq("AT"),
+                owner = 1,
                 equipmentTypeId = type,
                 equipmentStatusId = (long)EMS.Domain.Enums.EquipmentStatusCode.InStock,
                 currentEquipmentLocationTypeId = location

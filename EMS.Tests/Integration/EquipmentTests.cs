@@ -90,6 +90,7 @@ namespace EMS.Tests.Integration
             return new Dictionary<string, object?>
             {
                 ["yaasCode"] = yaas ?? Uniq("Y"),
+                ["owner"] = 1,
                 ["equipmentTypeId"] = typeId,
                 ["equipmentModelId"] = modelId,
                 ["equipmentStatusId"] = status ?? InStock,
@@ -313,6 +314,7 @@ namespace EMS.Tests.Integration
             return new Dictionary<string, object?>
             {
                 ["yaasCode"] = Text("yaasCode"),
+                ["owner"] = current.GetProperty("owner").GetInt32(),
                 ["serialNumber"] = Text("serialNumber"),
                 ["assetNumber"] = Text("assetNumber"),
                 ["equipmentTypeId"] = Number("equipmentTypeId"),
@@ -335,7 +337,7 @@ namespace EMS.Tests.Integration
             var statusDamaged = (long)EquipmentStatusCode.Damaged;
             var update = new Dictionary<string, object?>
             {
-                ["yaasCode"] = Uniq("Y2"), ["equipmentModelId"] = c.ModelId, ["equipmentStatusId"] = statusDamaged, ["isActive"] = true,
+                ["yaasCode"] = Uniq("Y2"), ["owner"] = 1, ["equipmentModelId"] = c.ModelId, ["equipmentStatusId"] = statusDamaged, ["isActive"] = true,
             };
             var response = await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(created)}", update);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
