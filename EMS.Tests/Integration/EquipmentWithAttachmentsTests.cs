@@ -178,13 +178,15 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.NotFound, notFound.StatusCode);
             Assert.Equal("parent_not_found", ErrorCodeOf(await ReadJsonAsync(notFound)));
 
-            // a taken Yaas code
+            // a taken serial number (the Yaas code may repeat)
             var yaas = Uniq("TAKEN");
-            Assert.Equal(HttpStatusCode.Created, (await PostAdminAsync(Json(Body(f, yaas)))).StatusCode);
-            var duplicate = await PostAdminAsync(Json(Body(f, yaas)), File("a.pdf", PdfBytes()));
+            var holder = Body(f, yaas); holder["serialNumber"] = yaas;
+            Assert.Equal(HttpStatusCode.Created, (await PostAdminAsync(Json(holder))).StatusCode);
+            var clash = Body(f, Uniq("OTHER")); clash["serialNumber"] = yaas.ToLowerInvariant();
+            var duplicate = await PostAdminAsync(Json(clash), File("a.pdf", PdfBytes()));
             Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
-            Assert.Equal("duplicate_yaas_code", ErrorCodeOf(await ReadJsonAsync(duplicate)));
-            Assert.Equal(1, await CountByYaasAsync(yaas));
+            Assert.Equal("duplicate_serial_number", ErrorCodeOf(await ReadJsonAsync(duplicate)));
+            Assert.Equal(0, await CountByYaasAsync(clash["yaasCode"]!.ToString()!));
         }
 
         [Fact]

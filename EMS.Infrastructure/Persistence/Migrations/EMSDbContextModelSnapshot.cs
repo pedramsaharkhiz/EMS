@@ -479,6 +479,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("EquipmentId");
 
+                    b.HasIndex("AssetNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Equipments_AssetNumber")
+                        .HasFilter("[AssetNumber] IS NOT NULL");
+
                     b.HasIndex("CurrentEquipmentLocationTypeId");
 
                     b.HasIndex("CurrentOrganizationId");
@@ -491,15 +496,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EquipmentTypeId");
 
-                    b.HasIndex("TechnicianUserId");
-
-                    b.HasIndex("YaasCode")
+                    b.HasIndex("SerialNumber")
                         .IsUnique()
-                        .HasDatabaseName("UX_Equipments_YaasCode")
-                        .HasFilter("[IsActive] = 1");
+                        .HasDatabaseName("UX_Equipments_SerialNumber")
+                        .HasFilter("[SerialNumber] IS NOT NULL");
+
+                    b.HasIndex("TechnicianUserId");
 
                     b.ToTable("Equipments", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Equipments_Owner", "[Owner] IN (1, 2)");
+
                             t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)");
                         });
                 });

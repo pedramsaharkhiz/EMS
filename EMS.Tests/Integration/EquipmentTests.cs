@@ -127,8 +127,9 @@ namespace EMS.Tests.Integration
             var yaas = Uniq("Y");
 
             var body = await BodyAsync(yaas, modelId: c.ModelId, locationType: locationType);
-            body["serialNumber"] = "  SN-000123 ";
-            body["assetNumber"] = "AS-1";
+            var uniqueTag = Guid.NewGuid().ToString("N")[..8];
+            body["serialNumber"] = $"  SN-{uniqueTag} ";
+            body["assetNumber"] = $"AS-{uniqueTag}";
             body["currentOrganizationId"] = org.OrganizationId;
             body["currentSupportingDepartmentId"] = dept.DepartmentId;
             body["technicianUserId"] = tech.Id;
@@ -140,7 +141,7 @@ namespace EMS.Tests.Integration
             Assert.EndsWith($"/api/Equipment/{Id(json)}", response.Headers.Location!.AbsolutePath, StringComparison.OrdinalIgnoreCase);
 
             Assert.Equal(yaas, json.GetProperty("yaasCode").GetString());
-            Assert.Equal("SN-000123", json.GetProperty("serialNumber").GetString());                   // trimmed
+            Assert.Equal($"SN-{uniqueTag}", json.GetProperty("serialNumber").GetString());                   // trimmed
             Assert.Equal(c.ModelId, json.GetProperty("equipmentModelId").GetInt64());
             Assert.Equal(JsonValueKind.Null, json.GetProperty("equipmentTypeId").ValueKind);
             Assert.Equal(c.ModelTitle, json.GetProperty("equipmentModelTitle").GetString());
@@ -264,44 +265,82 @@ namespace EMS.Tests.Integration
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body), HttpStatusCode.BadRequest, "parent_inactive");
         }
 
-        // ------------------------------------------------------------------------------------------ Yaas code uniqueness
+        // ------------------------------------------------------------------------------------------ uniqueness
 
         [Fact]
-        public async Task The_yaas_code_is_unique_among_active_equipment_ignoring_case_and_spaces()
-        {
-            var yaas = Uniq("Y");
-            await CreateAsync(await BodyAsync(yaas));
-
-            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", await BodyAsync(yaas)), HttpStatusCode.Conflict, "duplicate_yaas_code");
-            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", await BodyAsync("  " + yaas.ToLowerInvariant() + " ")), HttpStatusCode.Conflict, "duplicate_yaas_code");
-        }
-
-        [Fact]
-        public async Task A_deactivated_equipment_frees_its_yaas_code_and_cannot_be_restored_onto_a_taken_one()
+        public async Task The_yaas_code_is_not_unique_several_equipment_may_share_it()
         {
             var yaas = Uniq("Y");
             var first = await CreateAsync(await BodyAsync(yaas));
+            var second = await CreateAsync(await BodyAsync(yaas));
+            var third = await CreateAsync(await BodyAsync("  " + yaas.ToLowerInvariant() + " "));
+            Assert.Equal(3, new[] { Id(first), Id(second), Id(third) }.Distinct().Count());
+
+            // and one can be changed to a code another equipment has
+            var update = UpdateBody(first); update["yaasCode"] = Uniq("Y2");
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", update)).StatusCode);
+            var back = UpdateBody(first); back["yaasCode"] = yaas;
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(second)}", back)).StatusCode);
+        }
+
+        [Theory]
+        [InlineData("serialNumber", "duplicate_serial_number", "سریال نامبر")]
+        [InlineData("assetNumber", "duplicate_asset_number", "شماره دارایی")]
+        public async Task The_serial_and_asset_numbers_are_unique_among_all_equipment_ignoring_case_and_spaces(string field, string code, string label)
+        {
+            var value = Uniq("N");
+            var body = await BodyAsync(); body[field] = value;
+            var first = await CreateAsync(body);
+
+            foreach (var variant in new[] { value, "  " + value.ToLowerInvariant() + " ", value.ToUpperInvariant() })
+            {
+                var again = await BodyAsync(); again[field] = variant;
+                var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", again);
+                await AssertErrorAsync(response, HttpStatusCode.Conflict, code);
+                Assert.Contains(label, (await ReadJsonAsync(response)).GetProperty("message").GetString());
+            }
+
+            // a deactivated equipment keeps its number: it is the same physical device
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/Equipment/{Id(first)}")).StatusCode);
+            var afterDelete = await BodyAsync(); afterDelete[field] = value;
+            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", afterDelete), HttpStatusCode.Conflict, code);
 
-            var second = await CreateAsync(await BodyAsync(yaas));                         // the code is free again
-            Assert.NotEqual(Id(first), Id(second));
+            // restoring it is fine (it holds the number itself)
+            var restore = UpdateBody(first, isActive: true);
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", restore)).StatusCode);
+        }
 
-            var restore = await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", UpdateBody(first));
-            await AssertErrorAsync(restore, HttpStatusCode.Conflict, "duplicate_yaas_code");
+        [Theory]
+        [InlineData("serialNumber", "duplicate_serial_number")]
+        [InlineData("assetNumber", "duplicate_asset_number")]
+        public async Task Changing_a_number_to_another_equipments_is_a_conflict_but_keeping_your_own_is_fine(string field, string code)
+        {
+            var a = await BodyAsync(); a[field] = Uniq("A");
+            var b = await BodyAsync(); b[field] = Uniq("B");
+            var first = await CreateAsync(a);
+            var second = await CreateAsync(b);
+
+            var own = UpdateBody(first, description: "x");
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", own)).StatusCode);
+            var sameButUpper = UpdateBody(first); sameButUpper[field] = first.GetProperty(field).GetString()!.ToUpperInvariant();
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", sameButUpper)).StatusCode);
+
+            var clash = UpdateBody(first); clash[field] = second.GetProperty(field).GetString()!.ToUpperInvariant();
+            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(first)}", clash), HttpStatusCode.Conflict, code);
         }
 
         [Fact]
-        public async Task Changing_the_yaas_code_to_another_active_ones_code_is_a_conflict_but_keeping_your_own_is_fine()
+        public async Task Equipment_without_a_serial_or_asset_number_never_collide()
         {
-            var a = await CreateAsync(await BodyAsync(Uniq("Y")));
-            var b = await CreateAsync(await BodyAsync(Uniq("Y")));
-
-            var own = await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(a)}", UpdateBody(a, description: "x"));
-            Assert.Equal(HttpStatusCode.OK, own.StatusCode);
-
-            var clash = UpdateBody(a);
-            clash["yaasCode"] = b.GetProperty("yaasCode").GetString()!.ToUpperInvariant();
-            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(a)}", clash), HttpStatusCode.Conflict, "duplicate_yaas_code");
+            for (var i = 0; i < 3; i++)
+            {
+                var body = await BodyAsync();
+                body["serialNumber"] = i == 1 ? "   " : null;      // blank counts as none
+                body["assetNumber"] = i == 2 ? "" : null;
+                var json = await CreateAsync(body);
+                Assert.Equal(JsonValueKind.Null, json.GetProperty("serialNumber").ValueKind);
+                Assert.Equal(JsonValueKind.Null, json.GetProperty("assetNumber").ValueKind);
+            }
         }
 
         // ------------------------------------------------------------------------------------------ update
@@ -331,7 +370,8 @@ namespace EMS.Tests.Integration
         {
             var c = await NewCatalogsAsync();
             var body = await BodyAsync(typeId: c.TypeId);
-            body["serialNumber"] = "SN-1"; body["assetNumber"] = "AS-1"; body["description"] = "old";
+            var tagU = Guid.NewGuid().ToString("N")[..8];
+            body["serialNumber"] = $"SN-{tagU}"; body["assetNumber"] = $"AS-{tagU}"; body["description"] = "old";
             var created = await CreateAsync(body);
 
             var statusDamaged = (long)EquipmentStatusCode.Damaged;
@@ -632,7 +672,8 @@ namespace EMS.Tests.Integration
             var c = await NewCatalogsAsync();
             var tag = Guid.NewGuid().ToString("N")[..8];
             var body = await BodyAsync($"XL-{tag}-1", modelId: c.ModelId);
-            body["serialNumber"] = "000777";
+            var leadingZeros = $"000{Math.Abs(tag.GetHashCode()) % 1000000:D6}";   // unique, but with leading zeros
+            body["serialNumber"] = leadingZeros;
             var a = await CreateAsync(body);
             await CreateAsync(await BodyAsync($"XL-{tag}-2", typeId: c.TypeId));
             var other = await CreateAsync(await BodyAsync($"OT-{tag}"));
@@ -656,7 +697,7 @@ namespace EMS.Tests.Integration
 
             Assert.Equal(3, sheet.LastRowUsed()!.RowNumber());                                         // header + the two XL- rows, not the OT- one
             Assert.Equal($"XL-{tag}-1", Cell(2, "یاس کد"));
-            Assert.Equal("000777", Cell(2, "سریال نامبر"));                                            // leading zeros kept (text)
+            Assert.Equal(leadingZeros, Cell(2, "سریال نامبر"));                                            // leading zeros kept (text)
             Assert.Equal(c.ModelTitle, Cell(2, "مدل"));
             Assert.Equal(c.BrandTitle, Cell(2, "برند"));
             Assert.Equal(c.CategoryTitle, Cell(2, "دسته‌بندی"));

@@ -110,17 +110,28 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task The_same_yaas_code_twice_in_one_request_is_refused_case_insensitively()
+        public async Task The_same_yaas_code_twice_in_one_request_is_fine_but_a_repeated_serial_or_asset_number_is_refused_case_insensitively()
         {
             var f = await NewFixtureAsync();
-            var code = Uniq("BD");
-            var response = await BulkAsync(Item(f, code), Item(f, Uniq("BX")), Item(f, code.ToLowerInvariant()));
+            var yaas = Uniq("BD");
+            var ok = await BulkAsync(Item(f, yaas), Item(f, yaas.ToLowerInvariant()));
+            Assert.Equal(HttpStatusCode.Created, ok.StatusCode);                              // the Yaas code is not unique
 
+            var serial = Uniq("SER");
+            var asset = Uniq("AST");
+            var first = Item(f); first["serialNumber"] = serial; first["assetNumber"] = asset;
+            var other = Item(f); other["serialNumber"] = Uniq("SER2");
+            var repeated = Item(f); repeated["serialNumber"] = "  " + serial.ToLowerInvariant(); repeated["assetNumber"] = asset.ToUpperInvariant();
+
+            var response = await BulkAsync(first, other, repeated);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var details = Details(await ReadJsonAsync(response));
-            Assert.Contains(details, d => d.Field == "items[2].yaasCode");
-            Assert.DoesNotContain(details, d => d.Field == "items[0].yaasCode");
-            Assert.Equal(0, await CountByYaasAsync(code));
+            Assert.Contains(details, d => d.Field == "items[2].serialNumber");
+            Assert.Contains(details, d => d.Field == "items[2].assetNumber");
+            Assert.DoesNotContain(details, d => d.Field.StartsWith("items[0]") || d.Field.StartsWith("items[1]"));
+
+            // rows without a serial or asset number never repeat
+            Assert.Equal(HttpStatusCode.Created, (await BulkAsync(Item(f), Item(f))).StatusCode);
         }
 
         [Fact]
@@ -130,7 +141,8 @@ namespace EMS.Tests.Integration
             var admin = await AdminAsync();
 
             var taken = Uniq("BT");
-            Assert.Equal(HttpStatusCode.Created, (await BulkAsync(Item(f, taken))).StatusCode);
+            var holder = Item(f); holder["serialNumber"] = taken;
+            Assert.Equal(HttpStatusCode.Created, (await BulkAsync(holder)).StatusCode);
 
             var inactiveStatus = await PostIdAsync("/api/EquipmentStatus", new { title = Uniq("bkstat") });
             Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{inactiveStatus}", bearer: admin)).StatusCode);
@@ -140,9 +152,10 @@ namespace EMS.Tests.Integration
             var wrongOrg = Item(f, Uniq("B2")); wrongOrg["currentOrganizationId"] = 99999999;
             var wrongTech = Item(f, Uniq("B3")); wrongTech["technicianUserId"] = 99999999;
 
+            var clash = Item(f, Uniq("B9")); clash["serialNumber"] = taken.ToUpperInvariant();
             var response = await BulkAsync(
                 Item(f, okCode),                         // 0: fine
-                Item(f, taken),                          // 1: duplicate of an existing active equipment
+                clash,                                   // 1: its serial number is held by an existing equipment
                 Item(f, Uniq("B0"), inactiveStatus),     // 2: inactive status
                 wrongType,                               // 3
                 wrongOrg,                                // 4
@@ -154,7 +167,7 @@ namespace EMS.Tests.Integration
             Assert.Contains("5 ردیف", json.GetProperty("message").GetString());
 
             var details = Details(json).ToDictionary(d => d.Field, d => d.Message);
-            Assert.Contains("یاس کد", details["items[1].yaasCode"]);
+            Assert.Contains("سریال نامبر", details["items[1].serialNumber"]);
             Assert.Contains("غیرفعال", details["items[2].equipmentStatusId"]);
             Assert.Contains("یافت نشد", details["items[3].equipmentTypeId"]);
             Assert.Contains("یافت نشد", details["items[4].currentOrganizationId"]);

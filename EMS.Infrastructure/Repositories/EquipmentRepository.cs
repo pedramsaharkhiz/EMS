@@ -150,19 +150,28 @@ namespace EMS.Infrastructure.Repositories
                 ModifiedDateTime = e.ModifiedDateTime,
             });
 
-        public async Task<bool> YaasCodeExistsAsync(string yaasCode, long? exceptId = null, CancellationToken cancellationToken = default)
+        // Unique among ALL equipment: the soft-delete filter is lifted, a deactivated equipment keeps its numbers.
+        public async Task<bool> SerialNumberExistsAsync(string serialNumber, long? exceptId = null, CancellationToken cancellationToken = default)
         {
-            var normalized = yaasCode.Trim().ToLower();
-
-            // The soft-delete filter keeps deactivated equipment out of this query: only active ones reserve a code
-            // (consistent with the filtered unique index UX_Equipments_YaasCode).
-            var query = _dbSet.Where(x => x.YaasCode.ToLower() == normalized);
+            var normalized = serialNumber.Trim().ToLower();
+            var query = _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && x.SerialNumber.ToLower() == normalized);
             if (exceptId.HasValue)
             {
                 var except = exceptId.Value;
                 query = query.Where(x => x.EquipmentId != except);
             }
+            return await query.AnyAsync(cancellationToken);
+        }
 
+        public async Task<bool> AssetNumberExistsAsync(string assetNumber, long? exceptId = null, CancellationToken cancellationToken = default)
+        {
+            var normalized = assetNumber.Trim().ToLower();
+            var query = _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && x.AssetNumber.ToLower() == normalized);
+            if (exceptId.HasValue)
+            {
+                var except = exceptId.Value;
+                query = query.Where(x => x.EquipmentId != except);
+            }
             return await query.AnyAsync(cancellationToken);
         }
 
@@ -259,11 +268,19 @@ namespace EMS.Infrastructure.Repositories
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task<HashSet<string>> FindReservedYaasCodesAsync(IReadOnlyCollection<string> yaasCodes, CancellationToken cancellationToken = default)
+        public async Task<HashSet<string>> FindExistingSerialNumbersAsync(IReadOnlyCollection<string> serialNumbers, CancellationToken cancellationToken = default)
         {
-            var lowered = yaasCodes.Select(c => c.Trim().ToLower()).Distinct().ToList();
-            var found = await _dbSet.Where(x => lowered.Contains(x.YaasCode.ToLower()))
-                .Select(x => x.YaasCode.ToLower()).ToListAsync(cancellationToken);
+            var lowered = serialNumbers.Select(c => c.Trim().ToLower()).Distinct().ToList();
+            var found = await _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && lowered.Contains(x.SerialNumber.ToLower()))
+                .Select(x => x.SerialNumber!.ToLower()).ToListAsync(cancellationToken);
+            return found.ToHashSet();
+        }
+
+        public async Task<HashSet<string>> FindExistingAssetNumbersAsync(IReadOnlyCollection<string> assetNumbers, CancellationToken cancellationToken = default)
+        {
+            var lowered = assetNumbers.Select(c => c.Trim().ToLower()).Distinct().ToList();
+            var found = await _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && lowered.Contains(x.AssetNumber.ToLower()))
+                .Select(x => x.AssetNumber!.ToLower()).ToListAsync(cancellationToken);
             return found.ToHashSet();
         }
 

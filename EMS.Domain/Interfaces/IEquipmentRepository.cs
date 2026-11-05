@@ -23,8 +23,11 @@ namespace EMS.Domain.Interfaces
 
         Task<EquipmentRow?> GetRowAsync(long id, CancellationToken cancellationToken = default);
 
-        /// <summary>Is the Yaas code used by another ACTIVE equipment? (any casing; a deactivated one does not reserve its code)</summary>
-        Task<bool> YaasCodeExistsAsync(string yaasCode, long? exceptId = null, CancellationToken cancellationToken = default);
+        /// <summary>Does another equipment (active or not) already have this serial number? (any casing; the equipment <paramref name="exceptId"/> is not counted)</summary>
+        Task<bool> SerialNumberExistsAsync(string serialNumber, long? exceptId = null, CancellationToken cancellationToken = default);
+
+        /// <summary>Does another equipment (active or not) already have this asset number? (any casing; the equipment <paramref name="exceptId"/> is not counted)</summary>
+        Task<bool> AssetNumberExistsAsync(string assetNumber, long? exceptId = null, CancellationToken cancellationToken = default);
 
         /// <summary>The location history of one equipment, newest first.</summary>
         IQueryable<EquipmentLocationHistoryRow> QueryLocationHistory(long equipmentId);
@@ -43,8 +46,10 @@ namespace EMS.Domain.Interfaces
         /// <summary>The current technician of an equipment, or null when it has none (or the user vanished). Active or not.</summary>
         Task<EquipmentTechnicianRow?> GetTechnicianOfEquipmentAsync(long equipmentId, CancellationToken cancellationToken = default);
 
-        /// <summary>Which of the Yaas codes (already trimmed, compared case-insensitively) are reserved by an ACTIVE equipment? Returned in lower case.</summary>
-        Task<HashSet<string>> FindReservedYaasCodesAsync(IReadOnlyCollection<string> yaasCodes, CancellationToken cancellationToken = default);
+        /// <summary>Which of these serial numbers (already trimmed) are held by an equipment, active or not? Returned in lower case.</summary>
+        Task<HashSet<string>> FindExistingSerialNumbersAsync(IReadOnlyCollection<string> serialNumbers, CancellationToken cancellationToken = default);
+        /// <summary>Which of these asset numbers (already trimmed) are held by an equipment, active or not? Returned in lower case.</summary>
+        Task<HashSet<string>> FindExistingAssetNumbersAsync(IReadOnlyCollection<string> assetNumbers, CancellationToken cancellationToken = default);
         /// <summary>The flattened rows of these equipment, active or not.</summary>
         Task<List<EquipmentRow>> GetRowsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default);
     }
