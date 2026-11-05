@@ -32,6 +32,7 @@ namespace EMS.Tests.Integration
         private static Dictionary<string, object?> Item(Fixture f, string? yaas = null, long? status = null) => new()
         {
             ["yaasCode"] = yaas ?? Uniq("BY"),
+            ["owner"] = 1,
             ["equipmentTypeId"] = f.TypeId,
             ["equipmentStatusId"] = status ?? InStock,
             ["currentEquipmentLocationTypeId"] = f.LocationTypeId,

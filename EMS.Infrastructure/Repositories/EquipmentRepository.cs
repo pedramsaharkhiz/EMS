@@ -1,4 +1,5 @@
 using EMS.Domain.Entities;
+using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
 using EMS.Domain.ReadModels;
 using EMS.Infrastructure.Persistence;
@@ -83,6 +84,7 @@ namespace EMS.Infrastructure.Repositories
             {
                 Id = e.EquipmentId,
                 Owner = e.Owner,
+                OwnerTitle = e.Owner == EquipmentOwner.Company ? "شرکت" : e.Owner == EquipmentOwner.Bank ? "بانک" : "نامشخص",
                 YaasCode = e.YaasCode,
                 SerialNumber = e.SerialNumber,
                 AssetNumber = e.AssetNumber,

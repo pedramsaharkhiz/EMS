@@ -36,7 +36,7 @@ namespace EMS.Tests.Integration
             var location = await PostIdAsync("/api/EquipmentLocationType", new { title = Uniq("frloc"), code = "L" });
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", new
             {
-                yaasCode = yaas ?? Uniq("FRY"), equipmentTypeId = type, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentEquipmentLocationTypeId = location
+                yaasCode = yaas ?? Uniq("FRY"), owner = 1, equipmentTypeId = type, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentEquipmentLocationTypeId = location
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
