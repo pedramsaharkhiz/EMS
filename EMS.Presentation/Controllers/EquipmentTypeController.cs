@@ -21,6 +21,21 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentTypeListItemDto>>>> GetAllList([FromQuery] EquipmentTypeListRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetPagedAsync(request, cancellationToken));
 
+        /// <summary>
+        /// The types that have no model (active types with no active model), with their category: the types an equipment can only be registered
+        /// with directly. Paged; filter <c>title</c> and <c>equipmentCategoryId</c>; <c>sortBy</c> title, code or category.
+        /// </summary>
+        [Lookup]
+        [HttpGet("without-models")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentTypeWithCategoryDto>>>> GetWithoutModels([FromQuery] EquipmentTypeWithoutModelsRequestDto request, CancellationToken cancellationToken) =>
+            Paged(await _service.GetWithoutModelsAsync(request, cancellationToken));
+
+        /// <summary>The type (and its category) of a model, active or not: fills the type in when the user picks a model.</summary>
+        [Lookup]
+        [HttpGet("by-model/{modelId:long}")]
+        public async Task<ActionResult<ApiResponse<EquipmentTypeWithCategoryDto>>> GetByModelId(long modelId, CancellationToken cancellationToken) =>
+            Success(await _service.GetByModelIdAsync(modelId, cancellationToken));
+
         [Lookup]
         [HttpGet("{id:long}")]
         public async Task<ActionResult<ApiResponse<EquipmentTypeDetailDto>>> GetById(long id, CancellationToken cancellationToken) =>

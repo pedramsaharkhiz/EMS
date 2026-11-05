@@ -52,6 +52,14 @@
 
 افزودن فیلتر: یک خط در `EquipmentService.Filters` و یک property در `EquipmentListRequestDto`. افزودن ستون: property در `EquipmentRow` (و projection در `EquipmentRepository.ToRows`)، `EquipmentListItemDto`، و یک خط در `EquipmentExport`. جزئیات Excel در [EXPORTS.md](EXPORTS.md).
 
+## نوع و مدل در فرم تجهیز
+
+تجهیز یا **نوع** دارد یا **مدل** (قید دیتابیس): تجهیزی که مدل ندارد فقط نوعش پر می‌شود و تجهیزی که مدل دارد فقط مدلش (نوعش از روی مدل می‌آید: `effectiveTypeId`). دو lookup برای فرم (هر کاربر واردشده؛ مثل بقیه‌ی کاتالوگ‌ها):
+
+- **`GET /api/EquipmentType/without-models`** نوع‌های **فعال** که **هیچ مدل فعالی ندارند** (تجهیز چنین نوعی را فقط با خود نوع می‌شود ثبت کرد)، همراه با دسته‌شان: `id`، `title`، `code`، `isActive`، `equipmentCategoryId`، `equipmentCategoryTitle`. صفحه‌بندی‌شده؛ فیلتر `title` (شامل) و `equipmentCategoryId`؛ `sortBy`: `title` (پیش‌فرض)، `code`، `category`. وقتی تنها مدل یک نوع غیرفعال شود، آن نوع دوباره در این فهرست می‌آید.
+- **`GET /api/EquipmentType/by-model/{modelId}`** نوعِ آن مدل با دسته‌اش، وقتی کاربر مدل را انتخاب می‌کند (برای پر کردن خودکار نوع و دسته). مدل یا نوع غیرفعال هم جواب می‌دهد (با `isActive: false`)؛ مدل ناموجود `404`.
+- **قاعده‌ای اضافه نشد:** نوعی که مدل دارد را هم هنوز می‌شود مستقیم به تجهیز داد؛ این فهرست فقط «نوع‌هایی که چاره‌ای جز ثبت مستقیم ندارند» را نشان می‌دهد.
+
 ## اعتبارسنجی در برابر قیدهای دیتابیس
 
 برای هر قید جدول تجهیز، اعتبارسنجی فارسی هم هست تا درخواست پیش از رسیدن به دیتابیس رد شود (ثبت، ویرایش، `bulk` و ثبت با فایل): طول `yaasCode`، `serialNumber`، `assetNumber` و `description` (۵۰ / ۵۰ / ۵۰ / ۵۰۰)، ستون‌های الزامی (`yaasCode`، `equipmentStatusId`، `currentEquipmentLocationTypeId`، `owner`)، دو قید `CHECK` (دقیقاً یکی از نوع یا مدل؛ مالک فقط ۱ یا ۲)، کلیدهای خارجی (۷ ارجاع، `404 parent_not_found`) و ایندکس‌های یکتا. تست `EquipmentConstraintCoverageTests` فهرست قیدها را از مدل EF می‌خواند و **دقیق** مقایسه می‌کند: قیدی که بدون اعتبارسنجی اضافه شود، تست را می‌شکند.
