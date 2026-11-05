@@ -12,6 +12,7 @@ namespace EMS.Application.Services.Equipment
         public static readonly ExcelExportDefinition<EquipmentRow> Definition = ExcelExportDefinition
             .For<EquipmentRow>(name: "Equipment", sheetTitle: "تجهیزات", fileLabel: "تجهیزات")
             .Column(x => x.Id)
+            .Column(x => x.OwnerTitle, "مالک")
             .Column(x => x.YaasCode, "یاس کد", ExcelCellKind.Text)
             .Column(x => x.SerialNumber, "سریال نامبر", ExcelCellKind.Text)
             .Column(x => x.AssetNumber, "شماره دارایی", ExcelCellKind.Text)

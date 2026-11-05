@@ -21,6 +21,9 @@ namespace EMS.Application.Validators.Equipment
     {
         public CreateEquipmentDtoValidator()
         {
+            RuleFor(x => x.Owner)
+                .IsInEnum().WithMessage("مالک تجهیز باید شرکت یا بانک باشد.");
+
             RuleFor(x => x.YaasCode)
                 .NotEmpty().WithMessage($"یاس کد {EquipmentRules.Label} الزامی است.")
                 .MaximumLength(EquipmentConstraints.YaasCodeMaxLength).WithMessage($"یاس کد {EquipmentRules.Label} نمی‌تواند بیشتر از {EquipmentConstraints.YaasCodeMaxLength} کاراکتر باشد.");
@@ -74,6 +77,9 @@ namespace EMS.Application.Validators.Equipment
     {
         public UpdateEquipmentDtoValidator()
         {
+            RuleFor(x => x.Owner)
+                .IsInEnum().WithMessage("مالک تجهیز باید شرکت یا بانک باشد.");
+
             RuleFor(x => x.YaasCode)
                 .NotEmpty().WithMessage($"یاس کد {EquipmentRules.Label} الزامی است.")
                 .MaximumLength(EquipmentConstraints.YaasCodeMaxLength).WithMessage($"یاس کد {EquipmentRules.Label} نمی‌تواند بیشتر از {EquipmentConstraints.YaasCodeMaxLength} کاراکتر باشد.");
@@ -112,6 +118,12 @@ namespace EMS.Application.Validators.Equipment
             RuleFor(x => x.YaasCode).MaximumLength(100).WithMessage("یاس کد جست‌وجو نمی‌تواند بیشتر از 100 کاراکتر باشد.");
             RuleFor(x => x.SerialNumber).MaximumLength(100).WithMessage("سریال نامبر جست‌وجو نمی‌تواند بیشتر از 100 کاراکتر باشد.");
             RuleFor(x => x.AssetNumber).MaximumLength(100).WithMessage("شماره دارایی جست‌وجو نمی‌تواند بیشتر از 100 کاراکتر باشد.");
+
+            RuleFor(x => x.Owners)
+                .Must(values => values is null || values.Length <= MaxValues)
+                .WithMessage($"حداکثر {MaxValues} مقدار برای فیلتر مالک مجاز است.");
+            RuleForEach(x => x.Owners)
+                .IsInEnum().WithMessage("مالک تجهیز باید شرکت یا بانک باشد.");
 
             Ids(x => x.StatusIds, "وضعیت");
             Ids(x => x.CategoryIds, "دسته‌بندی");

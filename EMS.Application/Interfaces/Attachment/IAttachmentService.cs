@@ -15,6 +15,15 @@ namespace EMS.Application.Interfaces.Attachment
 
         Task<AttachmentItemDto> UploadAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Like <see cref="UploadAsync"/> but inside a transaction the caller already opened: it neither opens nor commits one and does not
+        /// audit. The caller commits, then calls <see cref="AuditUploaded"/> for each item. Used to register something together with its files.
+        /// </summary>
+        Task<AttachmentItemDto> UploadInTransactionAsync(AttachmentTarget target, long entityId, AttachmentUpload upload, CancellationToken cancellationToken = default);
+
+        /// <summary>Writes the audit entry of an upload made with <see cref="UploadInTransactionAsync"/> (after the commit).</summary>
+        void AuditUploaded(AttachmentItemDto item);
+
         /// <summary>The file of an active attachment. The caller disposes it after streaming it to the client.</summary>
         Task<(AttachmentItemDto Item, AttachmentDownload File)> DownloadAsync(long attachmentId, CancellationToken cancellationToken = default);
 

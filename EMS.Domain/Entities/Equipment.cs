@@ -1,4 +1,5 @@
-﻿using EMS.Domain.Interfaces;
+﻿using EMS.Domain.Enums;
+using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
 {
@@ -6,6 +7,7 @@ namespace EMS.Domain.Entities
     public class Equipment : BaseEntity, IAuditableEntity
     {
         public long EquipmentId { get; set; }
+        public EquipmentOwner Owner { get; set; }
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }
         public string YaasCode { get; set; } = null!;
