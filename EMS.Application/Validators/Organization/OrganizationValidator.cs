@@ -19,7 +19,11 @@ namespace EMS.Application.Validators.Organization
             RuleFor(x => x.PhoneNumber).MaximumLength(20).When(x => !string.IsNullOrEmpty(x.PhoneNumber)).WithMessage("شماره تلفن 'شعبه' نمی‌تواند بیشتر از 20 کاراکتر باشد.");
             RuleFor(x => x.OrganizationTypeId).GreaterThan(0).WithMessage("شناسه نوع شعبه 'شعبه' باید بزرگتر از صفر باشد.");
             RuleFor(x => x.OrganizationManagementId).GreaterThan(0).When(x => x.OrganizationManagementId.HasValue).WithMessage("شناسه مدیریت شعب 'شعبه' باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.FieldId).GreaterThan(0).When(x => x.FieldId.HasValue).WithMessage("شناسه ناحیه 'شعبه' باید بزرگتر از صفر باشد.");
+            RuleFor(x => x.FieldId).GreaterThan(0).When(x => x.FieldId.HasValue).WithMessage("شناسه حوزه 'شعبه' باید بزرگتر از صفر باشد.");
+            // Exactly one parent: a field (حوزه) or, without a field, a branch management (مدیریت شعب). The database enforces the same rule.
+            RuleFor(x => x).Must(x => x.FieldId.HasValue != x.OrganizationManagementId.HasValue)
+                .WithName("FieldId")
+                .WithMessage("شعبه باید دقیقاً یکی از 'حوزه' یا 'مدیریت شعب' را داشته باشد (نه هیچ‌کدام و نه هر دو).");
             //RuleFor(x => x.IsActive).NotNull().WithMessage("وضعیت فعال بودن 'شعبه' الزامی است.");;
             //RuleFor(x => x.Latitude).NotNull();
             //RuleFor(x => x.Longitude).NotNull();

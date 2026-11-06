@@ -2,8 +2,8 @@ namespace EMS.Application.Dtos.SupportingDepartment
 {
     /// <summary>
     /// Selects branches for a supporting department, one by one and/or by group. The result is the union of: the listed branches,
-    /// every ACTIVE branch under the listed fields (ناحیه / زمینه‌ی کاری), under the listed branch managements (مدیریت شعب) and under
-    /// the listed zones (حوزه). At least one list must have a value.
+    /// every ACTIVE branch under the listed fields (حوزه), under the listed branch managements (مدیریت شعب) and under
+    /// the listed zones (ناحیه). At least one list must have a value.
     /// </summary>
     public class SupportingDepartmentOrganizationsDto
     {

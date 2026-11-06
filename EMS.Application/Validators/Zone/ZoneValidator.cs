@@ -10,9 +10,9 @@ namespace EMS.Application.Validators.Zone
     {
         public ZoneValidator()
         {
-            RuleFor(x => x.Title).NotEmpty().WithMessage("عنوان 'حوزه' الزامی است.");
-            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان 'حوزه' باید حداکثر 100 کاراکتر باشد.");
-            RuleFor(x => x.Code).MaximumLength(20).When(x => !string.IsNullOrEmpty(x.Code)).WithMessage("کد 'حوزه' نمی‌تواند بیشتر از 20 کاراکتر باشد.");
+            RuleFor(x => x.Title).NotEmpty().WithMessage("عنوان 'ناحیه' الزامی است.");
+            RuleFor(x => x.Title).MaximumLength(100).WithMessage("عنوان 'ناحیه' باید حداکثر 100 کاراکتر باشد.");
+            RuleFor(x => x.Code).MaximumLength(20).When(x => !string.IsNullOrEmpty(x.Code)).WithMessage("کد 'ناحیه' نمی‌تواند بیشتر از 20 کاراکتر باشد.");
         }
         
     }

@@ -12,12 +12,12 @@ namespace EMS.Application.Validators.SupportingDepartment
         {
             RuleFor(x => x).Must(x => Has(x.OrganizationIds) || Has(x.FieldIds) || Has(x.OrganizationManagementIds) || Has(x.ZoneIds))
                 .WithName("organizationIds")
-                .WithMessage("حداقل یکی از فهرست‌های شعبه، ناحیه (زمینه‌ی کاری)، مدیریت شعب یا حوزه باید مقدار داشته باشد.");
+                .WithMessage("حداقل یکی از فهرست‌های شعبه، حوزه، مدیریت شعب یا ناحیه باید مقدار داشته باشد.");
 
             Ids(x => x.OrganizationIds, "شعبه", MaxOrganizations);
-            Ids(x => x.FieldIds, "ناحیه", MaxGroups);
+            Ids(x => x.FieldIds, "حوزه", MaxGroups);
             Ids(x => x.OrganizationManagementIds, "مدیریت شعب", MaxGroups);
-            Ids(x => x.ZoneIds, "حوزه", MaxGroups);
+            Ids(x => x.ZoneIds, "ناحیه", MaxGroups);
         }
 
         /// <summary>Does the selection name anything at all? (An empty selection inside a create or update request means "no branches".)</summary>
