@@ -152,10 +152,18 @@ namespace EMS.Infrastructure.Repositories
             });
 
         // Unique among ALL equipment: the soft-delete filter is lifted, a deactivated equipment keeps its numbers.
+        //
+        // On SQL Server the column's collation is case-insensitive (see docs/EQUIPMENT.md), so a plain "=" already ignores case AND can use the unique
+        // index (a seek). Wrapping the column in LOWER() would make it read the whole table on every create and update. The in-memory provider that the
+        // tests use compares case-sensitively, so there (and only there) the column is lowered to keep the same behavior.
+        private bool CaseInsensitiveByCollation => _context.Database.IsSqlServer();
+
         public async Task<bool> SerialNumberExistsAsync(string serialNumber, long? exceptId = null, CancellationToken cancellationToken = default)
         {
-            var normalized = serialNumber.Trim().ToLower();
-            var query = _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && x.SerialNumber.ToLower() == normalized);
+            var value = serialNumber.Trim();
+            var query = CaseInsensitiveByCollation
+                ? _dbSet.IncludingInactive().Where(x => x.SerialNumber == value)
+                : _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && x.SerialNumber.ToLower() == value.ToLower());
             if (exceptId.HasValue)
             {
                 var except = exceptId.Value;
@@ -166,8 +174,10 @@ namespace EMS.Infrastructure.Repositories
 
         public async Task<bool> AssetNumberExistsAsync(string assetNumber, long? exceptId = null, CancellationToken cancellationToken = default)
         {
-            var normalized = assetNumber.Trim().ToLower();
-            var query = _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && x.AssetNumber.ToLower() == normalized);
+            var value = assetNumber.Trim();
+            var query = CaseInsensitiveByCollation
+                ? _dbSet.IncludingInactive().Where(x => x.AssetNumber == value)
+                : _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && x.AssetNumber.ToLower() == value.ToLower());
             if (exceptId.HasValue)
             {
                 var except = exceptId.Value;
@@ -261,20 +271,41 @@ namespace EMS.Infrastructure.Repositories
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        // The values that already exist, lowered (the caller compares lowered values). See CaseInsensitiveByCollation for why SQL Server compares the raw column.
         public async Task<HashSet<string>> FindExistingSerialNumbersAsync(IReadOnlyCollection<string> serialNumbers, CancellationToken cancellationToken = default)
         {
-            var lowered = serialNumbers.Select(c => c.Trim().ToLower()).Distinct().ToList();
-            var found = await _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && lowered.Contains(x.SerialNumber.ToLower()))
-                .Select(x => x.SerialNumber!.ToLower()).ToListAsync(cancellationToken);
-            return found.ToHashSet();
+            var values = serialNumbers.Select(c => c.Trim()).Distinct().ToList();
+            List<string> found;
+            if (CaseInsensitiveByCollation)
+            {
+                found = await _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && values.Contains(x.SerialNumber))
+                    .Select(x => x.SerialNumber!).ToListAsync(cancellationToken);
+            }
+            else
+            {
+                var lowered = values.Select(c => c.ToLower()).ToList();
+                found = await _dbSet.IncludingInactive().Where(x => x.SerialNumber != null && lowered.Contains(x.SerialNumber.ToLower()))
+                    .Select(x => x.SerialNumber!).ToListAsync(cancellationToken);
+            }
+            return found.Select(c => c.ToLower()).ToHashSet();
         }
 
         public async Task<HashSet<string>> FindExistingAssetNumbersAsync(IReadOnlyCollection<string> assetNumbers, CancellationToken cancellationToken = default)
         {
-            var lowered = assetNumbers.Select(c => c.Trim().ToLower()).Distinct().ToList();
-            var found = await _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && lowered.Contains(x.AssetNumber.ToLower()))
-                .Select(x => x.AssetNumber!.ToLower()).ToListAsync(cancellationToken);
-            return found.ToHashSet();
+            var values = assetNumbers.Select(c => c.Trim()).Distinct().ToList();
+            List<string> found;
+            if (CaseInsensitiveByCollation)
+            {
+                found = await _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && values.Contains(x.AssetNumber))
+                    .Select(x => x.AssetNumber!).ToListAsync(cancellationToken);
+            }
+            else
+            {
+                var lowered = values.Select(c => c.ToLower()).ToList();
+                found = await _dbSet.IncludingInactive().Where(x => x.AssetNumber != null && lowered.Contains(x.AssetNumber.ToLower()))
+                    .Select(x => x.AssetNumber!).ToListAsync(cancellationToken);
+            }
+            return found.Select(c => c.ToLower()).ToHashSet();
         }
 
         public async Task<List<EquipmentRow>> GetRowsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)

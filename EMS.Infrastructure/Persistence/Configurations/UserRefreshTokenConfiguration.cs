@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -21,6 +21,11 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.RevokedDateTime).IsRequired(false).IsConcurrencyToken();
             builder.Property(x => x.CreatedByIp).HasMaxLength(45).IsUnicode(false).IsRequired();
             builder.Property(x => x.RevokedByIp).HasMaxLength(45).IsUnicode(false).IsRequired(false);
+
+            // Refresh and logout look a token up by its hash (unique: a SHA-256 of a random value); the clean-up job finds expired / revoked ones.
+            builder.HasIndex(x => x.TokenHash).IsUnique().HasDatabaseName("UX_UserRefreshTokens_TokenHash");
+            builder.HasIndex(x => x.ExpiresDateTime).HasDatabaseName("IX_UserRefreshTokens_ExpiresDateTime");
+            builder.HasIndex(x => x.RevokedDateTime).HasFilter("[RevokedDateTime] IS NOT NULL").HasDatabaseName("IX_UserRefreshTokens_RevokedDateTime");
 
             builder.Ignore(x => x.IsRevoked);
             builder.Ignore(x => x.IsExpired);
