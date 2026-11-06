@@ -1,4 +1,4 @@
-﻿using EMS.Infrastructure.Persistence;
+using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
@@ -52,6 +52,13 @@ namespace EMS.Infrastructure.Services.Identity
             _httpContextAccessor = httpContextAccessor;
         }
 
+        // A password hash of a random value, made once. When there is no real user to check the password against, the same amount of work is
+        // done against this one, so the response time does not tell an existing user name from an unknown one.
+        private static readonly Lazy<string> DummyPasswordHash = new(() => new PasswordHasher<ApplicationUser>().HashPassword(new ApplicationUser(), Guid.NewGuid().ToString("N")));
+
+        private void SpendThePasswordCheckTime(string password) =>
+            _userManager.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), DummyPasswordHash.Value, password);
+
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request, CancellationToken cancellationToken = default)
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == request.UserName, cancellationToken);
@@ -59,12 +66,14 @@ namespace EMS.Infrastructure.Services.Identity
             // the precise reason is only written to the security log.
             if (user is null)
             {
+                SpendThePasswordCheckTime(request.Password);
                 _securityLog.LoginFailed(request.UserName, LoginFailureReason.UnknownUser);
                 throw new UnauthorizedAppException("نام کاربری یا کلمه عبور نامعتبر است.", ErrorCodes.InvalidCredentials);
             }
 
             if (!user.IsActive)
             {
+                SpendThePasswordCheckTime(request.Password);
                 _securityLog.LoginFailed(request.UserName, LoginFailureReason.InactiveUser, user.Id);
                 throw new UnauthorizedAppException("نام کاربری یا کلمه عبور نامعتبر است.", ErrorCodes.InvalidCredentials);
             }

@@ -103,7 +103,7 @@
 |---|---|---|
 | `export_too_large` | 400 | تعداد ردیف‌ها از `Export:MaxRows` بیشتر است؛ فیلتر را محدودتر کنید |
 | `export_busy` | 429 | به تعداد `Export:MaxConcurrent` خروجی در حال ساخت است؛ کمی بعد دوباره تلاش کنید |
-| `too_many_requests` | 429 | کد عمومی 429 |
+| `too_many_requests` | 429 | کد عمومی 429؛ برای ورود و رفرش توکن وقتی یک آدرس از سقف `Security:RateLimiting` بگذرد (هدر `Retry-After` ثانیه‌ی انتظار را می‌گوید) |
 
 ### کاربران و نقش‌ها
 | code | status | معنی |

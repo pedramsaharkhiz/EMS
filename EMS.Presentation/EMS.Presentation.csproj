@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ems-api-2d0f6a1c</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

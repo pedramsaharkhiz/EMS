@@ -14,9 +14,9 @@ namespace EMS.Tests.Integration
     [Collection("Api")]
     public abstract class ApiTestBase
     {
-        // Test credentials: the default administrator that the project's own IdentitySeeder creates.
+        // Test credentials: the administrator that the project's own IdentitySeeder creates from Seed:AdminPassword (set in TestEnvironment).
         protected const string AdminUserName = "admin";
-        protected const string AdminPassword = "Admin@123456";
+        protected const string AdminPassword = EMS.Tests.Support.TestEnvironment.AdminPassword;
         protected const string GenericLoginError = "نام کاربری یا کلمه عبور نامعتبر است.";
 
         protected readonly EmsApiFactory _factory;
