@@ -5,6 +5,7 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Common.People;
 using EMS.Application.Dtos.Attachment;
 using EMS.Application.Interfaces.Attachment;
 using EMS.Application.Services.Attachment;
@@ -51,8 +52,8 @@ namespace EMS.Application.Services.Equipment
             .AnyOf(r => r.FieldIds, x => x.FieldId)
             .AnyOf(r => r.OrganizationManagementIds, x => x.OrganizationManagementId)
             .AnyOf(r => r.ZoneIds, x => x.ZoneId)
-            .AnyOf(r => r.SupportingDepartmentIds, x => x.SupportingDepartmentId)
-            .AnyOf(r => r.OrganizationSupportingDepartmentIds, x => x.OrganizationSupportingDepartmentId)
+            .AnyOf(r => r.SupportingDepartmentIds, x => x.OrganizationSupportingDepartmentId)
+            .AnyOf(r => r.CurrentSupportingDepartmentIds, x => x.SupportingDepartmentId)
             .AnyOf(r => r.CityIds, x => x.CityId)
             .AnyOf(r => r.ProvinceIds, x => x.ProvinceId)
             .AnyOf(r => r.TechnicianUserIds, x => x.TechnicianUserId)
@@ -91,6 +92,7 @@ namespace EMS.Application.Services.Equipment
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
         private readonly IAttachmentService _attachments;
+        private readonly IUserReferenceRepository _people;
 
         public EquipmentService(
             IEquipmentRepository repository,
@@ -105,7 +107,8 @@ namespace EMS.Application.Services.Equipment
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IAttachmentService attachments)
+            IAttachmentService attachments,
+            IUserReferenceRepository people)
         {
             _repository = repository;
             _statuses = statuses;
@@ -120,6 +123,7 @@ namespace EMS.Application.Services.Equipment
             _unitOfWork = unitOfWork;
             _audit = audit;
             _attachments = attachments;
+            _people = people;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -164,34 +168,37 @@ namespace EMS.Application.Services.Equipment
                 throw NotFound();
 
             var page = await _repository.QueryLocationHistory(id).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
-            return new PagedResult<EquipmentLocationHistoryItemDto>
+
+            // the technician and the one who made each change, all in one query
+            var people = await _people.GetPeopleAsync(page.Items.SelectMany(h => new[] { h.TechnicianUserId, h.ChangedByUserId }), cancellationToken);
+            var items = page.Items.Select(h =>
             {
-                Items = page.Items.Select(h => new EquipmentLocationHistoryItemDto
+                var item = new EquipmentLocationHistoryItemDto
                 {
                     Id = h.Id,
-                    EquipmentLocationTypeId = h.LocationTypeId,
-                    EquipmentLocationTypeTitle = h.LocationTypeTitle,
-                    OrganizationId = h.OrganizationId,
-                    OrganizationTitle = h.OrganizationTitle,
-                    SupportingDepartmentId = h.SupportingDepartmentId,
-                    SupportingDepartmentTitle = h.SupportingDepartmentTitle,
-                    CityId = h.CityId,
-                    CityTitle = h.CityTitle,
-                    ProvinceId = h.ProvinceId,
-                    ProvinceTitle = h.ProvinceTitle,
+                    CurrentEquipmentLocationTypeId = h.LocationTypeId,
+                    CurrentEquipmentLocationTypeTitle = h.LocationTypeTitle,
+                    CurrentOrganizationId = h.OrganizationId,
+                    CurrentOrganizationTitle = h.OrganizationTitle,
+                    CurrentSupportingDepartmentId = h.SupportingDepartmentId,
+                    CurrentSupportingDepartmentTitle = h.SupportingDepartmentTitle,
+                    CurrentCityId = h.CityId,
+                    CurrentCityTitle = h.CityTitle,
+                    CurrentProvinceId = h.ProvinceId,
+                    CurrentProvinceTitle = h.ProvinceTitle,
                     TechnicianUserId = h.TechnicianUserId,
-                    TechnicianName = h.TechnicianName,
-                    TechnicianSupportingDepartmentId = h.TechnicianSupportingDepartmentId,
-                    TechnicianSupportingDepartmentTitle = h.TechnicianSupportingDepartmentTitle,
-                    TechnicianCityId = h.TechnicianCityId,
-                    TechnicianCityTitle = h.TechnicianCityTitle,
-                    TechnicianProvinceId = h.TechnicianProvinceId,
-                    TechnicianProvinceTitle = h.TechnicianProvinceTitle,
                     AssignedDateTime = h.AssignedDateTime,
                     ChangedByUserId = h.ChangedByUserId,
-                    ChangedByName = h.ChangedByName,
                     Description = h.Description,
-                }).ToList(),
+                };
+                PersonReferenceMapper.Fill(item, "Technician", h.TechnicianUserId is { } t ? people.GetValueOrDefault(t) : null);
+                PersonReferenceMapper.Fill(item, "ChangedBy", h.ChangedByUserId is { } c ? people.GetValueOrDefault(c) : null);
+                return item;
+            }).ToList();
+
+            return new PagedResult<EquipmentLocationHistoryItemDto>
+            {
+                Items = items,
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
@@ -568,16 +575,17 @@ namespace EMS.Application.Services.Equipment
             dto.OrganizationManagementTitle = row.OrganizationManagementTitle;
             dto.ZoneId = row.ZoneId;
             dto.ZoneTitle = row.ZoneTitle;
-            dto.CurrentOrganizationSupportingDepartmentId = row.OrganizationSupportingDepartmentId;
-            dto.CurrentOrganizationSupportingDepartmentTitle = row.OrganizationSupportingDepartmentTitle;
+            dto.SupportingDepartmentId = row.OrganizationSupportingDepartmentId;
+            dto.SupportingDepartmentTitle = row.OrganizationSupportingDepartmentTitle;
             dto.CurrentSupportingDepartmentId = row.SupportingDepartmentId;
             dto.CurrentSupportingDepartmentTitle = row.SupportingDepartmentTitle;
-            dto.CityId = row.CityId;
-            dto.CityTitle = row.CityTitle;
-            dto.ProvinceId = row.ProvinceId;
-            dto.ProvinceTitle = row.ProvinceTitle;
+            dto.CurrentCityId = row.CityId;
+            dto.CurrentCityTitle = row.CityTitle;
+            dto.CurrentProvinceId = row.ProvinceId;
+            dto.CurrentProvinceTitle = row.ProvinceTitle;
             dto.TechnicianUserId = row.TechnicianUserId;
             dto.TechnicianName = row.TechnicianName;
+            dto.TechnicianPersonnelCode = row.TechnicianPersonnelCode;
             dto.TechnicianIsActive = row.TechnicianIsActive;
             dto.TechnicianPostId = row.TechnicianPostId;
             dto.TechnicianPostTitle = row.TechnicianPostTitle;

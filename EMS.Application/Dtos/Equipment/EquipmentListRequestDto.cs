@@ -30,10 +30,10 @@ namespace EMS.Application.Dtos.Equipment
         [FromQuery(Name = "fieldId")] public long[]? FieldIds { get; set; }
         [FromQuery(Name = "organizationManagementId")] public long[]? OrganizationManagementIds { get; set; }
         [FromQuery(Name = "zoneId")] public long[]? ZoneIds { get; set; }
-        /// <summary>The department the equipment is at (<c>currentSupportingDepartment...</c>).</summary>
+        /// <summary>The department that serves the equipment's branch (the response field <c>supportingDepartment...</c>).</summary>
         [FromQuery(Name = "supportingDepartmentId")] public long[]? SupportingDepartmentIds { get; set; }
-        /// <summary>The department that serves the equipment's branch.</summary>
-        [FromQuery(Name = "organizationSupportingDepartmentId")] public long[]? OrganizationSupportingDepartmentIds { get; set; }
+        /// <summary>The department the equipment itself is at (the response field <c>currentSupportingDepartment...</c>).</summary>
+        [FromQuery(Name = "currentSupportingDepartmentId")] public long[]? CurrentSupportingDepartmentIds { get; set; }
         [FromQuery(Name = "cityId")] public long[]? CityIds { get; set; }
         [FromQuery(Name = "provinceId")] public long[]? ProvinceIds { get; set; }
         [FromQuery(Name = "technicianUserId")] public long[]? TechnicianUserIds { get; set; }

@@ -54,6 +54,7 @@ namespace EMS.Domain.ReadModels
         public string? ProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        public string? TechnicianPersonnelCode { get; set; }
         public bool? TechnicianIsActive { get; set; }
         public long? TechnicianPostId { get; set; }
         public string? TechnicianPostTitle { get; set; }
@@ -86,18 +87,10 @@ namespace EMS.Domain.ReadModels
         public string? CityTitle { get; set; }
         public long? ProvinceId { get; set; }
         public string? ProvinceTitle { get; set; }
+        /// <summary>The technician and the one who made the change: only the ids here, the people themselves come from one batched lookup.</summary>
         public long? TechnicianUserId { get; set; }
-        public string? TechnicianName { get; set; }
-        /// <summary>Where the technician works NOW (not when the entry was written).</summary>
-        public long? TechnicianSupportingDepartmentId { get; set; }
-        public string? TechnicianSupportingDepartmentTitle { get; set; }
-        public long? TechnicianCityId { get; set; }
-        public string? TechnicianCityTitle { get; set; }
-        public long? TechnicianProvinceId { get; set; }
-        public string? TechnicianProvinceTitle { get; set; }
         public DateTime AssignedDateTime { get; set; }
         public long? ChangedByUserId { get; set; }
-        public string? ChangedByName { get; set; }
         public string? Description { get; set; }
     }
 

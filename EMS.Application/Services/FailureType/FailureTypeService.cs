@@ -41,6 +41,7 @@ namespace EMS.Application.Services.FailureType
             {
                 Id = x.FailureTypeId,
                 FailureCategoryId = x.FailureCategoryId,
+                FailureCategoryTitle = x.FailureCategory.Title,
                 Title = x.Title,
                 Code = x.Code,
                 IsActive = x.IsActive
@@ -98,11 +99,21 @@ namespace EMS.Application.Services.FailureType
             entity.Code = Keep(request.Code, entity.Code);
         }
 
-        protected override FailureTypeDetailDto ToDetail(FailureTypeEntity entity) =>
+        protected override FailureTypeDetailDto ToDetail(FailureTypeEntity entity) => Map(entity, null);
+
+        // The category title needs a query (the entity only carries the foreign key after a create / update); a deactivated category still has its title.
+        protected override async Task<FailureTypeDetailDto> ToDetailAsync(FailureTypeEntity entity, CancellationToken cancellationToken)
+        {
+            var category = await _categories.GetByIdAsync(entity.FailureCategoryId, asNoTracking: true, cancellationToken);
+            return Map(entity, category?.Title);
+        }
+
+        private static FailureTypeDetailDto Map(FailureTypeEntity entity, string? categoryTitle) =>
             new()
             {
                 Id = entity.FailureTypeId,
                 FailureCategoryId = entity.FailureCategoryId,
+                FailureCategoryTitle = categoryTitle,
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,

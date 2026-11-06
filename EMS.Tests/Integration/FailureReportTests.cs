@@ -148,6 +148,14 @@ namespace EMS.Tests.Integration
             Assert.Equal(report.GetProperty("referenceNumber").GetString(), again.GetProperty("referenceNumber").GetString());
             Assert.Equal(f.EquipmentId, again.GetProperty("equipmentId").GetInt64());
             Assert.False(string.IsNullOrEmpty(again.GetProperty("equipmentYaasCode").GetString()));
+            // the equipment is described with the same names as in the equipment list
+            Assert.Equal(1, again.GetProperty("equipmentOwner").GetInt32());
+            Assert.Equal("شرکت", again.GetProperty("equipmentOwnerTitle").GetString());
+            Assert.Equal("InStock", again.GetProperty("equipmentStatusCode").GetString());
+            Assert.False(string.IsNullOrEmpty(again.GetProperty("equipmentStatusTitle").GetString()));
+            Assert.True(again.GetProperty("equipmentTypeId").GetInt64() > 0);
+            Assert.False(string.IsNullOrEmpty(again.GetProperty("equipmentTypeTitle").GetString()));
+            Assert.True(again.TryGetProperty("failureTypeCode", out _) && again.TryGetProperty("reportTypeCode", out _));
             Assert.False(string.IsNullOrEmpty(again.GetProperty("organizationTitle").GetString()));
             Assert.False(string.IsNullOrEmpty(again.GetProperty("reportedByName").GetString()));
         }

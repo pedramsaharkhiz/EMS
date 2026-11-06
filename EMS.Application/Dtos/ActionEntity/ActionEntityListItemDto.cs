@@ -5,6 +5,7 @@ namespace EMS.Application.Dtos.ActionEntity
         public long Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Code { get; set; }
+        public string? Description { get; set; }
         public bool IsActive { get; set; }
     }
 }

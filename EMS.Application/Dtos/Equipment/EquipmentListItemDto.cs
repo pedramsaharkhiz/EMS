@@ -46,16 +46,17 @@ namespace EMS.Application.Dtos.Equipment
         public long? ZoneId { get; set; }
         public string? ZoneTitle { get; set; }
         /// <summary>The supporting department that SERVES the branch (not the department the equipment is at: that is <c>currentSupportingDepartment...</c>).</summary>
-        public long? CurrentOrganizationSupportingDepartmentId { get; set; }
-        public string? CurrentOrganizationSupportingDepartmentTitle { get; set; }
+        public long? SupportingDepartmentId { get; set; }
+        public string? SupportingDepartmentTitle { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }
         public string? CurrentSupportingDepartmentTitle { get; set; }
-        public long? CityId { get; set; }
-        public string? CityTitle { get; set; }
-        public long? ProvinceId { get; set; }
-        public string? ProvinceTitle { get; set; }
+        public long? CurrentCityId { get; set; }
+        public string? CurrentCityTitle { get; set; }
+        public long? CurrentProvinceId { get; set; }
+        public string? CurrentProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        public string? TechnicianPersonnelCode { get; set; }
         /// <summary>Is the technician an active user? (an equipment keeps its technician after he is deactivated). Null when there is none.</summary>
         public bool? TechnicianIsActive { get; set; }
         public long? TechnicianPostId { get; set; }

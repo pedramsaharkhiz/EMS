@@ -147,7 +147,7 @@ namespace EMS.Presentation.Controllers
                     .Select(owner => new EquipmentOwnerItemDto
                     {
                         Id = (int)owner,
-                        Name = owner.ToString(),
+                        Code = owner.ToString(),
                         Title = EquipmentOwnerTitles.TitleOf(owner)
                     })
                     .ToList();

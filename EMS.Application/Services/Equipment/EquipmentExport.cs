@@ -31,6 +31,7 @@ namespace EMS.Application.Services.Equipment
             .Column(x => x.CityTitle, "شهر")
             .Column(x => x.ProvinceTitle, "استان")
             .Column(x => x.TechnicianName, "تکنسین")
+            .Column(x => x.TechnicianPersonnelCode, "کد پرسنلی تکنسین")
             .Column(x => x.TechnicianSupportingDepartmentTitle, "دپارتمان تکنسین")
             .Column(x => x.TechnicianCityTitle, "شهر تکنسین")
             .Column(x => x.TechnicianProvinceTitle, "استان تکنسین")

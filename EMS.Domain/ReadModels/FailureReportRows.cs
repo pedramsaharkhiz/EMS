@@ -1,3 +1,4 @@
+using EMS.Domain.Enums;
 namespace EMS.Domain.ReadModels
 {
     /// <summary>One failure report flattened with the titles and names of everything it refers to (list and detail read this).</summary>
@@ -8,14 +9,27 @@ namespace EMS.Domain.ReadModels
 
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        public string? EquipmentSerialNumber { get; set; }
+        public string? EquipmentAssetNumber { get; set; }
+        public EquipmentOwner EquipmentOwner { get; set; }
+        public string? EquipmentOwnerTitle { get; set; }
+        public long? EquipmentTypeId { get; set; }
+        public string? EquipmentTypeTitle { get; set; }
+        public long? EquipmentModelId { get; set; }
+        public string? EquipmentModelTitle { get; set; }
+        public long EquipmentStatusId { get; set; }
+        public string? EquipmentStatusTitle { get; set; }
+        public string? EquipmentStatusCode { get; set; }
 
         public long FailureTypeId { get; set; }
         public string? FailureTypeTitle { get; set; }
+        public string? FailureTypeCode { get; set; }
         public long FailureCategoryId { get; set; }
         public string? FailureCategoryTitle { get; set; }
 
         public long ReportTypeId { get; set; }
         public string? ReportTypeTitle { get; set; }
+        public string? ReportTypeCode { get; set; }
 
         public long StatusId { get; set; }
         public string? StatusTitle { get; set; }
@@ -30,9 +44,9 @@ namespace EMS.Domain.ReadModels
 
         public long? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
+        public string? EmployeePersonnelCode { get; set; }
 
         public long ReportedByUserId { get; set; }
-        public string? ReportedByName { get; set; }
 
         public int PriorityId { get; set; }
         public DateTime ReportedDateTime { get; set; }

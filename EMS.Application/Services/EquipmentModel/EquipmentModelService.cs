@@ -27,7 +27,7 @@ namespace EMS.Application.Services.EquipmentModel
         protected override Expression<Func<EquipmentModelEntity, long>> IdSelector => x => x.EquipmentModelId;
 
         protected override Expression<Func<EquipmentModelEntity, EquipmentModelListItemDto>> ListItem =>
-            x => new EquipmentModelListItemDto { Id = x.EquipmentModelId, EquipmentTypeId = x.EquipmentTypeId, BrandId = x.BrandId, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
+            x => new EquipmentModelListItemDto { Id = x.EquipmentModelId, EquipmentTypeId = x.EquipmentTypeId, EquipmentTypeTitle = x.EquipmentType.Title, BrandId = x.BrandId, BrandTitle = x.Brand.Title, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentModelEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code).By("equipmenttypeid", x => x.EquipmentTypeId).By("brandid", x => x.BrandId);
@@ -80,12 +80,24 @@ namespace EMS.Application.Services.EquipmentModel
             entity.Code = Keep(request.Code, entity.Code);
         }
 
-        protected override EquipmentModelDetailDto ToDetail(EquipmentModelEntity entity) =>
+        protected override EquipmentModelDetailDto ToDetail(EquipmentModelEntity entity) => Map(entity, null, null);
+
+        // The parents' titles need queries (the entity only carries the foreign keys after a create / update); a deactivated parent still has its title.
+        protected override async Task<EquipmentModelDetailDto> ToDetailAsync(EquipmentModelEntity entity, CancellationToken cancellationToken)
+        {
+            var type = await _types.GetByIdAsync(entity.EquipmentTypeId, asNoTracking: true, cancellationToken);
+            var brand = await _brands.GetByIdAsync(entity.BrandId, asNoTracking: true, cancellationToken);
+            return Map(entity, type?.Title, brand?.Title);
+        }
+
+        private static EquipmentModelDetailDto Map(EquipmentModelEntity entity, string? typeTitle, string? brandTitle) =>
             new()
             {
                 Id = entity.EquipmentModelId,
                 EquipmentTypeId = entity.EquipmentTypeId,
+                EquipmentTypeTitle = typeTitle,
                 BrandId = entity.BrandId,
+                BrandTitle = brandTitle,
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,
