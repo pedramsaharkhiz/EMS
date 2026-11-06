@@ -1813,12 +1813,25 @@ GET api/FailureReport
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentSerialNumber : String
+      EquipmentAssetNumber : String
+      EquipmentOwner : EquipmentOwner
+      EquipmentOwnerTitle : String
+      EquipmentTypeId : Int64?
+      EquipmentTypeTitle : String
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       FailureTypeId : Int64
       FailureTypeTitle : String
+      FailureTypeCode : String
       FailureCategoryId : Int64
       FailureCategoryTitle : String
       ReportTypeId : Int64
       ReportTypeTitle : String
+      ReportTypeCode : String
       FailureReportStatusId : Int64
       FailureReportStatusTitle : String
       FailureReportStatusCode : String
@@ -1876,12 +1889,25 @@ POST api/FailureReport
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentSerialNumber : String
+      EquipmentAssetNumber : String
+      EquipmentOwner : EquipmentOwner
+      EquipmentOwnerTitle : String
+      EquipmentTypeId : Int64?
+      EquipmentTypeTitle : String
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       FailureTypeId : Int64
       FailureTypeTitle : String
+      FailureTypeCode : String
       FailureCategoryId : Int64
       FailureCategoryTitle : String
       ReportTypeId : Int64
       ReportTypeTitle : String
+      ReportTypeCode : String
       FailureReportStatusId : Int64
       FailureReportStatusTitle : String
       FailureReportStatusCode : String
@@ -1943,12 +1969,25 @@ GET api/FailureReport/{id}
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentSerialNumber : String
+      EquipmentAssetNumber : String
+      EquipmentOwner : EquipmentOwner
+      EquipmentOwnerTitle : String
+      EquipmentTypeId : Int64?
+      EquipmentTypeTitle : String
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       FailureTypeId : Int64
       FailureTypeTitle : String
+      FailureTypeCode : String
       FailureCategoryId : Int64
       FailureCategoryTitle : String
       ReportTypeId : Int64
       ReportTypeTitle : String
+      ReportTypeCode : String
       FailureReportStatusId : Int64
       FailureReportStatusTitle : String
       FailureReportStatusCode : String
@@ -2010,12 +2049,25 @@ PUT api/FailureReport/{id}
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentSerialNumber : String
+      EquipmentAssetNumber : String
+      EquipmentOwner : EquipmentOwner
+      EquipmentOwnerTitle : String
+      EquipmentTypeId : Int64?
+      EquipmentTypeTitle : String
+      EquipmentModelId : Int64?
+      EquipmentModelTitle : String
+      EquipmentStatusId : Int64
+      EquipmentStatusTitle : String
+      EquipmentStatusCode : String
       FailureTypeId : Int64
       FailureTypeTitle : String
+      FailureTypeCode : String
       FailureCategoryId : Int64
       FailureCategoryTitle : String
       ReportTypeId : Int64
       ReportTypeTitle : String
+      ReportTypeCode : String
       FailureReportStatusId : Int64
       FailureReportStatusTitle : String
       FailureReportStatusCode : String

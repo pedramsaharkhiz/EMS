@@ -1,3 +1,5 @@
+using EMS.Domain;
+using EMS.Domain.Enums;
 using EMS.Domain.Entities;
 using EMS.Domain.Interfaces;
 using EMS.Domain.ReadModels;
@@ -35,12 +37,26 @@ namespace EMS.Infrastructure.Repositories
                 ReferenceNumber = r.ReferenceNumber,
                 EquipmentId = r.EquipmentId,
                 EquipmentYaasCode = r.Equipment.YaasCode,
+                EquipmentSerialNumber = r.Equipment.SerialNumber,
+                EquipmentAssetNumber = r.Equipment.AssetNumber,
+                EquipmentOwner = r.Equipment.Owner,
+                EquipmentOwnerTitle = r.Equipment.Owner == EquipmentOwner.Company ? EquipmentOwnerTitles.Company : r.Equipment.Owner == EquipmentOwner.Bank ? EquipmentOwnerTitles.Bank : EquipmentOwnerTitles.Unknown,
+                // an equipment has either a type or a model: the effective type is its own or its model's (as in the equipment list)
+                EquipmentTypeId = r.Equipment.EquipmentTypeId ?? (long?)r.Equipment.EquipmentModel!.EquipmentTypeId,
+                EquipmentTypeTitle = r.Equipment.EquipmentType != null ? r.Equipment.EquipmentType.Title : r.Equipment.EquipmentModel!.EquipmentType.Title,
+                EquipmentModelId = r.Equipment.EquipmentModelId,
+                EquipmentModelTitle = r.Equipment.EquipmentModel!.Title,
+                EquipmentStatusId = r.Equipment.EquipmentStatusId,
+                EquipmentStatusTitle = r.Equipment.EquipmentStatus.Title,
+                EquipmentStatusCode = r.Equipment.EquipmentStatus.Code,
                 FailureTypeId = r.FailureTypeId,
                 FailureTypeTitle = r.FailureType.Title,
+                FailureTypeCode = r.FailureType.Code,
                 FailureCategoryId = r.FailureType.FailureCategoryId,
                 FailureCategoryTitle = r.FailureType.FailureCategory.Title,
                 ReportTypeId = r.ReportTypeId,
                 ReportTypeTitle = r.ReportType.Title,
+                ReportTypeCode = r.ReportType.Code,
                 StatusId = r.FailureReportStatusId,
                 StatusTitle = r.FailureReportStatus.Title,
                 StatusCode = r.FailureReportStatus.Code,

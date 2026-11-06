@@ -48,6 +48,11 @@
 - **`PUT` همه‌ی فیلدهای قابل ویرایش را جایگزین می‌کند:** `employeeId`، `referenceNumber` و `description` که نیایند پاک می‌شوند. `isActive` اگر نیاید `true` است. `rowVersion` اختیاری است و ناسازگاری `409 concurrency_conflict` می‌دهد.
 - هیچ اثری روی وضعیت یا مکان تجهیز ندارد.
 
+**شکل پاسخ (لیست و جزئیات یکسان‌اند):**
+- **تجهیز:** `equipmentId`، `equipmentYaasCode`، `equipmentSerialNumber`، `equipmentAssetNumber`، `equipmentOwner` و `equipmentOwnerTitle`، نوع **مؤثر** `equipmentTypeId/Title` (نوع خود تجهیز یا نوع مدلش)، `equipmentModelId/Title` و `equipmentStatusId/Title/Code`. نام‌ها همان نام‌های لیست تجهیزند.
+- **کدهای کاتالوگ:** `failureTypeCode` و `reportTypeCode` کنار عنوان‌شان می‌آیند.
+- **اشخاص:** کارمند (`employeeName`، `employeePersonnelCode`) و ثبت‌کننده (`reportedBy...` با مجموعه‌ی کامل شخص: نام، کد پرسنلی، وضعیت، سمت، دپارتمان، شهر، استان).
+
 **فیلتر لیست:** `search` (شماره‌ی ارجاع، توضیح، یاس کد تجهیز)، `referenceNumber`، و چندمقداری `equipmentId`، `failureTypeId`، `failureCategoryId`، `reportTypeId`، `statusId`، `priorityId`، `organizationId`، `employeeId`، `reportedByUserId` (مثل `?statusId=1&statusId=2`)، بازه‌ی `reportedFrom` و `reportedTo`، و `isActive`. مرتب‌سازی با `sortBy`: `referenceNumber`، `equipment`، `failureType`، `failureCategory`، `reportType`، `status`، `organization`، `priority`، `reportedDateTime`، `createdDateTime` (پیش‌فرض بر اساس id).
 
 ## وابسته‌ها

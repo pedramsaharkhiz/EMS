@@ -1,3 +1,4 @@
+using EMS.Domain.Enums;
 namespace EMS.Application.Dtos.FailureReport
 {
     /// <summary>One row of the failure report list. The ids are what edit forms need; the titles are what people read.</summary>
@@ -7,12 +8,27 @@ namespace EMS.Application.Dtos.FailureReport
         public string? ReferenceNumber { get; set; }
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        // the equipment, with the same names as in the equipment list
+        public string? EquipmentSerialNumber { get; set; }
+        public string? EquipmentAssetNumber { get; set; }
+        public EquipmentOwner EquipmentOwner { get; set; }
+        public string? EquipmentOwnerTitle { get; set; }
+        /// <summary>The effective type: the equipment's own, or its model's.</summary>
+        public long? EquipmentTypeId { get; set; }
+        public string? EquipmentTypeTitle { get; set; }
+        public long? EquipmentModelId { get; set; }
+        public string? EquipmentModelTitle { get; set; }
+        public long EquipmentStatusId { get; set; }
+        public string? EquipmentStatusTitle { get; set; }
+        public string? EquipmentStatusCode { get; set; }
         public long FailureTypeId { get; set; }
         public string? FailureTypeTitle { get; set; }
+        public string? FailureTypeCode { get; set; }
         public long FailureCategoryId { get; set; }
         public string? FailureCategoryTitle { get; set; }
         public long ReportTypeId { get; set; }
         public string? ReportTypeTitle { get; set; }
+        public string? ReportTypeCode { get; set; }
         public long FailureReportStatusId { get; set; }
         public string? FailureReportStatusTitle { get; set; }
         public string? FailureReportStatusCode { get; set; }
