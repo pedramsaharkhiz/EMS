@@ -79,7 +79,7 @@
 
 - **مالک:** `owner` (عدد) و `ownerTitle` (شرکت / بانک). عنوان‌ها فقط در `EquipmentOwnerTitles` نوشته شده‌اند.
 - **وضعیت:** `equipmentStatusId`، `equipmentStatusTitle` و `equipmentStatusCode` (نام `EquipmentStatusCode`، مثل `InStock`).
-- **جای شعبه در سلسله‌مراتب:** `zoneId/zoneTitle` (حوزه)، `organizationManagementId/Title` (مدیریت شعب)، `fieldId/fieldTitle` (ناحیه). همان سطح‌هایی که لیست روی آن‌ها فیلتر می‌شود.
+- **جای شعبه در سلسله‌مراتب:** `zoneId/zoneTitle` (ناحیه)، `organizationManagementId/Title` (مدیریت شعب)، `fieldId/fieldTitle` (حوزه). همان سطح‌هایی که لیست روی آن‌ها فیلتر می‌شود.
 - **دپارتمان پشتیبانی:** دو چیز متفاوت‌اند و نامشان جداست: `supportingDepartmentId/Title` (دپارتمانی که **شعبه را پشتیبانی می‌کند**؛ همان نامی که در گزارش خرابی و سلسله‌مراتب هم هست) و `currentSupportingDepartmentId/Title` (دپارتمانی که **خودِ تجهیز در آن است**). فیلتر لیست هم با همین نام‌هاست: `supportingDepartmentId` و `currentSupportingDepartmentId`. **توجه:** `supportingDepartmentId` پیش‌تر دپارتمانِ خودِ تجهیز را فیلتر می‌کرد و حالا دپارتمان شعبه را؛ فیلتر دپارتمانِ خودِ تجهیز `currentSupportingDepartmentId` است.
 - **شهر و استان تجهیز:** `currentCityId/Title` و `currentProvinceId/Title` (شهر و استانِ دپارتمانی که تجهیز در آن است). فیلترهای `cityId` و `provinceId` بدون تغییر ماندند.
 - **تکنسین و محل او:** `technicianUserId`، `technicianName`، `technicianIsActive`، `technicianPostId/Title`، و **محل کار تکنسین**: `technicianSupportingDepartmentId/Title`، `technicianCityId/Title`، `technicianProvinceId/Title` (دپارتمان خودِ کاربر و شهر و استان آن، نه جای تجهیز). برای تجهیز بدون تکنسین همه `null` است. در Excel: «دپارتمان تکنسین»، «شهر تکنسین»، «استان تکنسین».

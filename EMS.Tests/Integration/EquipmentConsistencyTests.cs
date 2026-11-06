@@ -174,9 +174,9 @@ namespace EMS.Tests.Integration
             Assert.Equal(place.DepartmentTitle, Cell("دپارتمان تکنسین"));
             Assert.Equal(place.CityTitle, Cell("شهر تکنسین"));
             Assert.Equal(place.ProvinceTitle, Cell("استان تکنسین"));
-            Assert.Equal(org.ZoneTitle, Cell("حوزه"));
+            Assert.Equal(org.ZoneTitle, Cell("ناحیه"));
             Assert.Equal(org.ManagementTitle, Cell("مدیریت شعب"));
-            Assert.Equal(org.FieldTitle, Cell("ناحیه"));
+            Assert.Equal(org.FieldTitle, Cell("حوزه"));
             Assert.Equal("بانک", Cell("مالک"));
             Assert.NotEqual(0, id);
         }

@@ -1339,7 +1339,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SupportingDepartmentId");
 
-                    b.ToTable("Organizations", (string)null);
+                    b.ToTable("Organizations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Organizations_FieldOrManagement_ExactlyOne", "([FieldId] IS NOT NULL AND [OrganizationManagementId] IS NULL) OR ([FieldId] IS NULL AND [OrganizationManagementId] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.OrganizationManagement", b =>

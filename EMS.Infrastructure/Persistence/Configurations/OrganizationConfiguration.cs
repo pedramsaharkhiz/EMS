@@ -1,3 +1,4 @@
+using EMS.Domain;
 using EMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -20,6 +21,9 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.PhoneNumber).HasMaxLength(20).IsUnicode(false).IsRequired(false);
             builder.Property(x => x.Latitude).HasPrecision(9, 6).IsRequired(false);
             builder.Property(x => x.Longitude).HasPrecision(9, 6).IsRequired(false);
+
+            // Exactly one parent: a field or a branch management (never neither, never both).
+            builder.ToTable(t => t.HasCheckConstraint(OrganizationConstraints.ParentCheckName, OrganizationConstraints.ParentCheckSql));
 
             builder.HasOne(x => x.Field).WithMany(x => x.Organizations).HasForeignKey(x => x.FieldId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.OrganizationManagement).WithMany(x => x.Organizations).HasForeignKey(x => x.OrganizationManagementId).OnDelete(DeleteBehavior.NoAction);
