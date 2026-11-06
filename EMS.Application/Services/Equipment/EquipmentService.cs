@@ -52,8 +52,8 @@ namespace EMS.Application.Services.Equipment
             .AnyOf(r => r.FieldIds, x => x.FieldId)
             .AnyOf(r => r.OrganizationManagementIds, x => x.OrganizationManagementId)
             .AnyOf(r => r.ZoneIds, x => x.ZoneId)
-            .AnyOf(r => r.SupportingDepartmentIds, x => x.SupportingDepartmentId)
-            .AnyOf(r => r.OrganizationSupportingDepartmentIds, x => x.OrganizationSupportingDepartmentId)
+            .AnyOf(r => r.SupportingDepartmentIds, x => x.OrganizationSupportingDepartmentId)
+            .AnyOf(r => r.CurrentSupportingDepartmentIds, x => x.SupportingDepartmentId)
             .AnyOf(r => r.CityIds, x => x.CityId)
             .AnyOf(r => r.ProvinceIds, x => x.ProvinceId)
             .AnyOf(r => r.TechnicianUserIds, x => x.TechnicianUserId)
@@ -176,16 +176,16 @@ namespace EMS.Application.Services.Equipment
                 var item = new EquipmentLocationHistoryItemDto
                 {
                     Id = h.Id,
-                    EquipmentLocationTypeId = h.LocationTypeId,
-                    EquipmentLocationTypeTitle = h.LocationTypeTitle,
-                    OrganizationId = h.OrganizationId,
-                    OrganizationTitle = h.OrganizationTitle,
-                    SupportingDepartmentId = h.SupportingDepartmentId,
-                    SupportingDepartmentTitle = h.SupportingDepartmentTitle,
-                    CityId = h.CityId,
-                    CityTitle = h.CityTitle,
-                    ProvinceId = h.ProvinceId,
-                    ProvinceTitle = h.ProvinceTitle,
+                    CurrentEquipmentLocationTypeId = h.LocationTypeId,
+                    CurrentEquipmentLocationTypeTitle = h.LocationTypeTitle,
+                    CurrentOrganizationId = h.OrganizationId,
+                    CurrentOrganizationTitle = h.OrganizationTitle,
+                    CurrentSupportingDepartmentId = h.SupportingDepartmentId,
+                    CurrentSupportingDepartmentTitle = h.SupportingDepartmentTitle,
+                    CurrentCityId = h.CityId,
+                    CurrentCityTitle = h.CityTitle,
+                    CurrentProvinceId = h.ProvinceId,
+                    CurrentProvinceTitle = h.ProvinceTitle,
                     TechnicianUserId = h.TechnicianUserId,
                     AssignedDateTime = h.AssignedDateTime,
                     ChangedByUserId = h.ChangedByUserId,
@@ -575,14 +575,14 @@ namespace EMS.Application.Services.Equipment
             dto.OrganizationManagementTitle = row.OrganizationManagementTitle;
             dto.ZoneId = row.ZoneId;
             dto.ZoneTitle = row.ZoneTitle;
-            dto.CurrentOrganizationSupportingDepartmentId = row.OrganizationSupportingDepartmentId;
-            dto.CurrentOrganizationSupportingDepartmentTitle = row.OrganizationSupportingDepartmentTitle;
+            dto.SupportingDepartmentId = row.OrganizationSupportingDepartmentId;
+            dto.SupportingDepartmentTitle = row.OrganizationSupportingDepartmentTitle;
             dto.CurrentSupportingDepartmentId = row.SupportingDepartmentId;
             dto.CurrentSupportingDepartmentTitle = row.SupportingDepartmentTitle;
-            dto.CityId = row.CityId;
-            dto.CityTitle = row.CityTitle;
-            dto.ProvinceId = row.ProvinceId;
-            dto.ProvinceTitle = row.ProvinceTitle;
+            dto.CurrentCityId = row.CityId;
+            dto.CurrentCityTitle = row.CityTitle;
+            dto.CurrentProvinceId = row.ProvinceId;
+            dto.CurrentProvinceTitle = row.ProvinceTitle;
             dto.TechnicianUserId = row.TechnicianUserId;
             dto.TechnicianName = row.TechnicianName;
             dto.TechnicianPersonnelCode = row.TechnicianPersonnelCode;

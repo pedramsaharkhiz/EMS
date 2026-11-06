@@ -152,15 +152,15 @@ namespace EMS.Tests.Integration
             Assert.Equal("موجود در انبار", json.GetProperty("equipmentStatusTitle").GetString());
             Assert.Equal(org.Title, json.GetProperty("currentOrganizationTitle").GetString());
             Assert.Equal(dept.DepartmentTitle, json.GetProperty("currentSupportingDepartmentTitle").GetString());
-            Assert.Equal(dept.CityTitle, json.GetProperty("cityTitle").GetString());
-            Assert.Equal(dept.ProvinceTitle, json.GetProperty("provinceTitle").GetString());
+            Assert.Equal(dept.CityTitle, json.GetProperty("currentCityTitle").GetString());
+            Assert.Equal(dept.ProvinceTitle, json.GetProperty("currentProvinceTitle").GetString());
             Assert.Equal("Test User", json.GetProperty("technicianName").GetString());
             Assert.True(json.GetProperty("isActive").GetBoolean());
             Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("rowVersion").GetString()));
 
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{Id(json)}/location-history"))).EnumerateArray().ToList();
             var first = Assert.Single(history);
-            Assert.Equal(locationType, first.GetProperty("equipmentLocationTypeId").GetInt64());
+            Assert.Equal(locationType, first.GetProperty("currentEquipmentLocationTypeId").GetInt64());
             Assert.Equal(tech.Id, first.GetProperty("technicianUserId").GetInt64());
             Assert.Equal("ثبت اولیه تجهیز", first.GetProperty("description").GetString());
             Assert.Equal("System Admin", first.GetProperty("changedByName").GetString());                  // who created it (the seeded administrator)
@@ -503,7 +503,7 @@ namespace EMS.Tests.Integration
             var json = await ReadDataAsync(response);
             Assert.Equal(newType, json.GetProperty("currentEquipmentLocationTypeId").GetInt64());
             Assert.Equal(org.Title, json.GetProperty("currentOrganizationTitle").GetString());
-            Assert.Equal(dept.CityTitle, json.GetProperty("cityTitle").GetString());
+            Assert.Equal(dept.CityTitle, json.GetProperty("currentCityTitle").GetString());
             Assert.Equal(tech.Id, json.GetProperty("technicianUserId").GetInt64());
 
             // the same move again: no new history entry
@@ -512,7 +512,7 @@ namespace EMS.Tests.Integration
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/location-history"))).EnumerateArray().ToList();
             Assert.Equal(2, history.Count);                                                          // first placement + one move
             Assert.Equal("تحویل به تکنسین", history[0].GetProperty("description").GetString());      // newest first
-            Assert.Equal(newType, history[0].GetProperty("equipmentLocationTypeId").GetInt64());
+            Assert.Equal(newType, history[0].GetProperty("currentEquipmentLocationTypeId").GetInt64());
             Assert.Equal("ثبت اولیه تجهیز", history[1].GetProperty("description").GetString());
         }
 
@@ -585,7 +585,7 @@ namespace EMS.Tests.Integration
             await AssertOnly($"categoryId={c1.CategoryId}", Id(a));
             await AssertOnly($"modelId={c1.ModelId}", Id(a));
             await AssertOnly($"brandId={c1.BrandId}", Id(a));
-            await AssertOnly($"supportingDepartmentId={d1.DepartmentId}", Id(a));
+            await AssertOnly($"currentSupportingDepartmentId={d1.DepartmentId}", Id(a));
             await AssertOnly($"cityId={d1.CityId}", Id(a));
             await AssertOnly($"provinceId={d1.ProvinceId}", Id(a));
             await AssertOnly($"organizationId={org1.OrganizationId}", Id(a));

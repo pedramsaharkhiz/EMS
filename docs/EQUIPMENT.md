@@ -46,7 +46,7 @@
 همه‌ی فیلترها اختیاری و با AND ترکیب می‌شوند. فیلترهای شناسه چندمقداری‌اند: `?statusId=1&statusId=2`.
 
 - متن: `search` (یاس کد، سریال یا شماره دارایی)، `yaasCode`، `serialNumber`، `assetNumber`.
-- شناسه: `statusId`، `categoryId`، `typeId` (نوع مؤثر)، `modelId`، `brandId`، `locationTypeId`، `organizationId`، `fieldId`، `organizationManagementId`، `zoneId`، `supportingDepartmentId`، `cityId`، `provinceId`، `technicianUserId`.
+- شناسه: `statusId`، `categoryId`، `typeId` (نوع مؤثر)، `modelId`، `brandId`، `locationTypeId`، `organizationId`، `fieldId`، `organizationManagementId`، `zoneId`، `supportingDepartmentId` (دپارتمانی که شعبه را پشتیبانی می‌کند)، `currentSupportingDepartmentId` (دپارتمانی که خودِ تجهیز در آن است)، `cityId`، `provinceId`، `technicianUserId`.
 - `createdFrom` / `createdTo` (UTC، ISO 8601، شامل دو سر)، `isActive`.
 - `sortBy`: `yaasCode`، `serialNumber`، `assetNumber`، `category`، `type`، `model`، `brand`، `status`، `locationType`، `organization`، `department`، `city`، `province`، `technician`، `createdDateTime` (پیش‌فرض: `id`).
 
@@ -77,9 +77,10 @@
 - **مالک:** `owner` (عدد) و `ownerTitle` (شرکت / بانک). عنوان‌ها فقط در `EquipmentOwnerTitles` نوشته شده‌اند.
 - **وضعیت:** `equipmentStatusId`، `equipmentStatusTitle` و `equipmentStatusCode` (نام `EquipmentStatusCode`، مثل `InStock`).
 - **جای شعبه در سلسله‌مراتب:** `zoneId/zoneTitle` (حوزه)، `organizationManagementId/Title` (مدیریت شعب)، `fieldId/fieldTitle` (ناحیه). همان سطح‌هایی که لیست روی آن‌ها فیلتر می‌شود.
-- **دپارتمان پشتیبانی:** دو چیز متفاوت‌اند و نامشان جداست: `currentSupportingDepartment...` (دپارتمانی که **تجهیز در آن است**) و `currentOrganizationSupportingDepartmentId/Title` (دپارتمانی که **شعبه را پشتیبانی می‌کند**). فیلتر لیست: `supportingDepartmentId` (اولی) و `organizationSupportingDepartmentId` (دومی).
+- **دپارتمان پشتیبانی:** دو چیز متفاوت‌اند و نامشان جداست: `supportingDepartmentId/Title` (دپارتمانی که **شعبه را پشتیبانی می‌کند**؛ همان نامی که در گزارش خرابی و سلسله‌مراتب هم هست) و `currentSupportingDepartmentId/Title` (دپارتمانی که **خودِ تجهیز در آن است**). فیلتر لیست هم با همین نام‌هاست: `supportingDepartmentId` و `currentSupportingDepartmentId`. **توجه:** `supportingDepartmentId` پیش‌تر دپارتمانِ خودِ تجهیز را فیلتر می‌کرد و حالا دپارتمان شعبه را؛ فیلتر دپارتمانِ خودِ تجهیز `currentSupportingDepartmentId` است.
+- **شهر و استان تجهیز:** `currentCityId/Title` و `currentProvinceId/Title` (شهر و استانِ دپارتمانی که تجهیز در آن است). فیلترهای `cityId` و `provinceId` بدون تغییر ماندند.
 - **تکنسین و محل او:** `technicianUserId`، `technicianName`، `technicianIsActive`، `technicianPostId/Title`، و **محل کار تکنسین**: `technicianSupportingDepartmentId/Title`، `technicianCityId/Title`، `technicianProvinceId/Title` (دپارتمان خودِ کاربر و شهر و استان آن، نه جای تجهیز). برای تجهیز بدون تکنسین همه `null` است. در Excel: «دپارتمان تکنسین»، «شهر تکنسین»، «استان تکنسین».
-- **تاریخچه‌ی مکان** (`GET /{id}/location-history`): هر ردیف علاوه بر دپارتمان، `cityId/Title` و `provinceId/Title` همان دپارتمان را دارد، و محل کار **فعلی** تکنسین (`technicianSupportingDepartment...`، `technicianCity...`، `technicianProvince...`). ردیف تاریخچه محل کار تکنسین را در لحظه‌ی خودش ثبت نکرده است، پس محل «فعلی» نشان داده می‌شود.
+- **تاریخچه‌ی مکان** (`GET /{id}/location-history`): مکانِ **در لحظه‌ی همان ثبت** با همان نام‌های لیست می‌آید: `currentEquipmentLocationTypeId/Title`، `currentOrganizationId/Title`، `currentSupportingDepartmentId/Title`، `currentCityId/Title`، `currentProvinceId/Title`. تکنسین و ثبت‌کننده‌ی تغییر (`changedBy...`) هر دو مجموعه‌ی کامل شخص را دارند (نام، کد پرسنلی، وضعیت، سمت، دپارتمان، شهر، استان). محل کار تکنسین همان محل **فعلی** اوست؛ ردیف تاریخچه آن را در لحظه‌ی خودش ثبت نکرده است.
 - **dropdown تکنسین‌ها** و `GET /{id}/technician` هم دپارتمان، شهر و استان او را دارند.
 - **نام‌گذاری:** `technicianName` یعنی نامِ تکنسین به‌عنوان **ارجاع از تجهیز** (مثل `reportedByName` در گزارش خرابی)، و `fullName` نامِ خودِ شخص در آیتم‌هایی است که خودِ تکنسین‌اند (dropdown و `/{id}/technician`).
 

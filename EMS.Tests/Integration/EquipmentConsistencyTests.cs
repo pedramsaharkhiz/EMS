@@ -131,8 +131,8 @@ namespace EMS.Tests.Integration
 
             // the history entry: the department it records, with its city and province, and where the technician works now
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/location-history"))).EnumerateArray().First();
-            Assert.Equal(place.CityTitle, history.GetProperty("cityTitle").GetString());
-            Assert.Equal(place.ProvinceTitle, history.GetProperty("provinceTitle").GetString());
+            Assert.Equal(place.CityTitle, history.GetProperty("currentCityTitle").GetString());
+            Assert.Equal(place.ProvinceTitle, history.GetProperty("currentProvinceTitle").GetString());
             Assert.Equal(place.DepartmentTitle, history.GetProperty("technicianSupportingDepartmentTitle").GetString());
             Assert.Equal(place.CityTitle, history.GetProperty("technicianCityTitle").GetString());
             Assert.Equal(place.ProvinceTitle, history.GetProperty("technicianProvinceTitle").GetString());
@@ -204,8 +204,8 @@ namespace EMS.Tests.Integration
                 Assert.Equal(org.ManagementTitle, json.GetProperty("organizationManagementTitle").GetString());
                 Assert.Equal(org.FieldTitle, json.GetProperty("fieldTitle").GetString());
                 Assert.True(json.GetProperty("zoneId").GetInt64() > 0);
-                Assert.Equal(place.DepartmentId, json.GetProperty("currentOrganizationSupportingDepartmentId").GetInt64());
-                Assert.Equal(place.DepartmentTitle, json.GetProperty("currentOrganizationSupportingDepartmentTitle").GetString());
+                Assert.Equal(place.DepartmentId, json.GetProperty("supportingDepartmentId").GetInt64());
+                Assert.Equal(place.DepartmentTitle, json.GetProperty("supportingDepartmentTitle").GetString());
             }
 
             // the owners lookup uses the same titles
@@ -228,10 +228,10 @@ namespace EMS.Tests.Integration
             async Task<List<long>> Ids(string query) =>
                 DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment?pageSize=100&{query}"))).EnumerateArray().Select(e => e.GetProperty("id").GetInt64()).ToList();
 
-            Assert.Equal(new[] { served }, await Ids($"organizationSupportingDepartmentId={serving.DepartmentId}"));
-            Assert.Equal(new[] { elsewhere }, await Ids($"supportingDepartmentId={at.DepartmentId}"));        // the existing filter means the equipment's own department
-            Assert.Empty(await Ids($"organizationSupportingDepartmentId={at.DepartmentId}"));
-            Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Get, "/api/Equipment?organizationSupportingDepartmentId=0")).StatusCode);
+            Assert.Equal(new[] { served }, await Ids($"supportingDepartmentId={serving.DepartmentId}"));
+            Assert.Equal(new[] { elsewhere }, await Ids($"currentSupportingDepartmentId={at.DepartmentId}"));        // the equipment's own department
+            Assert.Empty(await Ids($"supportingDepartmentId={at.DepartmentId}"));
+            Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Get, "/api/Equipment?currentSupportingDepartmentId=0")).StatusCode);
         }
 
         // ------------------------------------------------------------------------------------ the form's lookups

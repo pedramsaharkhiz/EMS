@@ -436,12 +436,12 @@ GET api/Equipment
   Query: brandId : Int64[]
   Query: categoryId : Int64[]
   Query: cityId : Int64[]
+  Query: currentSupportingDepartmentId : Int64[]
   Query: fieldId : Int64[]
   Query: locationTypeId : Int64[]
   Query: modelId : Int64[]
   Query: organizationId : Int64[]
   Query: organizationManagementId : Int64[]
-  Query: organizationSupportingDepartmentId : Int64[]
   Query: owner : EquipmentOwner[]
   Query: provinceId : Int64[]
   Query: statusId : Int64[]
@@ -481,14 +481,14 @@ GET api/Equipment
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -561,14 +561,14 @@ POST api/Equipment
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -630,14 +630,14 @@ POST api/Equipment/bulk
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -677,12 +677,12 @@ GET api/Equipment/export
   Query: brandId : Int64[]
   Query: categoryId : Int64[]
   Query: cityId : Int64[]
+  Query: currentSupportingDepartmentId : Int64[]
   Query: fieldId : Int64[]
   Query: locationTypeId : Int64[]
   Query: modelId : Int64[]
   Query: organizationId : Int64[]
   Query: organizationManagementId : Int64[]
-  Query: organizationSupportingDepartmentId : Int64[]
   Query: owner : EquipmentOwner[]
   Query: provinceId : Int64[]
   Query: statusId : Int64[]
@@ -779,14 +779,14 @@ POST api/Equipment/with-attachments
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -861,14 +861,14 @@ GET api/Equipment/{id}
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -940,14 +940,14 @@ PUT api/Equipment/{id}
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -982,16 +982,16 @@ GET api/Equipment/{id}/location-history
     envelope: success, message, data, meta, error, traceId
     data:
       Id : Int64
-      EquipmentLocationTypeId : Int64
-      EquipmentLocationTypeTitle : String
-      OrganizationId : Int64?
-      OrganizationTitle : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentEquipmentLocationTypeId : Int64
+      CurrentEquipmentLocationTypeTitle : String
+      CurrentOrganizationId : Int64?
+      CurrentOrganizationTitle : String
+      CurrentSupportingDepartmentId : Int64?
+      CurrentSupportingDepartmentTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
@@ -1070,14 +1070,14 @@ POST api/Equipment/{id}/move
       OrganizationManagementTitle : String
       ZoneId : Int64?
       ZoneTitle : String
-      CurrentOrganizationSupportingDepartmentId : Int64?
-      CurrentOrganizationSupportingDepartmentTitle : String
+      SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
       CurrentSupportingDepartmentId : Int64?
       CurrentSupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      CurrentCityId : Int64?
+      CurrentCityTitle : String
+      CurrentProvinceId : Int64?
+      CurrentProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
       TechnicianPersonnelCode : String
