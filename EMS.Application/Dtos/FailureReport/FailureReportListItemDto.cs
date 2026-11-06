@@ -23,8 +23,20 @@ namespace EMS.Application.Dtos.FailureReport
         public string? SupportingDepartmentTitle { get; set; }
         public long? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
+        public string? EmployeePersonnelCode { get; set; }
         public long ReportedByUserId { get; set; }
+        // the user who registered the report, with the same person set as a technician
         public string? ReportedByName { get; set; }
+        public string? ReportedByPersonnelCode { get; set; }
+        public bool? ReportedByIsActive { get; set; }
+        public long? ReportedByPostId { get; set; }
+        public string? ReportedByPostTitle { get; set; }
+        public long? ReportedBySupportingDepartmentId { get; set; }
+        public string? ReportedBySupportingDepartmentTitle { get; set; }
+        public long? ReportedByCityId { get; set; }
+        public string? ReportedByCityTitle { get; set; }
+        public long? ReportedByProvinceId { get; set; }
+        public string? ReportedByProvinceTitle { get; set; }
         /// <summary>1 (کم) to 5 (فوری).</summary>
         public int PriorityId { get; set; }
         public string PriorityTitle { get; set; } = string.Empty;

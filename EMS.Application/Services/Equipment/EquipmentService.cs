@@ -5,6 +5,7 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Common.People;
 using EMS.Application.Dtos.Attachment;
 using EMS.Application.Interfaces.Attachment;
 using EMS.Application.Services.Attachment;
@@ -91,6 +92,7 @@ namespace EMS.Application.Services.Equipment
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
         private readonly IAttachmentService _attachments;
+        private readonly IUserReferenceRepository _people;
 
         public EquipmentService(
             IEquipmentRepository repository,
@@ -105,7 +107,8 @@ namespace EMS.Application.Services.Equipment
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IAttachmentService attachments)
+            IAttachmentService attachments,
+            IUserReferenceRepository people)
         {
             _repository = repository;
             _statuses = statuses;
@@ -120,6 +123,7 @@ namespace EMS.Application.Services.Equipment
             _unitOfWork = unitOfWork;
             _audit = audit;
             _attachments = attachments;
+            _people = people;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -164,9 +168,12 @@ namespace EMS.Application.Services.Equipment
                 throw NotFound();
 
             var page = await _repository.QueryLocationHistory(id).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
-            return new PagedResult<EquipmentLocationHistoryItemDto>
+
+            // the technician and the one who made each change, all in one query
+            var people = await _people.GetPeopleAsync(page.Items.SelectMany(h => new[] { h.TechnicianUserId, h.ChangedByUserId }), cancellationToken);
+            var items = page.Items.Select(h =>
             {
-                Items = page.Items.Select(h => new EquipmentLocationHistoryItemDto
+                var item = new EquipmentLocationHistoryItemDto
                 {
                     Id = h.Id,
                     EquipmentLocationTypeId = h.LocationTypeId,
@@ -180,18 +187,18 @@ namespace EMS.Application.Services.Equipment
                     ProvinceId = h.ProvinceId,
                     ProvinceTitle = h.ProvinceTitle,
                     TechnicianUserId = h.TechnicianUserId,
-                    TechnicianName = h.TechnicianName,
-                    TechnicianSupportingDepartmentId = h.TechnicianSupportingDepartmentId,
-                    TechnicianSupportingDepartmentTitle = h.TechnicianSupportingDepartmentTitle,
-                    TechnicianCityId = h.TechnicianCityId,
-                    TechnicianCityTitle = h.TechnicianCityTitle,
-                    TechnicianProvinceId = h.TechnicianProvinceId,
-                    TechnicianProvinceTitle = h.TechnicianProvinceTitle,
                     AssignedDateTime = h.AssignedDateTime,
                     ChangedByUserId = h.ChangedByUserId,
-                    ChangedByName = h.ChangedByName,
                     Description = h.Description,
-                }).ToList(),
+                };
+                PersonReferenceMapper.Fill(item, "Technician", h.TechnicianUserId is { } t ? people.GetValueOrDefault(t) : null);
+                PersonReferenceMapper.Fill(item, "ChangedBy", h.ChangedByUserId is { } c ? people.GetValueOrDefault(c) : null);
+                return item;
+            }).ToList();
+
+            return new PagedResult<EquipmentLocationHistoryItemDto>
+            {
+                Items = items,
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
@@ -578,6 +585,7 @@ namespace EMS.Application.Services.Equipment
             dto.ProvinceTitle = row.ProvinceTitle;
             dto.TechnicianUserId = row.TechnicianUserId;
             dto.TechnicianName = row.TechnicianName;
+            dto.TechnicianPersonnelCode = row.TechnicianPersonnelCode;
             dto.TechnicianIsActive = row.TechnicianIsActive;
             dto.TechnicianPostId = row.TechnicianPostId;
             dto.TechnicianPostTitle = row.TechnicianPostTitle;

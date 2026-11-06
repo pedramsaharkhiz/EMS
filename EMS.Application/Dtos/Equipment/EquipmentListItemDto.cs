@@ -56,6 +56,7 @@ namespace EMS.Application.Dtos.Equipment
         public string? ProvinceTitle { get; set; }
         public long? TechnicianUserId { get; set; }
         public string? TechnicianName { get; set; }
+        public string? TechnicianPersonnelCode { get; set; }
         /// <summary>Is the technician an active user? (an equipment keeps its technician after he is deactivated). Null when there is none.</summary>
         public bool? TechnicianIsActive { get; set; }
         public long? TechnicianPostId { get; set; }

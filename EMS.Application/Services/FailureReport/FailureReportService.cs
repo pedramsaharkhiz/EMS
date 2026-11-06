@@ -4,6 +4,7 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Common.People;
 using EMS.Application.Dtos.FailureReport;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.FailureReport;
@@ -66,6 +67,7 @@ namespace EMS.Application.Services.FailureReport
         private readonly ICurrentUserService _currentUser;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
+        private readonly IUserReferenceRepository _people;
 
         public FailureReportService(
             IFailureReportRepository repository,
@@ -77,7 +79,8 @@ namespace EMS.Application.Services.FailureReport
             IRepository<EmployeeEntity> employees,
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
-            IAuditEventLogger audit)
+            IAuditEventLogger audit,
+            IUserReferenceRepository people)
         {
             _repository = repository;
             _equipment = equipment;
@@ -89,6 +92,7 @@ namespace EMS.Application.Services.FailureReport
             _currentUser = currentUser;
             _unitOfWork = unitOfWork;
             _audit = audit;
+            _people = people;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -101,9 +105,16 @@ namespace EMS.Application.Services.FailureReport
                 sorted = descending ? rows.OrderByDescending(x => x.Id) : rows.OrderBy(x => x.Id);
 
             var page = await sorted.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+
+            // the reporters of the whole page in one query
+            var people = await _people.GetPeopleAsync(page.Items.Select(r => (long?)r.ReportedByUserId), cancellationToken);
+            var items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList();
+            foreach (var item in items)
+                PersonReferenceMapper.Fill(item, "ReportedBy", people.GetValueOrDefault(item.ReportedByUserId));
+
             return new PagedResult<FailureReportListItemDto>
             {
-                Items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList(),
+                Items = items,
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
@@ -204,6 +215,8 @@ namespace EMS.Application.Services.FailureReport
         {
             var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();
             var detail = Fill(new FailureReportDetailDto(), row);
+            var reporter = await _people.GetPeopleAsync(new long?[] { row.ReportedByUserId }, cancellationToken);
+            PersonReferenceMapper.Fill(detail, "ReportedBy", reporter.GetValueOrDefault(row.ReportedByUserId));
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             return detail;
@@ -230,8 +243,8 @@ namespace EMS.Application.Services.FailureReport
             dto.SupportingDepartmentTitle = row.SupportingDepartmentTitle;
             dto.EmployeeId = row.EmployeeId;
             dto.EmployeeName = row.EmployeeName;
+            dto.EmployeePersonnelCode = row.EmployeePersonnelCode;
             dto.ReportedByUserId = row.ReportedByUserId;
-            dto.ReportedByName = row.ReportedByName;
             dto.PriorityId = row.PriorityId;
             dto.PriorityTitle = FailureReportPriorities.TitleOf(row.PriorityId);
             dto.ReportedDateTime = row.ReportedDateTime;

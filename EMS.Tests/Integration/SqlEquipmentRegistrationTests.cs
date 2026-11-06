@@ -65,11 +65,11 @@ namespace EMS.Tests.Integration
             var unitOfWork = new UnitOfWork(context);
             var attachments = new AttachmentService(
                 new EntityAttachmentRepository(context), new Repository<AttachmentContent>(context), new AttachmentTargetCatalog(context),
-                new SqlAttachmentBlobStore(context), unitOfWork, audit);
+                new SqlAttachmentBlobStore(context), unitOfWork, audit, new UserReferenceRepository(context));
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
                 new EquipmentLocationTypeRepository(context), new SupportingDepartmentRepository(context), new Repository<Organization>(context),
-                new PermissiveEquipmentLocationRule(), exporter: null!, new FakeCurrentUser(), unitOfWork, audit, attachments);
+                new PermissiveEquipmentLocationRule(), exporter: null!, new FakeCurrentUser(), unitOfWork, audit, attachments, new UserReferenceRepository(context));
             return (service, audit);
         }
 

@@ -1,6 +1,7 @@
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Common.People;
 using EMS.Application.Dtos.Attachment;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.Attachment;
@@ -25,6 +26,7 @@ namespace EMS.Application.Services.Attachment
         private readonly IAttachmentBlobStore _blobs;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
+        private readonly IUserReferenceRepository _people;
 
         public AttachmentService(
             IEntityAttachmentRepository attachments,
@@ -32,7 +34,8 @@ namespace EMS.Application.Services.Attachment
             IAttachmentTargetCatalog targets,
             IAttachmentBlobStore blobs,
             IUnitOfWork unitOfWork,
-            IAuditEventLogger audit)
+            IAuditEventLogger audit,
+            IUserReferenceRepository people)
         {
             _attachments = attachments;
             _contents = contents;
@@ -40,6 +43,7 @@ namespace EMS.Application.Services.Attachment
             _blobs = blobs;
             _unitOfWork = unitOfWork;
             _audit = audit;
+            _people = people;
         }
 
         private static NotFoundException TargetNotFound() =>
@@ -72,7 +76,7 @@ namespace EMS.Application.Services.Attachment
             var active = request.IsActive ?? true;
             var tableName = target.TableName;
 
-            return await _attachments.QueryRows()
+            var page = await _attachments.QueryRows()
                 .Where(x => x.TableId == target.TableId && x.EntityId == entityId && x.IsActive == active)
                 .OrderByDescending(x => x.Id)
                 .Select(x => new AttachmentItemDto
@@ -89,6 +93,8 @@ namespace EMS.Application.Services.Attachment
                     CreatedByUserId = x.CreatedByUserId
                 })
                 .ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+            await FillUploadersAsync(page.Items, cancellationToken);
+            return page;
         }
 
         public async Task<IReadOnlyList<AttachmentItemDto>> ListActiveAsync(string tableName, long entityId, CancellationToken cancellationToken = default)
@@ -97,7 +103,7 @@ namespace EMS.Application.Services.Attachment
             if (target is null)
                 return Array.Empty<AttachmentItemDto>();
 
-            return await _attachments.QueryRows()
+            var items = await _attachments.QueryRows()
                 .Where(x => x.TableId == target.TableId && x.EntityId == entityId && x.IsActive)
                 .OrderByDescending(x => x.Id)
                 .Take(AttachmentRules.MaxActivePerEntity)
@@ -115,6 +121,17 @@ namespace EMS.Application.Services.Attachment
                     CreatedByUserId = x.CreatedByUserId
                 })
                 .ToListAsync(cancellationToken);
+            await FillUploadersAsync(items, cancellationToken);
+            return items;
+        }
+
+        /// <summary>Writes who uploaded each file (the full person set) with one query for all of them.</summary>
+        private async Task FillUploadersAsync(IEnumerable<AttachmentItemDto> items, CancellationToken cancellationToken)
+        {
+            var list = items.ToList();
+            var people = await _people.GetPeopleAsync(list.Select(i => i.CreatedByUserId), cancellationToken);
+            foreach (var item in list)
+                PersonReferenceMapper.Fill(item, "CreatedBy", item.CreatedByUserId is { } id ? people.GetValueOrDefault(id) : null);
         }
 
         public async Task<Dictionary<long, int>> CountActiveAsync(string tableName, IReadOnlyCollection<long> entityIds, CancellationToken cancellationToken = default)
@@ -207,7 +224,7 @@ namespace EMS.Application.Services.Attachment
                     await transaction.CommitAsync(cancellationToken);
             }
 
-            return new AttachmentItemDto
+            var uploaded = new AttachmentItemDto
             {
                 Id = attachment.EntityAttachmentId,
                 TableName = target.TableName,
@@ -220,6 +237,8 @@ namespace EMS.Application.Services.Attachment
                 CreatedDateTime = attachment.CreatedDateTime,
                 CreatedByUserId = attachment.CreatedByUserId
             };
+            await FillUploadersAsync(new[] { uploaded }, cancellationToken);
+            return uploaded;
         }
 
         public async Task<(AttachmentItemDto Item, AttachmentDownload File)> DownloadAsync(long attachmentId, CancellationToken cancellationToken = default)

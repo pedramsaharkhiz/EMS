@@ -151,6 +151,17 @@ GET api/Attachments/{tableName}/{entityId}
       IsActive : Boolean
       CreatedDateTime : DateTime
       CreatedByUserId : Int64?
+      CreatedByName : String
+      CreatedByPersonnelCode : String
+      CreatedByIsActive : Boolean?
+      CreatedByPostId : Int64?
+      CreatedByPostTitle : String
+      CreatedBySupportingDepartmentId : Int64?
+      CreatedBySupportingDepartmentTitle : String
+      CreatedByCityId : Int64?
+      CreatedByCityTitle : String
+      CreatedByProvinceId : Int64?
+      CreatedByProvinceTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -177,6 +188,17 @@ POST api/Attachments/{tableName}/{entityId}
       IsActive : Boolean
       CreatedDateTime : DateTime
       CreatedByUserId : Int64?
+      CreatedByName : String
+      CreatedByPersonnelCode : String
+      CreatedByIsActive : Boolean?
+      CreatedByPostId : Int64?
+      CreatedByPostTitle : String
+      CreatedBySupportingDepartmentId : Int64?
+      CreatedBySupportingDepartmentTitle : String
+      CreatedByCityId : Int64?
+      CreatedByCityTitle : String
+      CreatedByProvinceId : Int64?
+      CreatedByProvinceTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -469,6 +491,7 @@ GET api/Equipment
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -548,6 +571,7 @@ POST api/Equipment
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -616,6 +640,7 @@ POST api/Equipment/bulk
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -764,6 +789,7 @@ POST api/Equipment/with-attachments
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -845,6 +871,7 @@ GET api/Equipment/{id}
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -923,6 +950,7 @@ PUT api/Equipment/{id}
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -966,6 +994,10 @@ GET api/Equipment/{id}/location-history
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
       TechnicianSupportingDepartmentId : Int64?
       TechnicianSupportingDepartmentTitle : String
       TechnicianCityId : Int64?
@@ -975,6 +1007,16 @@ GET api/Equipment/{id}/location-history
       AssignedDateTime : DateTime
       ChangedByUserId : Int64?
       ChangedByName : String
+      ChangedByPersonnelCode : String
+      ChangedByIsActive : Boolean?
+      ChangedByPostId : Int64?
+      ChangedByPostTitle : String
+      ChangedBySupportingDepartmentId : Int64?
+      ChangedBySupportingDepartmentTitle : String
+      ChangedByCityId : Int64?
+      ChangedByCityTitle : String
+      ChangedByProvinceId : Int64?
+      ChangedByProvinceTitle : String
       Description : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -1038,6 +1080,7 @@ POST api/Equipment/{id}/move
       ProvinceTitle : String
       TechnicianUserId : Int64?
       TechnicianName : String
+      TechnicianPersonnelCode : String
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
@@ -1785,8 +1828,19 @@ GET api/FailureReport
       SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
+      EmployeePersonnelCode : String
       ReportedByUserId : Int64
       ReportedByName : String
+      ReportedByPersonnelCode : String
+      ReportedByIsActive : Boolean?
+      ReportedByPostId : Int64?
+      ReportedByPostTitle : String
+      ReportedBySupportingDepartmentId : Int64?
+      ReportedBySupportingDepartmentTitle : String
+      ReportedByCityId : Int64?
+      ReportedByCityTitle : String
+      ReportedByProvinceId : Int64?
+      ReportedByProvinceTitle : String
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -1837,8 +1891,19 @@ POST api/FailureReport
       SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
+      EmployeePersonnelCode : String
       ReportedByUserId : Int64
       ReportedByName : String
+      ReportedByPersonnelCode : String
+      ReportedByIsActive : Boolean?
+      ReportedByPostId : Int64?
+      ReportedByPostTitle : String
+      ReportedBySupportingDepartmentId : Int64?
+      ReportedBySupportingDepartmentTitle : String
+      ReportedByCityId : Int64?
+      ReportedByCityTitle : String
+      ReportedByProvinceId : Int64?
+      ReportedByProvinceTitle : String
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -1893,8 +1958,19 @@ GET api/FailureReport/{id}
       SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
+      EmployeePersonnelCode : String
       ReportedByUserId : Int64
       ReportedByName : String
+      ReportedByPersonnelCode : String
+      ReportedByIsActive : Boolean?
+      ReportedByPostId : Int64?
+      ReportedByPostTitle : String
+      ReportedBySupportingDepartmentId : Int64?
+      ReportedBySupportingDepartmentTitle : String
+      ReportedByCityId : Int64?
+      ReportedByCityTitle : String
+      ReportedByProvinceId : Int64?
+      ReportedByProvinceTitle : String
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -1949,8 +2025,19 @@ PUT api/FailureReport/{id}
       SupportingDepartmentTitle : String
       EmployeeId : Int64?
       EmployeeName : String
+      EmployeePersonnelCode : String
       ReportedByUserId : Int64
       ReportedByName : String
+      ReportedByPersonnelCode : String
+      ReportedByIsActive : Boolean?
+      ReportedByPostId : Int64?
+      ReportedByPostTitle : String
+      ReportedBySupportingDepartmentId : Int64?
+      ReportedBySupportingDepartmentTitle : String
+      ReportedByCityId : Int64?
+      ReportedByCityTitle : String
+      ReportedByProvinceId : Int64?
+      ReportedByProvinceTitle : String
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -2704,6 +2791,11 @@ GET api/Role/{roleId}/users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -3150,6 +3242,11 @@ GET api/Users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -3198,6 +3295,11 @@ POST api/Users
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -3246,6 +3348,11 @@ GET api/Users/{id}
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -3295,6 +3402,11 @@ PUT api/Users/{id}
       PhoneNumber : String
       Email : String
       SupportingDepartmentId : Int64?
+      SupportingDepartmentTitle : String
+      CityId : Int64?
+      CityTitle : String
+      ProvinceId : Int64?
+      ProvinceTitle : String
       PostId : Int64?
       PostCode : String
       PostTitle : String

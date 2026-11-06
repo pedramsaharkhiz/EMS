@@ -30,9 +30,9 @@ namespace EMS.Domain.ReadModels
 
         public long? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
+        public string? EmployeePersonnelCode { get; set; }
 
         public long ReportedByUserId { get; set; }
-        public string? ReportedByName { get; set; }
 
         public int PriorityId { get; set; }
         public DateTime ReportedDateTime { get; set; }
