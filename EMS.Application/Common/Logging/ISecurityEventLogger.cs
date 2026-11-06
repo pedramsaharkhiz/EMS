@@ -41,7 +41,5 @@ namespace EMS.Application.Common.Logging
         void UserRegistered(long userId, string userName);
         void AccessDenied(string requiredPermission);
         void AuthenticationFailed(string reason);
-        /// <summary>A request was refused because its client sent too many (see <c>Security:RateLimiting</c>).</summary>
-        void RateLimited(string policy);
     }
 }

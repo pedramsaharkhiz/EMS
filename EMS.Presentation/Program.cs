@@ -42,21 +42,6 @@ try
         .Validate(options => options.Validate() is null, "Security:Headers configuration is invalid.")
         .ValidateOnStart();
 
-    // The signing key of the tokens is a secret and is never in the repository. On a developer machine without one, a random key is made for this
-    // run (tokens stop working when the application restarts); every other environment refuses to start without it.
-    if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(builder.Configuration["Jwt:SecretKey"]))
-    {
-        builder.Configuration["Jwt:SecretKey"] = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
-        Log.Warning("Jwt:SecretKey is not set: using a random key for this run only (set it with user-secrets, see docs/SECRETS.md)");
-    }
-
-    // Behind a reverse proxy the client address and scheme come from X-Forwarded-* headers, from the listed proxies only (off by default).
-    var forwardedHeaders = builder.Configuration.GetSection(ForwardedHeadersSettings.SectionName).Get<ForwardedHeadersSettings>() ?? new ForwardedHeadersSettings();
-    if (forwardedHeaders.Enabled)
-        builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(forwardedHeaders.ApplyTo);
-
-    builder.Services.AddEmsRateLimiting(builder.Configuration);
-
     // Do not advertise the server software ("Server: Kestrel") unless configured otherwise.
     builder.WebHost.ConfigureServerHeaderFromConfiguration();
 
@@ -166,11 +151,7 @@ try
     // Configure the HTTP request pipeline.
     // Order matters: correlation id first (so everything below is tagged with it), then request logging
     // (sees the final status code), then the exception middleware (turns exceptions into responses).
-    // The real client address first: everything below (logs, rate limits) uses it.
-    if (forwardedHeaders.Enabled)
-        app.UseForwardedHeaders();
-
-    // Next, so that every response (errors, 401/403, 429, CORS pre-flights) carries the security headers.
+    // Very first, so that every response (errors, 401/403, CORS pre-flights) carries the security headers.
     app.UseMiddleware<SecurityHeadersMiddleware>();
 
     app.UseMiddleware<CorrelationIdMiddleware>();
@@ -240,8 +221,6 @@ try
     app.UseHttpsRedirection();
 
     app.UseCors("DefaultCorsPolicy");
-
-    app.UseRateLimiter();
 
     app.UseAuthentication();
     app.UseMiddleware<UserLogContextMiddleware>();

@@ -70,5 +70,3 @@ dotnet ef database update --project EMS.Infrastructure --startup-project EMS.Pre
 - هر درخواست احراز هویت‌شده یک query کوچک اضافه روی دیتابیس دارد. اگر بار بالا شد می‌توان نتیجه را چند ثانیه cache کرد (با هزینه‌ی تأخیر همان‌قدر در اعمال تغییرات).
 - تست‌ها روی دیتابیس InMemory اجرا می‌شوند. اجرای migration و فیلتر ایندکس روی SQL Server واقعی، و تبدیل خطای 547 به `409`، با تست خودکار پوشش داده نشده‌اند.
 - ورود جدید همچنان همه‌ی refresh tokenهای فعال دیگر همان کاربر را باطل می‌کند (یک نشست در هر لحظه).
-
-رمزها و کلیدها: [SECRETS.md](SECRETS.md). محدودیت نرخ و آدرس کلاینت پشت پراکسی: [SECURITY-CONFIG.md](SECURITY-CONFIG.md).
