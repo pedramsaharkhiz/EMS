@@ -2109,6 +2109,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExpiresDateTime")
+                        .HasDatabaseName("IX_UserRefreshTokens_ExpiresDateTime");
+
+                    b.HasIndex("RevokedDateTime")
+                        .HasDatabaseName("IX_UserRefreshTokens_RevokedDateTime")
+                        .HasFilter("[RevokedDateTime] IS NOT NULL");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_UserRefreshTokens_TokenHash");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("UserRefreshTokens", (string)null);
