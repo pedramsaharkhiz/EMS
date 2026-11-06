@@ -204,8 +204,12 @@ try
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
-        app.MapScalarApiReference(options =>
+        app.MapScalarApiReference(async (options, httpContext) =>
         {
+            // Development only: sign in with Scalar:DevLogin (appsettings.Development.json) on every page load and pre-fill
+            // the Bearer token, so requests from Scalar are authorized without copying a token by hand.
+            var devToken = await ScalarDevLogin.TryGetTokenAsync(httpContext);
+
             options
                 .WithTitle("EMS API")
                 .WithTheme(ScalarTheme.Solarized)
@@ -214,6 +218,8 @@ try
                 .AddHttpAuthentication("Bearer", auth =>
                 {
                     auth.Description = "Enter The JWT Token ";
+                    if (devToken is not null)
+                        auth.Token = devToken;
                 });
         });
     }
