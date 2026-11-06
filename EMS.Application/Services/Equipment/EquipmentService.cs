@@ -357,7 +357,7 @@ namespace EMS.Application.Services.Equipment
             var types = await ResolveAsync(_types, items.Where(i => i.EquipmentTypeId.HasValue).Select(i => i.EquipmentTypeId!.Value), x => x.EquipmentTypeId, "نوع تجهیز", cancellationToken);
             var models = await ResolveAsync(_models, items.Where(i => i.EquipmentModelId.HasValue).Select(i => i.EquipmentModelId!.Value), x => x.EquipmentModelId, "مدل تجهیز", cancellationToken);
             var locationTypes = await ResolveAsync(_locationTypes, items.Select(i => i.CurrentEquipmentLocationTypeId), x => x.EquipmentLocationTypeId, "نوع مکان", cancellationToken);
-            var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "سازمان", cancellationToken);
+            var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "شعبه", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
             var technicianStates = await _repository.GetTechnicianEligibilityAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
             var takenSerials = await _repository.FindExistingSerialNumbersAsync(items.Select(i => Normalize(i.SerialNumber)).OfType<string>().ToList(), cancellationToken);
@@ -614,7 +614,7 @@ namespace EMS.Application.Services.Equipment
         {
             await ParentGuard.RequireAsync(_locationTypes, location.LocationTypeId, x => x.EquipmentLocationTypeId, "نوع مکان", mustBeActive: true, cancellationToken);
             if (location.OrganizationId is { } organization)
-                await ParentGuard.RequireAsync(_organizations, organization, x => x.OrganizationId, "سازمان", mustBeActive: true, cancellationToken);
+                await ParentGuard.RequireAsync(_organizations, organization, x => x.OrganizationId, "شعبه", mustBeActive: true, cancellationToken);
             if (location.SupportingDepartmentId is { } department)
                 await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: true, cancellationToken);
 

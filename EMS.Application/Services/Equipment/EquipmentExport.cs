@@ -22,7 +22,7 @@ namespace EMS.Application.Services.Equipment
             .Column(x => x.BrandTitle, "برند")
             .Column(x => x.StatusTitle, "وضعیت")
             .Column(x => x.LocationTypeTitle, "نوع مکان")
-            .Column(x => x.OrganizationTitle, "سازمان")
+            .Column(x => x.OrganizationTitle, "شعبه")
             .Column(x => x.ZoneTitle, "ناحیه")
             .Column(x => x.OrganizationManagementTitle, "مدیریت شعب")
             .Column(x => x.FieldTitle, "حوزه")

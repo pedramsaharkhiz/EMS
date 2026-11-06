@@ -39,7 +39,7 @@ namespace EMS.Application.Validators.Equipment
 
             RuleFor(x => x.EquipmentStatusId).GreaterThan(0).WithMessage("شناسه وضعیت تجهیز باید بزرگتر از صفر باشد.");
             RuleFor(x => x.CurrentEquipmentLocationTypeId).GreaterThan(0).WithMessage("شناسه نوع مکان باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.CurrentOrganizationId).PositiveId("سازمان");
+            RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
             RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
         }
@@ -107,7 +107,7 @@ namespace EMS.Application.Validators.Equipment
         public EquipmentMoveDtoValidator()
         {
             RuleFor(x => x.CurrentEquipmentLocationTypeId).GreaterThan(0).WithMessage("شناسه نوع مکان باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.CurrentOrganizationId).PositiveId("سازمان");
+            RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
             RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
             RuleFor(x => x.Description).TextMax(EquipmentConstraints.DescriptionMaxLength, "توضیحات");
@@ -137,9 +137,9 @@ namespace EMS.Application.Validators.Equipment
             Ids(x => x.ModelIds, "مدل");
             Ids(x => x.BrandIds, "برند");
             Ids(x => x.LocationTypeIds, "نوع مکان");
-            Ids(x => x.OrganizationIds, "سازمان");
+            Ids(x => x.OrganizationIds, "شعبه");
             Ids(x => x.FieldIds, "حوزه");
-            Ids(x => x.OrganizationManagementIds, "مدیریت سازمان");
+            Ids(x => x.OrganizationManagementIds, "مدیریت شعب");
             Ids(x => x.ZoneIds, "ناحیه");
             Ids(x => x.SupportingDepartmentIds, "دپارتمان پشتیبانی شعبه");
             Ids(x => x.CurrentSupportingDepartmentIds, "دپارتمان پشتیبانی تجهیز");

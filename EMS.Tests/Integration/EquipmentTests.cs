@@ -690,7 +690,7 @@ namespace EMS.Tests.Integration
             Assert.True(sheet.RightToLeft);
 
             var headers = Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList();
-            foreach (var title in new[] { "شناسه", "یاس کد", "سریال نامبر", "دسته‌بندی", "نوع تجهیز", "مدل", "برند", "وضعیت", "نوع مکان", "سازمان", "شهر", "استان", "تکنسین", "فعال", "تاریخ ایجاد" })
+            foreach (var title in new[] { "شناسه", "یاس کد", "سریال نامبر", "دسته‌بندی", "نوع تجهیز", "مدل", "برند", "وضعیت", "نوع مکان", "شعبه", "شهر", "استان", "تکنسین", "فعال", "تاریخ ایجاد" })
                 Assert.Contains(title, headers);
 
             string Cell(int row, string header) => sheet.Cell(row, headers.IndexOf(header) + 1).GetString();
