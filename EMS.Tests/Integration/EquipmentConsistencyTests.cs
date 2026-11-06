@@ -210,6 +210,10 @@ namespace EMS.Tests.Integration
 
             // the owners lookup uses the same titles
             var owners = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/owners"))).EnumerateArray().ToDictionary(o => o.GetProperty("id").GetInt32(), o => o.GetProperty("title").GetString());
+            var ownerRow = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/owners"))).EnumerateArray().First();
+            Assert.Equal("Company", ownerRow.GetProperty("code").GetString());                       // the shape of every lookup item: id, title, code, isActive
+            Assert.True(ownerRow.GetProperty("isActive").GetBoolean());
+            Assert.False(ownerRow.TryGetProperty("name", out _));
             Assert.Equal("شرکت", owners[(int)EquipmentOwner.Company]);
             Assert.Equal("بانک", owners[(int)EquipmentOwner.Bank]);
         }

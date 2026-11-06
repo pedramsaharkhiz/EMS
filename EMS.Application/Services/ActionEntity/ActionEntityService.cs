@@ -36,6 +36,7 @@ namespace EMS.Application.Services.ActionEntity
                 Id = x.ActionId,
                 Title = x.Title,
                 Code = x.Code,
+                Description = x.Description,
                 IsActive = x.IsActive
             };
 

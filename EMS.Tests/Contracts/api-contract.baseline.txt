@@ -13,6 +13,7 @@ GET api/Action
       Id : Int64
       Title : String
       Code : String
+      Description : String
       IsActive : Boolean
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -705,8 +706,9 @@ GET api/Equipment/owners
     envelope: success, message, data, meta, error, traceId
     data:
       Id : Int32
-      Name : String
       Title : String
+      Code : String
+      IsActive : Boolean
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
