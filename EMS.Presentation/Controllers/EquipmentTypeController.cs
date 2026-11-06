@@ -27,13 +27,13 @@ namespace EMS.Presentation.Controllers
         /// </summary>
         [Lookup]
         [HttpGet("without-models")]
-        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentTypeWithCategoryDto>>>> GetWithoutModels([FromQuery] EquipmentTypeWithoutModelsRequestDto request, CancellationToken cancellationToken) =>
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentTypeListItemDto>>>> GetWithoutModels([FromQuery] EquipmentTypeWithoutModelsRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetWithoutModelsAsync(request, cancellationToken));
 
         /// <summary>The type (and its category) of a model, active or not: fills the type in when the user picks a model.</summary>
         [Lookup]
         [HttpGet("by-model/{modelId:long}")]
-        public async Task<ActionResult<ApiResponse<EquipmentTypeWithCategoryDto>>> GetByModelId(long modelId, CancellationToken cancellationToken) =>
+        public async Task<ActionResult<ApiResponse<EquipmentTypeListItemDto>>> GetByModelId(long modelId, CancellationToken cancellationToken) =>
             Success(await _service.GetByModelIdAsync(modelId, cancellationToken));
 
         [Lookup]

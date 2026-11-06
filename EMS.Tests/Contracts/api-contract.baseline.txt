@@ -1338,7 +1338,9 @@ GET api/EquipmentModel
     data:
       Id : Int64
       EquipmentTypeId : Int64
+      EquipmentTypeTitle : String
       BrandId : Int64
+      BrandTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1362,7 +1364,9 @@ POST api/EquipmentModel
     data:
       Id : Int64
       EquipmentTypeId : Int64
+      EquipmentTypeTitle : String
       BrandId : Int64
+      BrandTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1396,7 +1400,9 @@ GET api/EquipmentModel/{id}
     data:
       Id : Int64
       EquipmentTypeId : Int64
+      EquipmentTypeTitle : String
       BrandId : Int64
+      BrandTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1424,7 +1430,9 @@ PUT api/EquipmentModel/{id}
     data:
       Id : Int64
       EquipmentTypeId : Int64
+      EquipmentTypeTitle : String
       BrandId : Int64
+      BrandTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1553,6 +1561,7 @@ GET api/EquipmentType
     data:
       Id : Int64
       EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1575,6 +1584,7 @@ POST api/EquipmentType
     data:
       Id : Int64
       EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1590,15 +1600,15 @@ POST api/EquipmentType
 GET api/EquipmentType/by-model/{modelId}
   authorization: (authenticated)
   Path: modelId : Int64 (required)
-  response 200: ApiResponse<EquipmentTypeWithCategoryDto>
+  response 200: ApiResponse<EquipmentTypeListItemDto>
     envelope: success, message, data, meta, error, traceId
     data:
       Id : Int64
+      EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
-      EquipmentCategoryId : Int64
-      EquipmentCategoryTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1615,15 +1625,15 @@ GET api/EquipmentType/without-models
   Query: SortBy : String
   Query: SortDirection : String
   Query: Title : String
-  response 200: ApiResponse<IReadOnlyList<EquipmentTypeWithCategoryDto>>
+  response 200: ApiResponse<IReadOnlyList<EquipmentTypeListItemDto>>
     envelope: success, message, data, meta, error, traceId
     data:
       Id : Int64
+      EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
-      EquipmentCategoryId : Int64
-      EquipmentCategoryTitle : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1653,6 +1663,7 @@ GET api/EquipmentType/{id}
     data:
       Id : Int64
       EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -1679,6 +1690,7 @@ PUT api/EquipmentType/{id}
     data:
       Id : Int64
       EquipmentCategoryId : Int64
+      EquipmentCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -2220,6 +2232,7 @@ GET api/FailureType
     data:
       Id : Int64
       FailureCategoryId : Int64
+      FailureCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -2242,6 +2255,7 @@ POST api/FailureType
     data:
       Id : Int64
       FailureCategoryId : Int64
+      FailureCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -2275,6 +2289,7 @@ GET api/FailureType/{id}
     data:
       Id : Int64
       FailureCategoryId : Int64
+      FailureCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean
@@ -2301,6 +2316,7 @@ PUT api/FailureType/{id}
     data:
       Id : Int64
       FailureCategoryId : Int64
+      FailureCategoryTitle : String
       Title : String
       Code : String
       IsActive : Boolean

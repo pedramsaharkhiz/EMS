@@ -29,7 +29,7 @@ namespace EMS.Application.Services.EquipmentType
         private static readonly SortBuilder<EquipmentTypeWithCategoryRow> WithoutModelsSorting = new SortBuilder<EquipmentTypeWithCategoryRow>()
             .By("title", x => x.Title).By("code", x => x.Code).By("category", x => x.EquipmentCategoryTitle);
 
-        public async Task<PagedResult<EquipmentTypeWithCategoryDto>> GetWithoutModelsAsync(EquipmentTypeWithoutModelsRequestDto request, CancellationToken cancellationToken = default)
+        public async Task<PagedResult<EquipmentTypeListItemDto>> GetWithoutModelsAsync(EquipmentTypeWithoutModelsRequestDto request, CancellationToken cancellationToken = default)
         {
             var query = _types.QueryWithoutModels();
             if (!string.IsNullOrWhiteSpace(request.Title))
@@ -48,7 +48,7 @@ namespace EMS.Application.Services.EquipmentType
                 sorted = descending ? query.OrderByDescending(x => x.Title).ThenByDescending(x => x.Id) : query.OrderBy(x => x.Title).ThenBy(x => x.Id);
 
             var page = await sorted.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
-            return new PagedResult<EquipmentTypeWithCategoryDto>
+            return new PagedResult<EquipmentTypeListItemDto>
             {
                 Items = page.Items.Select(ToDto).ToList(),
                 PageNumber = page.PageNumber,
@@ -57,7 +57,7 @@ namespace EMS.Application.Services.EquipmentType
             };
         }
 
-        public async Task<EquipmentTypeWithCategoryDto> GetByModelIdAsync(long modelId, CancellationToken cancellationToken = default)
+        public async Task<EquipmentTypeListItemDto> GetByModelIdAsync(long modelId, CancellationToken cancellationToken = default)
         {
             if (modelId <= 0)
                 throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("modelId", "شناسه مدل تجهیز باید بزرگتر از صفر باشد.") });
@@ -67,7 +67,7 @@ namespace EMS.Application.Services.EquipmentType
             return ToDto(row);
         }
 
-        private static EquipmentTypeWithCategoryDto ToDto(EquipmentTypeWithCategoryRow row) => new()
+        private static EquipmentTypeListItemDto ToDto(EquipmentTypeWithCategoryRow row) => new()
         {
             Id = row.Id, Title = row.Title, Code = row.Code, IsActive = row.IsActive,
             EquipmentCategoryId = row.EquipmentCategoryId, EquipmentCategoryTitle = row.EquipmentCategoryTitle,
@@ -79,7 +79,7 @@ namespace EMS.Application.Services.EquipmentType
         protected override Expression<Func<EquipmentTypeEntity, long>> IdSelector => x => x.EquipmentTypeId;
 
         protected override Expression<Func<EquipmentTypeEntity, EquipmentTypeListItemDto>> ListItem =>
-            x => new EquipmentTypeListItemDto { Id = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
+            x => new EquipmentTypeListItemDto { Id = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, EquipmentCategoryTitle = x.EquipmentCategory.Title, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentTypeEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code).By("equipmentcategoryid", x => x.EquipmentCategoryId);
@@ -122,11 +122,21 @@ namespace EMS.Application.Services.EquipmentType
             entity.Code = Keep(request.Code, entity.Code);
         }
 
-        protected override EquipmentTypeDetailDto ToDetail(EquipmentTypeEntity entity) =>
+        protected override EquipmentTypeDetailDto ToDetail(EquipmentTypeEntity entity) => Map(entity, null);
+
+        // The category title needs a query (the entity only carries the foreign key after a create / update); a deactivated category still has its title.
+        protected override async Task<EquipmentTypeDetailDto> ToDetailAsync(EquipmentTypeEntity entity, CancellationToken cancellationToken)
+        {
+            var category = await _categories.GetByIdAsync(entity.EquipmentCategoryId, asNoTracking: true, cancellationToken);
+            return Map(entity, category?.Title);
+        }
+
+        private static EquipmentTypeDetailDto Map(EquipmentTypeEntity entity, string? categoryTitle) =>
             new()
             {
                 Id = entity.EquipmentTypeId,
                 EquipmentCategoryId = entity.EquipmentCategoryId,
+                EquipmentCategoryTitle = categoryTitle,
                 Title = entity.Title,
                 Code = entity.Code,
                 IsActive = entity.IsActive,
