@@ -63,6 +63,8 @@ namespace EMS.Tests.Integration
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["Logging:AuditTrail:Enabled"] = "true",
+                    // The tests sign in all the time from one address; the rate limit has its own tests that switch it on.
+                    ["Security:RateLimiting:Enabled"] = "false",
                     // Write the real file sinks into a per-run directory instead of the working directory.
                     ["Serilog:WriteTo:1:Args:path"] = Path.Combine(LogDirectory, "ems-.log"),
                     ["Serilog:WriteTo:2:Args:configureLogger:WriteTo:0:Args:path"] = Path.Combine(LogDirectory, "ems-security-.log")

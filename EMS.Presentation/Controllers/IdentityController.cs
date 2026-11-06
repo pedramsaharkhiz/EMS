@@ -1,8 +1,10 @@
-﻿using EMS.Application.Common.Models;
+using EMS.Application.Common.Models;
 using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using Microsoft.AspNetCore.Authorization;
+using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EMS.Presentation.Controllers
 {
@@ -15,6 +17,7 @@ namespace EMS.Presentation.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitingPolicies.Login)]
         [HttpPost("Login")]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken) 
         { 
@@ -23,6 +26,7 @@ namespace EMS.Presentation.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitingPolicies.Refresh)]
         [HttpPost("RefreshToken")]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RefreshToken([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
         { 

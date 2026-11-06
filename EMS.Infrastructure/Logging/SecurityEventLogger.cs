@@ -65,6 +65,14 @@ namespace EMS.Infrastructure.Logging
                 _httpContextAccessor.HttpContext?.Request.Path.Value,
                 ClientIp);
 
+        public void RateLimited(string policy) =>
+            _logger.LogWarning(
+                "Rate limit reached ({Policy}) for {Method} {Path} from {ClientIp} [{UserAgent}]",
+                LogSanitizer.Sanitize(policy, 50),
+                _httpContextAccessor.HttpContext?.Request.Method,
+                _httpContextAccessor.HttpContext?.Request.Path.Value,
+                ClientIp, UserAgent);
+
         public void AuthenticationFailed(string reason) =>
             _logger.LogWarning(
                 "Authentication failed ({Reason}) for {Method} {Path} from {ClientIp} [{UserAgent}]",
