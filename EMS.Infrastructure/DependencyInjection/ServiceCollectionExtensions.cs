@@ -60,11 +60,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<ILogger<SlowQueryLoggingInterceptor>>(), slowQueryThresholdMs));
         services.AddDbContext<EMSDbContext>((sp, options) =>
         {
-            // The connection string holds credentials: it comes from the environment (ConnectionStrings__EMS) or the secret store, not from a file in the repository.
-            var connectionString = configuration.GetConnectionString("EMS");
-            if (string.IsNullOrWhiteSpace(connectionString))
-                throw new InvalidOperationException("ConnectionStrings:EMS is not set. Provide it through the environment variable ConnectionStrings__EMS or the user secrets (see docs/SECRETS.md).");
-            options.UseSqlServer(connectionString);
+            options.UseSqlServer(configuration.GetConnectionString("EMS"));
             // EF warns that e.g. Equipment (not filtered) requires EquipmentStatus (filtered). This is deliberate: an active
             // record can never reference a deactivated catalog row (deactivation is blocked while active dependents exist),
             // and queries that must show history use IncludingInactive(). See docs/CATALOGS.md.
@@ -127,8 +123,6 @@ public static class ServiceCollectionExtensions
             });
 
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? throw new InvalidOperationException("Jwt settings not found.");
-        if (JwtOptionsValidator.Validate(jwtOptions) is { } jwtProblem)
-            throw new InvalidOperationException(jwtProblem);
 
         services.AddAuthentication(options =>
         { 

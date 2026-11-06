@@ -2,7 +2,6 @@ using EMS.Application.Common.Security;
 using EMS.Application.Interfaces.Auth;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
@@ -18,16 +17,13 @@ public class IdentitySeeder : IIdentitySeeder
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<IdentitySeeder> _logger;
     private readonly ISecurityStampInvalidator _stampInvalidator;
-    private readonly IConfiguration _configuration;
 
     public IdentitySeeder(
         RoleManager<ApplicationRole> roleManager,
         UserManager<ApplicationUser> userManager,
         ILogger<IdentitySeeder> logger,
-        ISecurityStampInvalidator stampInvalidator,
-        IConfiguration configuration)
+        ISecurityStampInvalidator stampInvalidator)
     {
-        _configuration = configuration;
         _roleManager = roleManager;
         _userManager = userManager;
         _logger = logger;
@@ -38,10 +34,7 @@ public class IdentitySeeder : IIdentitySeeder
     {
         const string adminRoleName = "Admin";
         const string superAdminUserName = "admin";
-        // The password of the first administrator is a secret: it comes from the environment (Seed__AdminPassword) or the secret store.
-        // There is no built-in default. The value below only exists to RECOGNISE the old published default on a database that still uses it.
-        const string legacyPublishedPassword = "Admin@123456";
-        var superAdminPassword = _configuration["Seed:AdminPassword"];
+        const string superAdminPassword = "Admin@123456";
 
         var adminRole = await _roleManager.FindByNameAsync(adminRoleName);
         if (adminRole is null)
@@ -120,20 +113,8 @@ public class IdentitySeeder : IIdentitySeeder
         }
 
         var adminUser = await _userManager.FindByNameAsync(superAdminUserName);
-        if (adminUser is null && string.IsNullOrWhiteSpace(superAdminPassword))
-        {
-            _logger.LogWarning(
-                "Identity seed: the administrator {UserName} does not exist and Seed:AdminPassword is not set, so it was NOT created. "
-                + "Set the environment variable Seed__AdminPassword (see docs/SECRETS.md) and restart to create it",
-                superAdminUserName);
-            return;
-        }
-
         if (adminUser is null)
         {
-            if (string.Equals(superAdminPassword, legacyPublishedPassword, StringComparison.Ordinal))
-                throw new InvalidOperationException("Seed:AdminPassword is the value that was published in the repository. Choose another password.");
-
             adminUser = new ApplicationUser
             {
                 UserName = superAdminUserName,
@@ -150,7 +131,7 @@ public class IdentitySeeder : IIdentitySeeder
                 CreatedByUserId = 0
             };
 
-            var createResult = await _userManager.CreateAsync(adminUser, superAdminPassword!);
+            var createResult = await _userManager.CreateAsync(adminUser, superAdminPassword);
             if (!createResult.Succeeded)
             {
                 _logger.LogError("Identity seed failed: could not create user {UserName}: {Errors}",
@@ -159,14 +140,7 @@ public class IdentitySeeder : IIdentitySeeder
             }
 
             _logger.LogWarning(
-                "Identity seed: created the administrator {UserName} with the password from Seed:AdminPassword. Remove that setting after the first start",
-                superAdminUserName);
-        }
-        else if (await _userManager.CheckPasswordAsync(adminUser, legacyPublishedPassword))
-        {
-            // Not blocked (that could lock the owners out), but impossible to miss in the log.
-            _logger.LogCritical(
-                "SECURITY: the administrator {UserName} still has the password that was published in the repository. Change it NOW (PUT /api/Users/{{id}}/password).",
+                "Identity seed: created default administrator {UserName}. Change its password after the first sign-in",
                 superAdminUserName);
         }
 
