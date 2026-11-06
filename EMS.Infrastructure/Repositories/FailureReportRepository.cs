@@ -78,9 +78,13 @@ namespace EMS.Infrastructure.Repositories
 
         public async Task<bool> ReferenceNumberExistsAsync(string referenceNumber, long? exceptId = null, CancellationToken cancellationToken = default)
         {
-            var normalized = referenceNumber.Trim().ToLower();
-            // the soft-delete filter keeps deactivated reports out: only active ones reserve a number (like the filtered unique index)
-            var query = _dbSet.Where(x => x.ReferenceNumber != null && x.ReferenceNumber.ToLower() == normalized);
+            var value = referenceNumber.Trim();
+            // the soft-delete filter keeps deactivated reports out: only active ones reserve a number (like the filtered unique index).
+            // SQL Server: the column collation is case-insensitive, so "=" ignores case and can use the unique index (LOWER(column) could not);
+            // the in-memory provider of the tests is case-sensitive, so there the column is lowered.
+            var query = _context.Database.IsSqlServer()
+                ? _dbSet.Where(x => x.ReferenceNumber == value)
+                : _dbSet.Where(x => x.ReferenceNumber != null && x.ReferenceNumber.ToLower() == value.ToLower());
             if (exceptId.HasValue)
             {
                 var except = exceptId.Value;
