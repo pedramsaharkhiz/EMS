@@ -3,6 +3,7 @@ using EMS.Application.Common.Logging;
 using EMS.Application.Extensions;
 using EMS.Infrastructure.DependencyInjection;
 using EMS.Infrastructure.Identity.Seed;
+using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Seed;
 using EMS.Presentation.Errors;
 using EMS.Presentation.Conventions;
@@ -240,6 +241,12 @@ try
 
     using (var scope = app.Services.CreateScope())
     {
+        // The schema first (off by default: the operator applies migrations; see docs/DATABASE-MIGRATIONS.md), then the seeders that need it.
+        await DatabaseMigrator.RunAsync(
+            scope.ServiceProvider.GetRequiredService<EMS.Infrastructure.Persistence.EMSDbContext>(),
+            app.Configuration.GetValue<bool>(DatabaseMigrator.SettingName),
+            scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("EMS.Database"));
+
         var seeder = scope.ServiceProvider.GetRequiredService<IIdentitySeeder>();
         await seeder.SeedAsync();
 
