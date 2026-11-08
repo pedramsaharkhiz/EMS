@@ -18,6 +18,9 @@ namespace EMS.Domain.Interfaces
         /// <summary>Loads an equipment for modification, active or not (a deactivated one can still be edited and restored).</summary>
         Task<Equipment?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default);
 
+        /// <summary>The equipment with these ids, tracked for update (active or not). An id that does not exist is simply absent from the result.</summary>
+        Task<List<Equipment>> GetManyForUpdateAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default);
+
         /// <summary>Read-only flattened equipment: the active ones, or with false the deactivated ones.</summary>
         IQueryable<EquipmentRow> QueryRows(bool active);
 

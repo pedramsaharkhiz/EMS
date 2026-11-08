@@ -130,6 +130,15 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> Move(long id, [FromBody] EquipmentMoveDto request, CancellationToken cancellationToken) =>
             Updated(await _service.MoveAsync(id, request, cancellationToken), "تجهیز با موفقیت جابه‌جا شد.");
 
+        /// <summary>
+        /// The same change (technician, branch or supporting department; see <c>move</c>) for several equipment at once, all or nothing, max 200.
+        /// The answer counts what changed and what was already in that state.
+        /// </summary>
+        [Permission(Permissions.Equipments.Assign)]
+        [HttpPost("bulk-move")]
+        public async Task<ActionResult<ApiResponse<EquipmentBulkMoveResultDto>>> BulkMove([FromBody] EquipmentBulkMoveDto request, CancellationToken cancellationToken) =>
+            Updated(await _service.BulkMoveAsync(request, cancellationToken), "جابه‌جایی گروهی با موفقیت انجام شد.");
+
         [Permission(Permissions.Equipments.Delete)]
         [HttpDelete("{id:long}")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(long id, CancellationToken cancellationToken)
