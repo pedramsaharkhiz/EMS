@@ -12,7 +12,10 @@ namespace EMS.Domain.Entities
         public DateTime AssignedDateTime { get; set; }
         public DateTime? DeadlineDateTime { get; set; }
         public DateTime? CompletedDateTime { get; set; }
+        /// <summary>The assigner's note.</summary>
         public string? Description { get; set; }
+        /// <summary>The reason of a rejection or cancellation, or the technician's note on completion.</summary>
+        public string? ResultNote { get; set; }
 
         public FailureReport FailureReport { get; set; } = null!;
         public TechnicianAssignmentStatus TechnicianAssignmentStatus { get; set; } = null!;

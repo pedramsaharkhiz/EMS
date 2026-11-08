@@ -12,6 +12,8 @@ namespace EMS.Tests.Unit
         [InlineData(typeof(EMS.Application.Dtos.EquipmentLocationHistory.EquipmentLocationHistoryItemDto), "ChangedBy")]
         [InlineData(typeof(EMS.Application.Dtos.FailureReport.FailureReportListItemDto), "ReportedBy")]
         [InlineData(typeof(EMS.Application.Dtos.Attachment.AttachmentItemDto), "CreatedBy")]
+        [InlineData(typeof(EMS.Application.Dtos.TechnicianAssignment.TechnicianAssignmentListItemDto), "Technician")]
+        [InlineData(typeof(EMS.Application.Dtos.TechnicianAssignment.TechnicianAssignmentListItemDto), "AssignedBy")]
         public void A_dto_with_a_person_carries_the_full_person_set(Type dto, string prefix)
         {
             var missing = PersonReferenceMapper.PropertyNames(prefix)

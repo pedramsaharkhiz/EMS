@@ -1,6 +1,6 @@
 # گزارش خرابی
 
-ماژول گزارش خرابی: کاتالوگ‌های پایه، و خود گزارش (`/api/FailureReport`). ارجاع به تکنسین (`TechnicianAssignment`) و اقدام‌های گزارش هنوز در دامنه‌ی این ماژول نیستند.
+ماژول گزارش خرابی: کاتالوگ‌های پایه، و خود گزارش (`/api/FailureReport`). ارجاع به تکنسین و اقدام‌های انجام‌شده در سند جدا هستند: [TECHNICIAN-ASSIGNMENTS.md](TECHNICIAN-ASSIGNMENTS.md). (جدول `FailureReportActions` حذف شد؛ اقدام‌ها به ارجاع وصل‌اند.)
 
 ## کاتالوگ‌ها
 
@@ -57,8 +57,10 @@
 
 ## وابسته‌ها
 
-- نوع خرابی، نوع گزارش و اقدام (و وضعیت، پس از اتصال به گزارش) وقتی گزارش یا اقدام فعال به آن‌ها ارجاع دارد غیرفعال نمی‌شوند (`409 has_active_dependents`).
+- نوع خرابی، نوع گزارش و وضعیت وقتی گزارش فعال به آن‌ها ارجاع دارد، و اقدام وقتی اقدامِ ثبت‌شدهٔ یک ارجاع به آن اشاره دارد، غیرفعال نمی‌شوند (`409 has_active_dependents`).
 
 ## استقرار
 
 به‌ترتیب `docs/sql/FailureCatalogs.sql` و `docs/sql/FailureReportModel.sql` (یا `dotnet ef database update`). قبل از اجرا روی دیتابیسی که داده دارد، بررسی‌های بالای هر اسکریپت را بزن. گزارش‌های موجود (که API نداشتند) «باز» می‌شوند و به کاربری که ردیف را ساخته نسبت داده می‌شوند.
+
+**ارجاع‌ها:** `GET /api/FailureReport/{id}/assignments` تاریخچهٔ ارجاع‌های گزارش و `POST` همان مسیر ارجاع تازه است؛ جزئیات در [TECHNICIAN-ASSIGNMENTS.md](TECHNICIAN-ASSIGNMENTS.md). برای استقرار، اسکریپت‌های `DropFailureReportActions.sql` و `TechnicianAssignments.sql` را هم به ترتیب اجرا کن.
