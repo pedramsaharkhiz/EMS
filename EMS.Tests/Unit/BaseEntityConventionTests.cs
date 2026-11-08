@@ -17,7 +17,7 @@ namespace EMS.Tests.Unit
         {
             nameof(City), nameof(Province), nameof(Employee), nameof(Field), nameof(Skill), nameof(Zone),
             nameof(Organization), nameof(OrganizationManagement), nameof(OrganizationStructure),
-            nameof(FailureReportAction), nameof(TechnicianSkill)
+            nameof(TechnicianSkill)
         };
 
         private static List<IEntityType> BaseEntities()

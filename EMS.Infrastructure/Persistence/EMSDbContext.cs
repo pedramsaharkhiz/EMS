@@ -51,7 +51,6 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<TechnicianAssignment> TechnicianAssignments => Set<TechnicianAssignment>();
         public DbSet<ActionEntity> ActionEntities => Set<ActionEntity>();
         public DbSet<TechnicianAssignmentAction> TechnicianAssignmentActions => Set<TechnicianAssignmentAction>();
-        public DbSet<FailureReportAction> FailureReportActions => Set<FailureReportAction>();
 
         public DbSet<Table> Tables => Set<Table>();
         public DbSet<EntityAttachment> EntityAttachments => Set<EntityAttachment>();

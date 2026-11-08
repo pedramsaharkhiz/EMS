@@ -993,48 +993,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("FailureReports", (string)null);
                 });
 
-            modelBuilder.Entity("EMS.Domain.Entities.FailureReportAction", b =>
-                {
-                    b.Property<long>("FailureReportActionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("FailureReportActionId"));
-
-                    b.Property<long>("ActionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("CreatedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<long>("FailureReportId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<long?>("ModifiedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("FailureReportActionId");
-
-                    b.HasIndex("ActionId");
-
-                    b.HasIndex("FailureReportId");
-
-                    b.ToTable("FailureReportActions", (string)null);
-                });
-
             modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
                 {
                     b.Property<long>("FailureReportStatusId")
@@ -2676,25 +2634,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("ReportType");
                 });
 
-            modelBuilder.Entity("EMS.Domain.Entities.FailureReportAction", b =>
-                {
-                    b.HasOne("EMS.Domain.Entities.ActionEntity", "Action")
-                        .WithMany("FailureReportActions")
-                        .HasForeignKey("ActionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("EMS.Domain.Entities.FailureReport", "FailureReport")
-                        .WithMany("FailureReportActions")
-                        .HasForeignKey("FailureReportId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Action");
-
-                    b.Navigation("FailureReport");
-                });
-
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
                 {
                     b.HasOne("EMS.Domain.Entities.FailureCategory", "FailureCategory")
@@ -2935,8 +2874,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.ActionEntity", b =>
                 {
-                    b.Navigation("FailureReportActions");
-
                     b.Navigation("TechnicianAssignmentActions");
                 });
 
@@ -2996,8 +2933,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.FailureReport", b =>
                 {
-                    b.Navigation("FailureReportActions");
-
                     b.Navigation("TechnicianAssignments");
                 });
 

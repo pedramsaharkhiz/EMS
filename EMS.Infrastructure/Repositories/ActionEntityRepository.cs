@@ -11,8 +11,7 @@ namespace EMS.Infrastructure.Repositories
 
         public override async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
         {
-            return await _context.FailureReportActions.AnyAsync(x => x.ActionId == id && x.IsActive, cancellationToken)
-                || await _context.TechnicianAssignmentActions.AnyAsync(x => x.ActionId == id && x.IsActive, cancellationToken);
+            return await _context.TechnicianAssignmentActions.AnyAsync(x => x.ActionId == id && x.IsActive, cancellationToken);
         }
     }
 }

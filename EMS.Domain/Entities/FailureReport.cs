@@ -29,6 +29,5 @@ namespace EMS.Domain.Entities
         public Employee? Employee { get; set; }
 
         public ICollection<TechnicianAssignment> TechnicianAssignments { get; set; } = new List<TechnicianAssignment>();
-        public ICollection<FailureReportAction> FailureReportActions { get; set; } = new List<FailureReportAction>();
     }
 }

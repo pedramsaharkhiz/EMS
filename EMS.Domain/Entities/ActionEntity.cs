@@ -12,6 +12,5 @@ namespace EMS.Domain.Entities
         public string? Code { get; set; }
         public string? Description { get; set; }
         public ICollection<TechnicianAssignmentAction> TechnicianAssignmentActions { get; set; } = new List<TechnicianAssignmentAction>();
-        public ICollection<FailureReportAction> FailureReportActions { get; set; } = new List<FailureReportAction>();
     }
 }
