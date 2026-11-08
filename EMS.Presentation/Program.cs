@@ -58,12 +58,13 @@ try
         {
             policy
                 .WithOrigins(
+                    "http://localhost",
                     "http://localhost:3000",
-                    "http://localhost:5173",
-                    "http://localhost:4200",
                     "https://localhost:3000",
-                    "https://localhost:4200",
+                    "http://localhost:5173",
                     "https://localhost:5173",
+                    "http://localhost:4200",
+                    "https://localhost:4200",
                     "http://localhost:7224",
                     "https://localhost:7224")
                 .AllowAnyHeader()
