@@ -2,6 +2,7 @@ using EMS.Application.Common.Models;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Validators.Catalog;
 using EMS.Domain;
+using EMS.Application.Services.Equipment;
 using FluentValidation;
 
 namespace EMS.Application.Validators.Equipment
@@ -38,9 +39,11 @@ namespace EMS.Application.Validators.Equipment
                 .WithMessage("دقیقاً یکی از نوع تجهیز یا مدل تجهیز باید مقدار داشته باشد.");
 
             RuleFor(x => x.EquipmentStatusId).GreaterThan(0).WithMessage("شناسه وضعیت تجهیز باید بزرگتر از صفر باشد.");
-            RuleFor(x => x.CurrentEquipmentLocationTypeId).GreaterThan(0).WithMessage("شناسه نوع مکان باید بزرگتر از صفر باشد.");
             RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
             RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
+            RuleFor(x => x).Must(x => x.CurrentOrganizationId.HasValue ^ x.CurrentSupportingDepartmentId.HasValue)
+                .WithName("currentOrganizationId")
+                .WithMessage(EquipmentLocation.HolderMessage);
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
         }
     }
@@ -106,9 +109,11 @@ namespace EMS.Application.Validators.Equipment
     {
         public EquipmentMoveDtoValidator()
         {
-            RuleFor(x => x.CurrentEquipmentLocationTypeId).GreaterThan(0).WithMessage("شناسه نوع مکان باید بزرگتر از صفر باشد.");
             RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
             RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
+            RuleFor(x => x).Must(x => x.CurrentOrganizationId.HasValue ^ x.CurrentSupportingDepartmentId.HasValue)
+                .WithName("currentOrganizationId")
+                .WithMessage(EquipmentLocation.HolderMessage);
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
             RuleFor(x => x.Description).TextMax(EquipmentConstraints.DescriptionMaxLength, "توضیحات");
         }
@@ -136,7 +141,11 @@ namespace EMS.Application.Validators.Equipment
             Ids(x => x.TypeIds, "نوع تجهیز");
             Ids(x => x.ModelIds, "مدل");
             Ids(x => x.BrandIds, "برند");
-            Ids(x => x.LocationTypeIds, "نوع مکان");
+            RuleFor(x => x.LocationKinds)
+                .Must(values => values is null || values.Length <= MaxValues)
+                .WithMessage($"حداکثر {MaxValues} مقدار برای فیلتر محل نگهداری مجاز است.");
+            RuleForEach(x => x.LocationKinds)
+                .IsInEnum().WithMessage("محل نگهداری باید شعبه یا ستاد باشد.");
             Ids(x => x.OrganizationIds, "شعبه");
             Ids(x => x.FieldIds, "حوزه");
             Ids(x => x.OrganizationManagementIds, "مدیریت شعب");

@@ -40,7 +40,7 @@ namespace EMS.Tests.Integration
             return new Catalogs(category, categoryTitle, type, typeTitle, brand, brandTitle, model, modelTitle);
         }
 
-        private Task<long> NewLocationTypeAsync() => PostIdAsync("/api/EquipmentLocationType", new { title = Uniq("eqloc"), code = "L" });
+        private Task<long> NewHolderAsync() => CatalogFixtures.NewDepartmentAsync(this);
 
         private async Task<(long ProvinceId, string ProvinceTitle, long CityId, string CityTitle, long DepartmentId, string DepartmentTitle)> NewDepartmentAsync()
         {
@@ -82,7 +82,7 @@ namespace EMS.Tests.Integration
             return await ReadDataAsync(response);
         }
 
-        private async Task<Dictionary<string, object?>> BodyAsync(string? yaas = null, long? typeId = null, long? modelId = null, long? status = null, long? locationType = null)
+        private async Task<Dictionary<string, object?>> BodyAsync(string? yaas = null, long? typeId = null, long? modelId = null, long? status = null, long? departmentId = null)
         {
             if (typeId is null && modelId is null)
                 typeId = (await NewCatalogsAsync()).TypeId;
@@ -94,7 +94,7 @@ namespace EMS.Tests.Integration
                 ["equipmentTypeId"] = typeId,
                 ["equipmentModelId"] = modelId,
                 ["equipmentStatusId"] = status ?? InStock,
-                ["currentEquipmentLocationTypeId"] = locationType ?? await NewLocationTypeAsync(),
+                ["currentSupportingDepartmentId"] = departmentId ?? await NewHolderAsync(),
             };
         }
 
@@ -123,15 +123,15 @@ namespace EMS.Tests.Integration
             var dept = await NewDepartmentAsync();
             var org = await NewOrganizationAsync();
             var tech = await NewTechnicianAsync();
-            var locationType = await NewLocationTypeAsync();
             var yaas = Uniq("Y");
 
-            var body = await BodyAsync(yaas, modelId: c.ModelId, locationType: locationType);
+            // at a branch (a branch has no city or province of its own: those come with a department)
+            var body = await BodyAsync(yaas, modelId: c.ModelId);
             var uniqueTag = Guid.NewGuid().ToString("N")[..8];
             body["serialNumber"] = $"  SN-{uniqueTag} ";
             body["assetNumber"] = $"AS-{uniqueTag}";
+            body.Remove("currentSupportingDepartmentId");
             body["currentOrganizationId"] = org.OrganizationId;
-            body["currentSupportingDepartmentId"] = dept.DepartmentId;
             body["technicianUserId"] = tech.Id;
             body["description"] = "توضیح";
 
@@ -151,19 +151,30 @@ namespace EMS.Tests.Integration
             Assert.Equal(c.CategoryTitle, json.GetProperty("categoryTitle").GetString());
             Assert.Equal("موجود در انبار", json.GetProperty("equipmentStatusTitle").GetString());
             Assert.Equal(org.Title, json.GetProperty("currentOrganizationTitle").GetString());
-            Assert.Equal(dept.DepartmentTitle, json.GetProperty("currentSupportingDepartmentTitle").GetString());
-            Assert.Equal(dept.CityTitle, json.GetProperty("currentCityTitle").GetString());
-            Assert.Equal(dept.ProvinceTitle, json.GetProperty("currentProvinceTitle").GetString());
+            Assert.Equal(1, json.GetProperty("locationKind").GetInt32());
+            Assert.Equal("شعبه", json.GetProperty("locationKindTitle").GetString());
+            Assert.Equal(JsonValueKind.Null, json.GetProperty("currentSupportingDepartmentId").ValueKind);   // never both
             Assert.Equal("Test User", json.GetProperty("technicianName").GetString());
             Assert.True(json.GetProperty("isActive").GetBoolean());
             Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("rowVersion").GetString()));
 
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{Id(json)}/location-history"))).EnumerateArray().ToList();
             var first = Assert.Single(history);
-            Assert.Equal(locationType, first.GetProperty("currentEquipmentLocationTypeId").GetInt64());
+            Assert.Equal(org.OrganizationId, first.GetProperty("currentOrganizationId").GetInt64());
+            Assert.Equal(1, first.GetProperty("locationKind").GetInt32());
             Assert.Equal(tech.Id, first.GetProperty("technicianUserId").GetInt64());
             Assert.Equal("ثبت اولیه تجهیز", first.GetProperty("description").GetString());
             Assert.Equal("System Admin", first.GetProperty("changedByName").GetString());                  // who created it (the seeded administrator)
+
+            // at a supporting department (ستاد): its city and province come with it
+            var atDepartment = await BodyAsync(modelId: c.ModelId, departmentId: dept.DepartmentId);
+            var department = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", atDepartment));
+            Assert.Equal(2, department.GetProperty("locationKind").GetInt32());
+            Assert.Equal("ستاد", department.GetProperty("locationKindTitle").GetString());
+            Assert.Equal(dept.DepartmentTitle, department.GetProperty("currentSupportingDepartmentTitle").GetString());
+            Assert.Equal(dept.CityTitle, department.GetProperty("currentCityTitle").GetString());
+            Assert.Equal(dept.ProvinceTitle, department.GetProperty("currentProvinceTitle").GetString());
+            Assert.Equal(JsonValueKind.Null, department.GetProperty("currentOrganizationId").ValueKind);
         }
 
         [Fact]
@@ -217,12 +228,12 @@ namespace EMS.Tests.Integration
             body["serialNumber"] = new string('x', 51);
             body["description"] = new string('d', 501);
             body["equipmentStatusId"] = 0;
-            body["currentEquipmentLocationTypeId"] = 0;
+            body["currentSupportingDepartmentId"] = 0;
 
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var fields = ErrorFieldsOf(await ReadJsonAsync(response));
-            foreach (var field in new[] { "yaasCode", "serialNumber", "description", "equipmentStatusId", "currentEquipmentLocationTypeId" })
+            foreach (var field in new[] { "yaasCode", "serialNumber", "description", "equipmentStatusId", "currentSupportingDepartmentId" })
                 Assert.Contains(field, fields);
         }
 
@@ -237,6 +248,7 @@ namespace EMS.Tests.Integration
 
             var inactiveOrg = await NewOrganizationAsync(active: false);
             var withOrg = await BodyAsync();
+            withOrg.Remove("currentSupportingDepartmentId");
             withOrg["currentOrganizationId"] = inactiveOrg.OrganizationId;
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", withOrg), HttpStatusCode.BadRequest, "parent_inactive");
 
@@ -244,9 +256,17 @@ namespace EMS.Tests.Integration
             withUnknownTechnician["technicianUserId"] = 987654321;
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", withUnknownTechnician), HttpStatusCode.NotFound, "parent_not_found");
 
-            var deactivatedLocationType = await NewLocationTypeAsync();
-            await SendAdminAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{deactivatedLocationType}");
-            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", await BodyAsync(locationType: deactivatedLocationType)), HttpStatusCode.BadRequest, "parent_inactive");
+            var deactivatedDepartment = await NewHolderAsync();
+            await SendAdminAsync(HttpMethod.Delete, $"/api/SupportingDepartment/{deactivatedDepartment}");
+            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", await BodyAsync(departmentId: deactivatedDepartment)), HttpStatusCode.BadRequest, "parent_inactive");
+
+            // exactly one of a branch and a department
+            var both = await BodyAsync();
+            both["currentOrganizationId"] = (await NewOrganizationAsync()).OrganizationId;
+            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", both), HttpStatusCode.BadRequest, "validation_failed");
+            var neither = await BodyAsync();
+            neither.Remove("currentSupportingDepartmentId");
+            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", neither), HttpStatusCode.BadRequest, "validation_failed");
         }
 
         [Fact]
@@ -397,11 +417,11 @@ namespace EMS.Tests.Integration
             var created = await CreateAsync(await BodyAsync());
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Put, "/api/Equipment/987654321", UpdateBody(created)), HttpStatusCode.NotFound, "not_found");
 
-            var other = await NewLocationTypeAsync();
+            var other = await NewHolderAsync();
             var body = UpdateBody(created);
-            body["currentEquipmentLocationTypeId"] = other;            // not part of the update: ignored
+            body["currentSupportingDepartmentId"] = other;            // not part of the update: ignored
             var json = await ReadDataAsync(await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{Id(created)}", body));
-            Assert.Equal(created.GetProperty("currentEquipmentLocationTypeId").GetInt64(), json.GetProperty("currentEquipmentLocationTypeId").GetInt64());
+            Assert.Equal(created.GetProperty("currentSupportingDepartmentId").GetInt64(), json.GetProperty("currentSupportingDepartmentId").GetInt64());
         }
 
         [Fact]
@@ -491,19 +511,18 @@ namespace EMS.Tests.Integration
             var org = await NewOrganizationAsync();
             var dept = await NewDepartmentAsync();
             var tech = await NewTechnicianAsync();
-            var newType = await NewLocationTypeAsync();
 
+            // to a branch
             var move = new Dictionary<string, object?>
             {
-                ["currentEquipmentLocationTypeId"] = newType, ["currentOrganizationId"] = org.OrganizationId,
-                ["currentSupportingDepartmentId"] = dept.DepartmentId, ["technicianUserId"] = tech.Id, ["description"] = "تحویل به تکنسین",
+                ["currentOrganizationId"] = org.OrganizationId, ["technicianUserId"] = tech.Id, ["description"] = "تحویل به تکنسین",
             };
             var response = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", move);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var json = await ReadDataAsync(response);
-            Assert.Equal(newType, json.GetProperty("currentEquipmentLocationTypeId").GetInt64());
+            Assert.Equal(1, json.GetProperty("locationKind").GetInt32());
             Assert.Equal(org.Title, json.GetProperty("currentOrganizationTitle").GetString());
-            Assert.Equal(dept.CityTitle, json.GetProperty("currentCityTitle").GetString());
+            Assert.Equal(JsonValueKind.Null, json.GetProperty("currentSupportingDepartmentId").ValueKind);        // the department it was at is left
             Assert.Equal(tech.Id, json.GetProperty("technicianUserId").GetInt64());
 
             // the same move again: no new history entry
@@ -512,8 +531,18 @@ namespace EMS.Tests.Integration
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/location-history"))).EnumerateArray().ToList();
             Assert.Equal(2, history.Count);                                                          // first placement + one move
             Assert.Equal("تحویل به تکنسین", history[0].GetProperty("description").GetString());      // newest first
-            Assert.Equal(newType, history[0].GetProperty("currentEquipmentLocationTypeId").GetInt64());
+            Assert.Equal(org.OrganizationId, history[0].GetProperty("currentOrganizationId").GetInt64());
             Assert.Equal("ثبت اولیه تجهیز", history[1].GetProperty("description").GetString());
+
+            // then to a supporting department: its city and province come with it
+            var toDepartment = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = dept.DepartmentId, description = "به ستاد" }));
+            Assert.Equal(2, toDepartment.GetProperty("locationKind").GetInt32());
+            Assert.Equal(dept.CityTitle, toDepartment.GetProperty("currentCityTitle").GetString());
+            Assert.Equal(JsonValueKind.Null, toDepartment.GetProperty("currentOrganizationId").ValueKind);
+
+            // exactly one of the two
+            Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = dept.DepartmentId, currentOrganizationId = org.OrganizationId })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { description = "nowhere" })).StatusCode);
         }
 
         [Fact]
@@ -523,17 +552,17 @@ namespace EMS.Tests.Integration
             var id = Id(created);
 
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment/987654321/move",
-                new { currentEquipmentLocationTypeId = await NewLocationTypeAsync() }), HttpStatusCode.NotFound, "not_found");
+                new { currentSupportingDepartmentId = await NewHolderAsync() }), HttpStatusCode.NotFound, "not_found");
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move",
-                new { currentEquipmentLocationTypeId = 987654321 }), HttpStatusCode.NotFound, "parent_not_found");
+                new { currentSupportingDepartmentId = 987654321 }), HttpStatusCode.NotFound, "parent_not_found");
             Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move",
-                new { currentEquipmentLocationTypeId = 0 })).StatusCode);
+                new { currentSupportingDepartmentId = 0 })).StatusCode);
 
             // the version from before an edit is stale
             var stale = created.GetProperty("rowVersion").GetString();
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{id}", UpdateBody(created, description: "edited"))).StatusCode);
             await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move",
-                new { currentEquipmentLocationTypeId = await NewLocationTypeAsync(), rowVersion = stale }), HttpStatusCode.Conflict, "concurrency_conflict");
+                new { currentSupportingDepartmentId = await NewHolderAsync(), rowVersion = stale }), HttpStatusCode.Conflict, "concurrency_conflict");
         }
 
         [Fact]
@@ -543,7 +572,7 @@ namespace EMS.Tests.Integration
 
             var created = await CreateAsync(await BodyAsync());
             for (var i = 0; i < 2; i++)
-                await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{Id(created)}/move", new { currentEquipmentLocationTypeId = await NewLocationTypeAsync() });
+                await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{Id(created)}/move", new { currentSupportingDepartmentId = await NewHolderAsync() });
 
             var page = await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{Id(created)}/location-history?pageSize=2&pageNumber=2"));
             Assert.Equal(3, PaginationOf(page).GetProperty("totalCount").GetInt32());
@@ -564,11 +593,11 @@ namespace EMS.Tests.Integration
 
             var tag = Guid.NewGuid().ToString("N")[..8];
             var bodyA = await BodyAsync($"FA-{tag}-1", modelId: c1.ModelId);
-            bodyA["currentSupportingDepartmentId"] = d1.DepartmentId; bodyA["currentOrganizationId"] = org1.OrganizationId; bodyA["technicianUserId"] = tech1.Id;
+            bodyA.Remove("currentSupportingDepartmentId"); bodyA["currentOrganizationId"] = org1.OrganizationId; bodyA["technicianUserId"] = tech1.Id;     // A is with a branch
             bodyA["serialNumber"] = $"SER-{tag}";
             var a = await CreateAsync(bodyA);
 
-            var bodyB = await BodyAsync($"FA-{tag}-2", typeId: c2.TypeId, status: status2);
+            var bodyB = await BodyAsync($"FA-{tag}-2", typeId: c2.TypeId, status: status2, departmentId: d1.DepartmentId);     // B is with a department
             bodyB["assetNumber"] = $"AST-{tag}";
             var b = await CreateAsync(bodyB);
 
@@ -585,9 +614,9 @@ namespace EMS.Tests.Integration
             await AssertOnly($"categoryId={c1.CategoryId}", Id(a));
             await AssertOnly($"modelId={c1.ModelId}", Id(a));
             await AssertOnly($"brandId={c1.BrandId}", Id(a));
-            await AssertOnly($"currentSupportingDepartmentId={d1.DepartmentId}", Id(a));
-            await AssertOnly($"cityId={d1.CityId}", Id(a));
-            await AssertOnly($"provinceId={d1.ProvinceId}", Id(a));
+            await AssertOnly($"currentSupportingDepartmentId={d1.DepartmentId}", Id(b));
+            await AssertOnly($"cityId={d1.CityId}", Id(b));
+            await AssertOnly($"provinceId={d1.ProvinceId}", Id(b));
             await AssertOnly($"organizationId={org1.OrganizationId}", Id(a));
             await AssertOnly($"fieldId={org1.FieldId}", Id(a));
             await AssertOnly($"organizationManagementId={org1.ManagementId}", Id(a));                      // derived through the field
@@ -595,7 +624,9 @@ namespace EMS.Tests.Integration
             await AssertOnly($"technicianUserId={tech1.Id}", Id(a));
             await AssertOnly($"serialNumber=SER-{tag}", Id(a));
             await AssertOnly($"assetNumber=AST-{tag}", Id(b));
-            await AssertOnly($"locationTypeId={a.GetProperty("currentEquipmentLocationTypeId").GetInt64()}", Id(a));
+            await AssertOnly("locationKind=1", Id(a));                                                      // with a branch
+            await AssertOnly("locationKind=2", Id(b));                                                      // with a department
+            await AssertOnly("locationKind=1&locationKind=2", Id(a), Id(b));
             await AssertOnly($"statusId={InStock}&typeId={c2.TypeId}");                                    // AND: nothing
 
             // search also finds serial and asset numbers
@@ -628,7 +659,7 @@ namespace EMS.Tests.Integration
             Assert.Empty(Ids(await ListAsync($"{search}&createdFrom={now.AddDays(1):O}")));
 
             var item = DataOf(second)[0];
-            foreach (var name in new[] { "id", "yaasCode", "effectiveTypeTitle", "categoryTitle", "equipmentStatusTitle", "currentEquipmentLocationTypeTitle", "technicianName", "isActive", "createdDateTime" })
+            foreach (var name in new[] { "id", "yaasCode", "effectiveTypeTitle", "categoryTitle", "equipmentStatusTitle", "locationKindTitle", "technicianName", "isActive", "createdDateTime" })
                 Assert.True(item.TryGetProperty(name, out _), name);
             Assert.False(item.TryGetProperty("rowVersion", out _));                                         // the list item has no row version
         }
@@ -690,7 +721,7 @@ namespace EMS.Tests.Integration
             Assert.True(sheet.RightToLeft);
 
             var headers = Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList();
-            foreach (var title in new[] { "شناسه", "یاس کد", "سریال نامبر", "دسته‌بندی", "نوع تجهیز", "مدل", "برند", "وضعیت", "نوع مکان", "شعبه", "شهر", "استان", "تکنسین", "فعال", "تاریخ ایجاد" })
+            foreach (var title in new[] { "شناسه", "یاس کد", "سریال نامبر", "دسته‌بندی", "نوع تجهیز", "مدل", "برند", "وضعیت", "محل نگهداری", "شعبه", "شهر", "استان", "تکنسین", "فعال", "تاریخ ایجاد" })
                 Assert.Contains(title, headers);
 
             string Cell(int row, string header) => sheet.Cell(row, headers.IndexOf(header) + 1).GetString();
@@ -769,10 +800,10 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, "/api/Equipment", viewer, await BodyAsync()));
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Put, $"/api/Equipment/{id}", viewer, UpdateBody(created)));
             Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Delete, $"/api/Equipment/{id}", viewer));
-            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", viewer, new { currentEquipmentLocationTypeId = 1 }));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", viewer, new { currentSupportingDepartmentId = 1 }));
 
             // moving needs Equipments.Assign (and nothing else)
-            var moved = await StatusOfAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", assigner, new { currentEquipmentLocationTypeId = await NewLocationTypeAsync() });
+            var moved = await StatusOfAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", assigner, new { currentSupportingDepartmentId = await NewHolderAsync() });
             Assert.Equal(HttpStatusCode.OK, moved);
         }
     }

@@ -47,7 +47,7 @@ namespace EMS.Application.Services.Equipment
             .AnyOf(r => r.TypeIds, x => x.EffectiveTypeId)
             .AnyOf(r => r.ModelIds, x => x.EquipmentModelId)
             .AnyOf(r => r.BrandIds, x => x.BrandId)
-            .AnyOf(r => r.LocationTypeIds, x => x.LocationTypeId)
+            .AnyOf(r => r.LocationKinds, x => x.LocationKind)
             .AnyOf(r => r.OrganizationIds, x => x.OrganizationId)
             .AnyOf(r => r.FieldIds, x => x.FieldId)
             .AnyOf(r => r.OrganizationManagementIds, x => x.OrganizationManagementId)
@@ -71,7 +71,7 @@ namespace EMS.Application.Services.Equipment
             .By("model", x => x.EquipmentModelTitle)
             .By("brand", x => x.BrandTitle)
             .By("status", x => x.StatusTitle)
-            .By("locationtype", x => x.LocationTypeTitle)
+            .By("locationkind", x => x.LocationKindTitle)
             .By("organization", x => x.OrganizationTitle)
             .By("department", x => x.SupportingDepartmentTitle)
             .By("city", x => x.CityTitle)
@@ -83,7 +83,6 @@ namespace EMS.Application.Services.Equipment
         private readonly IEquipmentStatusRepository _statuses;
         private readonly IEquipmentTypeRepository _types;
         private readonly IEquipmentModelRepository _models;
-        private readonly IEquipmentLocationTypeRepository _locationTypes;
         private readonly ISupportingDepartmentRepository _departments;
         private readonly IRepository<OrganizationEntity> _organizations;
         private readonly IEquipmentLocationRule _locationRule;
@@ -99,7 +98,6 @@ namespace EMS.Application.Services.Equipment
             IEquipmentStatusRepository statuses,
             IEquipmentTypeRepository types,
             IEquipmentModelRepository models,
-            IEquipmentLocationTypeRepository locationTypes,
             ISupportingDepartmentRepository departments,
             IRepository<OrganizationEntity> organizations,
             IEquipmentLocationRule locationRule,
@@ -114,7 +112,6 @@ namespace EMS.Application.Services.Equipment
             _statuses = statuses;
             _types = types;
             _models = models;
-            _locationTypes = locationTypes;
             _departments = departments;
             _organizations = organizations;
             _locationRule = locationRule;
@@ -176,8 +173,8 @@ namespace EMS.Application.Services.Equipment
                 var item = new EquipmentLocationHistoryItemDto
                 {
                     Id = h.Id,
-                    CurrentEquipmentLocationTypeId = h.LocationTypeId,
-                    CurrentEquipmentLocationTypeTitle = h.LocationTypeTitle,
+                    LocationKind = h.LocationKind,
+                    LocationKindTitle = h.LocationKindTitle,
                     CurrentOrganizationId = h.OrganizationId,
                     CurrentOrganizationTitle = h.OrganizationTitle,
                     CurrentSupportingDepartmentId = h.SupportingDepartmentId,
@@ -312,7 +309,7 @@ namespace EMS.Application.Services.Equipment
         private async Task<EquipmentEntity> AddEquipmentAsync(EquipmentCreateDto request, CancellationToken cancellationToken)
         {
             var yaasCode = request.YaasCode.Trim();
-            var location = new EquipmentLocation(request.CurrentEquipmentLocationTypeId, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
+            var location = new EquipmentLocation(request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
 
             await RequireClassificationAsync(request.EquipmentStatusId, request.EquipmentTypeId, request.EquipmentModelId, mustBeActive: true, cancellationToken);
             await RequireLocationAsync(location, cancellationToken);
@@ -328,7 +325,6 @@ namespace EMS.Application.Services.Equipment
                 EquipmentTypeId = request.EquipmentTypeId,
                 EquipmentModelId = request.EquipmentModelId,
                 EquipmentStatusId = request.EquipmentStatusId,
-                CurrentEquipmentLocationTypeId = location.LocationTypeId,
                 CurrentOrganizationId = location.OrganizationId,
                 CurrentSupportingDepartmentId = location.SupportingDepartmentId,
                 TechnicianUserId = location.TechnicianUserId,
@@ -356,7 +352,6 @@ namespace EMS.Application.Services.Equipment
             var statuses = await ResolveAsync(_statuses, items.Select(i => i.EquipmentStatusId), x => x.EquipmentStatusId, "وضعیت تجهیز", cancellationToken);
             var types = await ResolveAsync(_types, items.Where(i => i.EquipmentTypeId.HasValue).Select(i => i.EquipmentTypeId!.Value), x => x.EquipmentTypeId, "نوع تجهیز", cancellationToken);
             var models = await ResolveAsync(_models, items.Where(i => i.EquipmentModelId.HasValue).Select(i => i.EquipmentModelId!.Value), x => x.EquipmentModelId, "مدل تجهیز", cancellationToken);
-            var locationTypes = await ResolveAsync(_locationTypes, items.Select(i => i.CurrentEquipmentLocationTypeId), x => x.EquipmentLocationTypeId, "نوع مکان", cancellationToken);
             var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "شعبه", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
             var technicianStates = await _repository.GetTechnicianEligibilityAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
@@ -369,7 +364,7 @@ namespace EMS.Application.Services.Equipment
                 if (statuses.TryGetValue(item.EquipmentStatusId, out var statusError) && statusError is not null) Fail(i, "equipmentStatusId", statusError);
                 if (item.EquipmentTypeId is { } type && types[type] is { } typeError) Fail(i, "equipmentTypeId", typeError);
                 if (item.EquipmentModelId is { } model && models[model] is { } modelError) Fail(i, "equipmentModelId", modelError);
-                if (locationTypes[item.CurrentEquipmentLocationTypeId] is { } locationTypeError) Fail(i, "currentEquipmentLocationTypeId", locationTypeError);
+                if (!ToLocation(item).HasExactlyOneHolder) Fail(i, "currentOrganizationId", EquipmentLocation.HolderMessage);
                 if (item.CurrentOrganizationId is { } organization && organizations[organization] is { } organizationError) Fail(i, "currentOrganizationId", organizationError);
                 if (item.CurrentSupportingDepartmentId is { } department && departments[department] is { } departmentError) Fail(i, "currentSupportingDepartmentId", departmentError);
 
@@ -391,7 +386,7 @@ namespace EMS.Application.Services.Equipment
                 }
                 catch (BadRequestException ex)
                 {
-                    Fail(i, "currentEquipmentLocationTypeId", ex.Message);
+                    Fail(i, "currentOrganizationId", ex.Message);
                 }
             }
 
@@ -411,8 +406,7 @@ namespace EMS.Application.Services.Equipment
                     EquipmentTypeId = item.EquipmentTypeId,
                     EquipmentModelId = item.EquipmentModelId,
                     EquipmentStatusId = item.EquipmentStatusId,
-                    CurrentEquipmentLocationTypeId = location.LocationTypeId,
-                    CurrentOrganizationId = location.OrganizationId,
+                        CurrentOrganizationId = location.OrganizationId,
                     CurrentSupportingDepartmentId = location.SupportingDepartmentId,
                     TechnicianUserId = location.TechnicianUserId,
                     Description = Normalize(item.Description),
@@ -455,7 +449,7 @@ namespace EMS.Application.Services.Equipment
             await RequireClassificationAsync(request.EquipmentStatusId, request.EquipmentTypeId, request.EquipmentModelId, checkActive, cancellationToken);
 
             if (reactivating)
-                await RequireLocationAsync(new EquipmentLocation(entity.CurrentEquipmentLocationTypeId, entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId), cancellationToken, validateRule: false);
+                await RequireLocationAsync(new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId), cancellationToken, validateRule: false);
 
             if (statusChanged && !EquipmentStatusTransitions.IsAllowed(entity.EquipmentStatusId, request.EquipmentStatusId))
                 throw new BadRequestException("تغییر وضعیت تجهیز به وضعیت انتخاب‌شده مجاز نیست.", ErrorCodes.StatusTransitionNotAllowed);
@@ -500,15 +494,14 @@ namespace EMS.Application.Services.Equipment
         public async Task<EquipmentDetailDto> MoveAsync(long id, EquipmentMoveDto request, CancellationToken cancellationToken = default)
         {
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
-            var location = new EquipmentLocation(request.CurrentEquipmentLocationTypeId, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
+            var location = new EquipmentLocation(request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
 
             // Moving to where it already is changes nothing and adds no history entry.
-            if (location == new EquipmentLocation(entity.CurrentEquipmentLocationTypeId, entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId))
+            if (location == new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId))
                 return await DetailAsync(id, cancellationToken);
 
             await RequireLocationAsync(location, cancellationToken);
 
-            entity.CurrentEquipmentLocationTypeId = location.LocationTypeId;
             entity.CurrentOrganizationId = location.OrganizationId;
             entity.CurrentSupportingDepartmentId = location.SupportingDepartmentId;
             entity.TechnicianUserId = location.TechnicianUserId;
@@ -518,7 +511,7 @@ namespace EMS.Application.Services.Equipment
             _repository.AddLocationHistory(NewHistory(entity, location, Normalize(request.Description)));
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _audit.Operation("LocationChanged", "Equipment", id, $"locationType={location.LocationTypeId}");
+            _audit.Operation("LocationChanged", "Equipment", id, $"organization={location.OrganizationId};department={location.SupportingDepartmentId}");
             return await DetailAsync(id, cancellationToken);
         }
 
@@ -565,8 +558,8 @@ namespace EMS.Application.Services.Equipment
             dto.EquipmentStatusId = row.StatusId;
             dto.EquipmentStatusTitle = row.StatusTitle;
             dto.EquipmentStatusCode = row.StatusCode;
-            dto.CurrentEquipmentLocationTypeId = row.LocationTypeId;
-            dto.CurrentEquipmentLocationTypeTitle = row.LocationTypeTitle;
+            dto.LocationKind = row.LocationKind;
+            dto.LocationKindTitle = row.LocationKindTitle;
             dto.CurrentOrganizationId = row.OrganizationId;
             dto.CurrentOrganizationTitle = row.OrganizationTitle;
             dto.FieldId = row.FieldId;
@@ -612,7 +605,9 @@ namespace EMS.Application.Services.Equipment
 
         private async Task RequireLocationAsync(EquipmentLocation location, CancellationToken cancellationToken, bool validateRule = true)
         {
-            await ParentGuard.RequireAsync(_locationTypes, location.LocationTypeId, x => x.EquipmentLocationTypeId, "نوع مکان", mustBeActive: true, cancellationToken);
+            if (validateRule && !location.HasExactlyOneHolder)
+                throw new BadRequestException(EquipmentLocation.HolderMessage, ErrorCodes.LocationHolderInvalid);
+
             if (location.OrganizationId is { } organization)
                 await ParentGuard.RequireAsync(_organizations, organization, x => x.OrganizationId, "شعبه", mustBeActive: true, cancellationToken);
             if (location.SupportingDepartmentId is { } department)
@@ -644,7 +639,7 @@ namespace EMS.Application.Services.Equipment
         }
 
         private static EquipmentLocation ToLocation(EquipmentCreateDto item) =>
-            new(item.CurrentEquipmentLocationTypeId, item.CurrentOrganizationId, item.CurrentSupportingDepartmentId, item.TechnicianUserId);
+            new(item.CurrentOrganizationId, item.CurrentSupportingDepartmentId, item.TechnicianUserId);
 
         /// <summary>
         /// Checks a set of referenced ids with one query (plus one per id that is not active, to tell "missing" from "inactive").
@@ -697,7 +692,6 @@ namespace EMS.Application.Services.Equipment
             new()
             {
                 Equipment = equipment,
-                EquipmentLocationTypeId = location.LocationTypeId,
                 OrganizationId = location.OrganizationId,
                 SupportingDepartmentId = location.SupportingDepartmentId,
                 TechnicianUserId = location.TechnicianUserId,

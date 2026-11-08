@@ -24,10 +24,10 @@ namespace EMS.Tests.Integration
             return await PostIdAsync("/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("bktype"), code = "T" });
         }
 
-        private Task<long> NewLocationTypeAsync() => PostIdAsync("/api/EquipmentLocationType", new { title = Uniq("bkloc"), code = "L" });
+        private async Task<long> NewDepartmentAsync() => await PostIdAsync("/api/SupportingDepartment", new { cityId = await CatalogFixtures.EnsureCityAsync(this), title = Uniq("bkloc") });
 
-        private sealed record Fixture(long TypeId, long LocationTypeId);
-        private async Task<Fixture> NewFixtureAsync() => new(await NewTypeAsync(), await NewLocationTypeAsync());
+        private sealed record Fixture(long TypeId, long DepartmentId);
+        private async Task<Fixture> NewFixtureAsync() => new(await NewTypeAsync(), await NewDepartmentAsync());
 
         private static Dictionary<string, object?> Item(Fixture f, string? yaas = null, long? status = null) => new()
         {
@@ -35,7 +35,7 @@ namespace EMS.Tests.Integration
             ["owner"] = 1,
             ["equipmentTypeId"] = f.TypeId,
             ["equipmentStatusId"] = status ?? InStock,
-            ["currentEquipmentLocationTypeId"] = f.LocationTypeId,
+            ["currentSupportingDepartmentId"] = f.DepartmentId,
         };
 
         private async Task<HttpResponseMessage> BulkAsync(params object[] items) =>
@@ -149,7 +149,7 @@ namespace EMS.Tests.Integration
 
             var okCode = Uniq("BK");
             var wrongType = Item(f, Uniq("B1")); wrongType["equipmentTypeId"] = 99999999;
-            var wrongOrg = Item(f, Uniq("B2")); wrongOrg["currentOrganizationId"] = 99999999;
+            var wrongOrg = Item(f, Uniq("B2")); wrongOrg.Remove("currentSupportingDepartmentId"); wrongOrg["currentOrganizationId"] = 99999999;
             var wrongTech = Item(f, Uniq("B3")); wrongTech["technicianUserId"] = 99999999;
 
             var clash = Item(f, Uniq("B9")); clash["serialNumber"] = taken.ToUpperInvariant();

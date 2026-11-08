@@ -34,8 +34,9 @@ namespace EMS.Application.Dtos.Equipment
         /// <summary>The stable code of the status (the name of <c>EquipmentStatusCode</c>, e.g. "InStock").</summary>
         public string? EquipmentStatusCode { get; set; }
 
-        public long CurrentEquipmentLocationTypeId { get; set; }
-        public string? CurrentEquipmentLocationTypeTitle { get; set; }
+        /// <summary>Who the equipment is with: 1 = a branch (<c>currentOrganization...</c>), 2 = a supporting department (<c>currentSupportingDepartment...</c>). Exactly one of the two is filled.</summary>
+        public EquipmentLocationKind LocationKind { get; set; }
+        public string? LocationKindTitle { get; set; }
         public long? CurrentOrganizationId { get; set; }
         public string? CurrentOrganizationTitle { get; set; }
         // where the branch sits in the hierarchy (the same levels the list can be filtered by)

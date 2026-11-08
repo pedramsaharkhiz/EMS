@@ -1,7 +1,6 @@
 using EMS.Application.Dtos.Brand;
 using EMS.Application.Dtos.City;
 using EMS.Application.Dtos.EquipmentCategory;
-using EMS.Application.Dtos.EquipmentLocationType;
 using EMS.Application.Dtos.EquipmentModel;
 using EMS.Application.Dtos.EquipmentStatus;
 using EMS.Application.Dtos.Post;
@@ -40,9 +39,6 @@ namespace EMS.Tests.Integration
 
             new("EquipmentCategory", "/api/EquipmentCategory", "id", "EquipmentCategories", false, typeof(EquipmentCategoryDetailDto), typeof(EquipmentCategoryListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title })),
-
-            new("EquipmentLocationType", "/api/EquipmentLocationType", "id", "EquipmentLocationTypes", true, typeof(EquipmentLocationTypeDetailDto), typeof(EquipmentLocationTypeListItemDto),
-                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "LT" })),
 
             new("Post", "/api/Post", "id", "Posts", true, typeof(PostDetailDto), typeof(PostListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "PO" })),
@@ -119,6 +115,10 @@ namespace EMS.Tests.Integration
 
         public static async Task<long> NewTypeAsync(ApiTestBase api) =>
             await PostAsync(api, "/api/EquipmentType", new { equipmentCategoryId = await NewCategoryAsync(api), title = Unique("fx-type"), code = "T" }, "id");
+
+        /// <summary>A supporting department (ستاد) in an existing city: where an equipment can be (exactly one of a branch and a department).</summary>
+        public static async Task<long> NewDepartmentAsync(ApiTestBase api) =>
+            await PostAsync(api, "/api/SupportingDepartment", new { cityId = await EnsureCityAsync(api), title = Unique("dep") }, "id");
 
         public static Task<long> NewBrandAsync(ApiTestBase api) =>
             PostAsync(api, "/api/Brand", new { title = Unique("fx-brand"), code = "B" }, "id");

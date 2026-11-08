@@ -101,9 +101,9 @@ namespace EMS.Tests.Integration
             await AssertPersianAsync("bulk empty", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk", "{}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk null item", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk", "{\"items\":[null]}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk bad fields", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk",
-                "{\"items\":[{\"yaasCode\":\"\",\"serialNumber\":\"" + longText + "\",\"equipmentStatusId\":0,\"currentEquipmentLocationTypeId\":0,\"technicianUserId\":-1}]}"), HttpStatusCode.BadRequest);
+                "{\"items\":[{\"yaasCode\":\"\",\"serialNumber\":\"" + longText + "\",\"equipmentStatusId\":0,\"currentSupportingDepartmentId\":0,\"technicianUserId\":-1}]}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk duplicate", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk",
-                "{\"items\":[{\"yaasCode\":\"DUP\",\"equipmentTypeId\":1,\"equipmentStatusId\":1,\"currentEquipmentLocationTypeId\":1},{\"yaasCode\":\"dup\",\"equipmentTypeId\":1,\"equipmentStatusId\":1,\"currentEquipmentLocationTypeId\":1}]}"), HttpStatusCode.BadRequest);
+                "{\"items\":[{\"yaasCode\":\"DUP\",\"equipmentTypeId\":1,\"equipmentStatusId\":1,\"currentSupportingDepartmentId\":1},{\"yaasCode\":\"dup\",\"equipmentTypeId\":1,\"equipmentStatusId\":1,\"currentSupportingDepartmentId\":1}]}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk wrong json type", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk", "{\"items\":[{\"equipmentStatusId\":\"abc\"}]}"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk not json", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk", "{\"items\":"), HttpStatusCode.BadRequest);
             await AssertPersianAsync("bulk items not array", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk", "{\"items\":5}"), HttpStatusCode.BadRequest);
@@ -111,7 +111,7 @@ namespace EMS.Tests.Integration
                 "{\"items\":[" + string.Join(",", Enumerable.Repeat("{\"yaasCode\":\"a\"}", 201)) + "]}"), HttpStatusCode.BadRequest);
             // business errors (references that do not exist, inactive technician ...)
             await AssertPersianAsync("bulk unknown refs", await RawAsync(HttpMethod.Post, "/api/Equipment/bulk",
-                "{\"items\":[{\"yaasCode\":\"PM-1\",\"equipmentTypeId\":99999999,\"equipmentStatusId\":99999999,\"currentEquipmentLocationTypeId\":99999999,\"currentOrganizationId\":99999999,\"currentSupportingDepartmentId\":99999999,\"technicianUserId\":99999999}]}"), HttpStatusCode.BadRequest);
+                "{\"items\":[{\"yaasCode\":\"PM-1\",\"equipmentTypeId\":99999999,\"equipmentStatusId\":99999999,\"currentSupportingDepartmentId\":99999999,\"currentOrganizationId\":99999999,\"currentSupportingDepartmentId\":99999999,\"technicianUserId\":99999999}]}"), HttpStatusCode.BadRequest);
         }
 
         [Fact]

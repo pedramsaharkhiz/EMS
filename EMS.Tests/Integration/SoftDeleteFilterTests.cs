@@ -24,7 +24,6 @@ namespace EMS.Tests.Integration
         }
 
         private Task<long> NewStatusAsync() => PostAsync("/api/EquipmentStatus", new { title = Uniq("sd-st"), code = "S" }, "id");
-        private Task<long> NewLocationTypeAsync() => PostAsync("/api/EquipmentLocationType", new { title = Uniq("sd-lt"), code = "L" }, "id");
 
         private async Task<long> NewTypeAsync() =>
             await PostAsync("/api/EquipmentType", new
@@ -46,7 +45,7 @@ namespace EMS.Tests.Integration
         private async Task<long> NewDepartmentAsync() =>
             await PostAsync("/api/SupportingDepartment", new { cityId = await CatalogFixtures.EnsureCityAsync(this), title = Uniq("sd-dept") }, "id");
 
-        private async Task<long> InsertEquipmentAsync(long statusId, long locationTypeId, long? typeId = null, long? modelId = null, long? departmentId = null, bool active = true)
+        private async Task<long> InsertEquipmentAsync(long statusId, long departmentId, long? typeId = null, long? modelId = null, bool active = true)
         {
             using var scope = _factory.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
@@ -55,7 +54,6 @@ namespace EMS.Tests.Integration
             {
                 YaasCode = Uniq("YC"),
                 EquipmentStatusId = statusId,
-                CurrentEquipmentLocationTypeId = locationTypeId,
                 EquipmentTypeId = modelId is null ? typeId : null,
                 EquipmentModelId = modelId,
                 CurrentSupportingDepartmentId = departmentId,
@@ -112,14 +110,13 @@ namespace EMS.Tests.Integration
         public async Task Equipment_details_still_load_when_the_catalog_rows_it_refers_to_were_deactivated_afterwards()
         {
             var status = await NewStatusAsync();
-            var location = await NewLocationTypeAsync();
+            var location = await NewDepartmentAsync();
             var type = await NewTypeAsync();
             // an inactive equipment may keep pointing at catalog rows that are deactivated later
             var equipmentId = await InsertEquipmentAsync(status, location, typeId: type, active: false);
 
             var admin = await AdminAsync();
             Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentStatus/{status}", bearer: admin)).StatusCode);
-            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: admin)).StatusCode);
 
             using var scope = _factory.Services.CreateScope();
             var repository = scope.ServiceProvider.GetRequiredService<IEquipmentRepository>();
@@ -127,7 +124,6 @@ namespace EMS.Tests.Integration
 
             Assert.NotNull(details);   // without IncludingInactive() the join on the deactivated status would drop it
             Assert.Equal(status, details!.EquipmentStatus.EquipmentStatusId);
-            Assert.Equal(location, details.CurrentEquipmentLocationType.EquipmentLocationTypeId);
         }
 
         // ------------------------------------------------------------------------------- dependents
@@ -136,7 +132,7 @@ namespace EMS.Tests.Integration
         public async Task A_status_used_by_active_equipment_cannot_be_deactivated_until_the_equipment_is()
         {
             var status = await NewStatusAsync();
-            var equipment = await InsertEquipmentAsync(status, await NewLocationTypeAsync(), typeId: await NewTypeAsync());
+            var equipment = await InsertEquipmentAsync(status, await NewDepartmentAsync(), typeId: await NewTypeAsync());
 
             var admin = await AdminAsync();
             await AssertConflictAsync($"/api/EquipmentStatus/{status}");
@@ -145,21 +141,10 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task A_location_type_used_by_active_equipment_cannot_be_deactivated()
-        {
-            var location = await NewLocationTypeAsync();
-            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), location, typeId: await NewTypeAsync());
-
-            await AssertConflictAsync($"/api/EquipmentLocationType/{location}");
-            await SetEquipmentActiveAsync(equipment, false);
-            Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/EquipmentLocationType/{location}", bearer: await AdminAsync())).StatusCode);
-        }
-
-        [Fact]
         public async Task A_model_used_by_active_equipment_cannot_be_deactivated()
         {
             var model = await NewModelAsync();
-            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewLocationTypeAsync(), modelId: model);
+            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewDepartmentAsync(), modelId: model);
 
             await AssertConflictAsync($"/api/EquipmentModel/{model}");
             await SetEquipmentActiveAsync(equipment, false);
@@ -170,7 +155,7 @@ namespace EMS.Tests.Integration
         public async Task A_type_used_directly_by_active_equipment_cannot_be_deactivated()
         {
             var type = await NewTypeAsync();
-            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewLocationTypeAsync(), typeId: type);
+            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewDepartmentAsync(), typeId: type);
 
             await AssertConflictAsync($"/api/EquipmentType/{type}");
             await SetEquipmentActiveAsync(equipment, false);
@@ -194,7 +179,7 @@ namespace EMS.Tests.Integration
 
             // by equipment
             var byEquipment = await NewDepartmentAsync();
-            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), await NewLocationTypeAsync(), typeId: await NewTypeAsync(), departmentId: byEquipment);
+            var equipment = await InsertEquipmentAsync(await NewStatusAsync(), byEquipment, typeId: await NewTypeAsync());
             await AssertConflictAsync($"/api/SupportingDepartment/{byEquipment}");
             await SetEquipmentActiveAsync(equipment, false);
             Assert.Equal(HttpStatusCode.OK, (await SendAsync(HttpMethod.Delete, $"/api/SupportingDepartment/{byEquipment}", bearer: admin)).StatusCode);

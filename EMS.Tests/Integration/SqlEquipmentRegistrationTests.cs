@@ -68,7 +68,7 @@ namespace EMS.Tests.Integration
                 new SqlAttachmentBlobStore(context), unitOfWork, audit, new UserReferenceRepository(context));
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
-                new EquipmentLocationTypeRepository(context), new SupportingDepartmentRepository(context), new Repository<Organization>(context),
+                new SupportingDepartmentRepository(context), new Repository<Organization>(context),
                 new PermissiveEquipmentLocationRule(), exporter: null!, new FakeCurrentUser(), unitOfWork, audit, attachments, new UserReferenceRepository(context));
             return (service, audit);
         }
@@ -83,14 +83,16 @@ namespace EMS.Tests.Integration
             db.Users.Add(new ApplicationUser { UserName = "tester", NormalizedUserName = "TESTER", FirstName = "t", LastName = "t", PersonnelCode = "T1", CreatedByUserId = 0 });
             var category = new EquipmentCategory { Title = "c" };
             var type = new EquipmentType { Title = "t", EquipmentCategory = category };
-            var location = new EquipmentLocationType { Title = "l" };
-            db.AddRange(category, type, location);
+            var province = new Province { Title = "p" };
+            var city = new City { Province = province, Title = "c" };
+            var department = new SupportingDepartment { City = city, Title = "d" };
+            db.AddRange(category, type, province, city, department);
             await db.SaveChangesAsync();
 
             return (db, new EquipmentCreateDto
             {
                 YaasCode = yaas, Owner = EquipmentOwner.Company, EquipmentTypeId = type.EquipmentTypeId,
-                EquipmentStatusId = (long)EquipmentStatusCode.InStock, CurrentEquipmentLocationTypeId = location.EquipmentLocationTypeId,
+                EquipmentStatusId = (long)EquipmentStatusCode.InStock, CurrentSupportingDepartmentId = department.SupportingDepartmentId,
             });
         }
 
@@ -103,6 +105,18 @@ namespace EMS.Tests.Integration
                 yield return new AttachmentUpload(name, new MemoryStream(bytes), null);
                 await Task.CompletedTask;
             }
+        }
+
+        [SqlServerFact]
+        public async Task The_database_itself_refuses_an_equipment_that_is_with_neither_a_branch_nor_a_department()
+        {
+            var (db, request) = await NewDatabaseAsync("Y-NOHOLDER");
+            await using var _ = db;
+
+            // straight to the table, past the API's validation: only the CHECK constraint can stop it
+            db.Equipments.Add(new Equipment { YaasCode = "Y-NOHOLDER", Owner = EquipmentOwner.Company, EquipmentTypeId = request.EquipmentTypeId, EquipmentStatusId = request.EquipmentStatusId });
+            var ex = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            Assert.Contains("CK_Equipments_Location_ExactlyOne", ex.InnerException?.Message ?? ex.Message);
         }
 
         [SqlServerFact]

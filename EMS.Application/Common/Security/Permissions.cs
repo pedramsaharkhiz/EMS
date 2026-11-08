@@ -60,12 +60,6 @@ namespace EMS.Application.Common.Security
             public const string Delete = "EquipmentCategories.Delete";
         }
 
-        public static class EquipmentLocationTypes
-        {
-            public const string Create = "EquipmentLocationTypes.Create";
-            public const string Update = "EquipmentLocationTypes.Update";
-            public const string Delete = "EquipmentLocationTypes.Delete";
-        }
 
         public static class EquipmentModels
         {
@@ -173,8 +167,10 @@ namespace EMS.Application.Common.Security
         /// </summary>
         public static IReadOnlyList<string> Retired { get; } = new[]
         {
-            "Brands.View", "Cities.View", "EquipmentCategories.View", "EquipmentLocationTypes.View", "EquipmentModels.View",
+            "Brands.View", "Cities.View", "EquipmentCategories.View", "EquipmentModels.View",
             "EquipmentStatuses.View", "EquipmentTypes.View", "FailureCategories.View", "Provinces.View", "SupportingDepartments.View",
+            // the location-type catalog was removed (an equipment is with a branch or with a supporting department: see ADR-0014)
+            "EquipmentLocationTypes.Create", "EquipmentLocationTypes.Update", "EquipmentLocationTypes.Delete",
         };
 
         /// <summary>

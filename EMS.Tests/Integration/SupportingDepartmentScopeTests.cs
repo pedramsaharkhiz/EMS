@@ -262,8 +262,8 @@ namespace EMS.Tests.Integration
             var failureType = await CatalogFixtures.PostAsync(this, "/api/FailureType", new { failureCategoryId = category, title = Uniq("sdft") }, "id");
             var equipmentCategory = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("sdec") }, "id");
             var equipmentType = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = equipmentCategory, title = Uniq("sdet"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("sdloc"), code = "L" }, "id");
-            var equipment = (await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", new { yaasCode = Uniq("SDY"), owner = 1, equipmentTypeId = equipmentType, equipmentStatusId = 1, currentEquipmentLocationTypeId = location }))).GetProperty("id").GetInt64();
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
+            var equipment = (await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", new { yaasCode = Uniq("SDY"), owner = 1, equipmentTypeId = equipmentType, equipmentStatusId = 1, currentSupportingDepartmentId = location }))).GetProperty("id").GetInt64();
 
             async Task<long> ReportAsync(long organization) =>
                 (await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/FailureReport", new { equipmentId = equipment, failureTypeId = failureType, reportTypeId = 1, organizationId = organization, priorityId = 2 }))).GetProperty("id").GetInt64();

@@ -32,21 +32,21 @@ namespace EMS.Tests.Integration
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>
             await SendAsync(method, url, body, bearer: await AdminAsync());
 
-        private sealed record Fixture(long TypeId, long ModelId, long LocationTypeId);
+        private sealed record Fixture(long TypeId, long ModelId, long DepartmentId);
         private async Task<Fixture> NewFixtureAsync()
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("cccat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("cctype"), code = "T" }, "id");
             var brand = await CatalogFixtures.PostAsync(this, "/api/Brand", new { title = Uniq("ccbrand"), code = "B" }, "id");
             var model = await CatalogFixtures.PostAsync(this, "/api/EquipmentModel", new { equipmentTypeId = type, brandId = brand, title = Uniq("ccmodel"), code = "M" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("ccloc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             return new Fixture(type, model, location);
         }
 
         private static Dictionary<string, object?> Body(Fixture f) => new()
         {
             ["yaasCode"] = Uniq("CCY"), ["owner"] = (int)EquipmentOwner.Company, ["equipmentTypeId"] = f.TypeId,
-            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentEquipmentLocationTypeId"] = f.LocationTypeId,
+            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentSupportingDepartmentId"] = f.DepartmentId,
         };
 
         private static Dictionary<string, object?> UpdateBody(Dictionary<string, object?> create) => new()
@@ -114,7 +114,7 @@ namespace EMS.Tests.Integration
             var id = await CreatedIdAsync(Body(f));
             var max = Model().FindEntityType(typeof(EquipmentLocationHistory))!.FindProperty("Description")!.GetMaxLength()!.Value;
 
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentEquipmentLocationTypeId = f.LocationTypeId, description = new string('x', max + 1) });
+            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = f.DepartmentId, description = new string('x', max + 1) });
             Assert.Equal(HttpStatusCode.BadRequest, move.StatusCode);
             AssertPersianValidation(await ReadJsonAsync(move), "description");
         }
@@ -136,10 +136,10 @@ namespace EMS.Tests.Integration
                 .Select(p => p.Name)
                 .Except(new[] { "IsActive", "CreatedByUserId", "CreatedDateTime" })
                 .OrderBy(n => n).ToArray();
-            Assert.Equal(new[] { "CurrentEquipmentLocationTypeId", "EquipmentStatusId", "Owner", "YaasCode" }, notNull);
+            Assert.Equal(new[] { "EquipmentStatusId", "Owner", "YaasCode" }, notNull);
 
             var f = await NewFixtureAsync();
-            foreach (var (property, field) in new[] { ("YaasCode", "yaasCode"), ("EquipmentStatusId", "equipmentStatusId"), ("CurrentEquipmentLocationTypeId", "currentEquipmentLocationTypeId"), ("Owner", "owner") })
+            foreach (var (property, field) in new[] { ("YaasCode", "yaasCode"), ("EquipmentStatusId", "equipmentStatusId"), ("Owner", "owner") })
             {
                 var body = Body(f);
                 body.Remove(field);
@@ -157,7 +157,7 @@ namespace EMS.Tests.Integration
         public async Task Every_check_constraint_has_a_validation_case()
         {
             var names = Equipment().GetCheckConstraints().Select(c => c.Name).OrderBy(n => n).ToArray();
-            Assert.Equal(new[] { "CK_Equipments_Owner", "CK_Equipments_TypeOrModel_ExactlyOne" }, names);   // a new check needs a case below
+            Assert.Equal(new[] { "CK_Equipments_Location_ExactlyOne", "CK_Equipments_Owner", "CK_Equipments_TypeOrModel_ExactlyOne" }, names);   // a new check needs a case below
 
             var f = await NewFixtureAsync();
             var both = Body(f); both["equipmentModelId"] = f.ModelId;
@@ -175,6 +175,25 @@ namespace EMS.Tests.Integration
                 AssertPersianValidation(await ReadJsonAsync(updated), "equipmentTypeId");
             }
 
+            // CK_Equipments_Location_ExactlyOne (and its twin on the history): a branch OR a department, on create and on move
+            var bothHolders = Body(f); bothHolders["currentOrganizationId"] = 1;
+            var noHolder = Body(f); noHolder.Remove("currentSupportingDepartmentId");
+            foreach (var body in new[] { bothHolders, noHolder })
+            {
+                var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                AssertPersianValidation(await ReadJsonAsync(response), "currentOrganizationId");
+            }
+            var movable = await CreatedIdAsync(Body(f));
+            foreach (var move in new object[] { new { currentOrganizationId = 1, currentSupportingDepartmentId = f.DepartmentId }, new { description = "nowhere" } })
+            {
+                var response = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{movable}/move", move);
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                AssertPersianValidation(await ReadJsonAsync(response), "currentOrganizationId");
+            }
+            Assert.Equal(new[] { "CK_EquipmentLocationHistories_Location_ExactlyOne" },
+                Model().FindEntityType(typeof(EquipmentLocationHistory))!.GetCheckConstraints().Select(c => c.Name).ToArray());
+
             var bad = Body(f); bad["owner"] = 7;
             Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Post, "/api/Equipment", bad)).StatusCode);   // CK_Equipments_Owner (see EquipmentOwnerTests)
         }
@@ -185,13 +204,14 @@ namespace EMS.Tests.Integration
         public async Task Every_foreign_key_is_checked_and_an_unknown_id_is_a_persian_404()
         {
             var foreignKeys = Equipment().GetForeignKeys().SelectMany(k => k.Properties).Select(p => p.Name).Distinct().OrderBy(n => n).ToArray();
-            Assert.Equal(new[] { "CurrentEquipmentLocationTypeId", "CurrentOrganizationId", "CurrentSupportingDepartmentId", "EquipmentModelId", "EquipmentStatusId", "EquipmentTypeId", "TechnicianUserId" }, foreignKeys);
+            Assert.Equal(new[] { "CurrentOrganizationId", "CurrentSupportingDepartmentId", "EquipmentModelId", "EquipmentStatusId", "EquipmentTypeId", "TechnicianUserId" }, foreignKeys);
 
             var f = await NewFixtureAsync();
-            foreach (var field in new[] { "equipmentTypeId", "equipmentStatusId", "currentEquipmentLocationTypeId", "currentOrganizationId", "currentSupportingDepartmentId", "technicianUserId", "equipmentModelId" })
+            foreach (var field in new[] { "equipmentTypeId", "equipmentStatusId", "currentSupportingDepartmentId", "currentOrganizationId", "technicianUserId", "equipmentModelId" })
             {
                 var body = Body(f);
                 if (field == "equipmentModelId") body["equipmentTypeId"] = null;
+                if (field == "currentOrganizationId") body.Remove("currentSupportingDepartmentId");      // a branch OR a department
                 body[field] = 99999999;
                 var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
                 Assert.True(response.StatusCode == HttpStatusCode.NotFound, $"{field} -> {(int)response.StatusCode}");

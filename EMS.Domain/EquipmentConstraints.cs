@@ -5,6 +5,10 @@ namespace EMS.Domain
     {
         public const string OwnerCheckName = "CK_Equipments_Owner";
 
+        /// <summary>An equipment is with a branch OR with a supporting department (ستاد), never both and never neither. The history keeps the same rule.</summary>
+        public const string LocationCheckName = "CK_Equipments_Location_ExactlyOne";
+        public const string HistoryLocationCheckName = "CK_EquipmentLocationHistories_Location_ExactlyOne";
+
         // Serial number and asset number are unique among ALL equipment (active or not, ignoring case); an empty value is not "taken".
         public const string SerialNumberIndexName = "UX_Equipments_SerialNumber";
         public const string AssetNumberIndexName = "UX_Equipments_AssetNumber";

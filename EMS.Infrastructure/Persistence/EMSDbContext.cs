@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Entities;
+using EMS.Domain.Entities;
 using EMS.Infrastructure.Persistence.Identity;
 using EMS.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -39,7 +39,6 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<EquipmentModel> EquipmentModels => Set<EquipmentModel>();
         public DbSet<Post> Posts => Set<Post>();
         public DbSet<EquipmentStatus> EquipmentStatuses => Set<EquipmentStatus>();
-        public DbSet<EquipmentLocationType> EquipmentLocationTypes => Set<EquipmentLocationType>();
         public DbSet<Equipment> Equipments => Set<Equipment>();
         public DbSet<EquipmentLocationHistory> EquipmentLocationHistories => Set<EquipmentLocationHistory>();
 
