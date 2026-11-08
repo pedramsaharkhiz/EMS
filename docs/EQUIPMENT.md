@@ -8,6 +8,7 @@
 |---|---|---|
 | `GET /api/Equipment` | `Equipments.View` | لیست (فیلتر، مرتب‌سازی، صفحه‌بندی) |
 | `GET /api/Equipment/export` | `Equipments.View` | همان لیست، به‌صورت Excel (بدون صفحه‌بندی) |
+| `GET /api/Users/{userId}/equipment` | `Equipments.View` | **تجهیزی که یک کاربر الان در اختیار دارد** (او تکنسینشان است)؛ [توضیح](#تجهیز-یک-کاربر) |
 | `GET /api/Equipment/technicians` | `Equipments.View` | dropdown تکنسین: **همهٔ کاربران فعال** (سمت معیار نیست) |
 | `GET /api/Equipment/{id}/technician` | `Equipments.View` | تکنسین فعلی این تجهیز با سمت و دپارتمان پشتیبانی‌اش؛ `data` برای تجهیز بدون تکنسین `null` است (`404` برای تجهیز ناموجود) |
 | `GET /api/Equipment/{id}` | `Equipments.View` | جزئیات (فعال یا غیرفعال) **همراه با پیوست‌های فعال** (`attachments`، جدیدترین اول) و `attachmentCount`؛ [توضیح](ATTACHMENTS.md#پیوست‌ها-در-جزئیات-و-لیست-تجهیز) |
@@ -19,6 +20,17 @@
 | `POST /api/Equipment/{id}/move` | `Equipments.Assign` | تغییر **جزئی** مکان و/یا تکنسین (با ثبت تاریخچه)؛ [توضیح](#جابه‌جایی-move) |
 | `POST /api/Equipment/bulk-move` | `Equipments.Assign` | **همان تغییر `move` برای چند تجهیز** (همه یا هیچ، حداکثر ۲۰۰)؛ [توضیح](#جابه‌جایی-گروهی-bulk-move) |
 | `DELETE /api/Equipment/{id}` | `Equipments.Delete` | غیرفعال‌سازی (حذف منطقی، تکرارپذیر) |
+
+## تجهیز یک کاربر
+
+`GET /api/Users/{userId}/equipment` (مجوز `Equipments.View`، مثل لیست تجهیز): تجهیزی که آن کاربر **الان** تکنسینشان است. همان **لیست تجهیز** است با فیلتر `technicianUserId` ثابت‌شده روی کاربرِ مسیر.
+
+- شکل پاسخ، صفحه‌بندی (`pageSize` تا ۱۰۰)، مرتب‌سازی (`sortBy`، `sortDirection`) و همهٔ فیلترهای لیست (`statusId`، `typeId`، `isActive` و ...) همان لیست است. `technicianUserId` اگر در query بیاید **نادیده گرفته می‌شود** (کاربرِ مسیر تعیین‌کننده است).
+- تجهیز غیرفعال به‌صورت پیش‌فرض نمی‌آید (`isActive=false` آن را نشان می‌دهد).
+- کاربری که چیزی در اختیار ندارد: `200` و لیست خالی. کاربر ناموجود: `404 user_not_found`. کاربر غیرفعال‌شده هم آنچه دارد نشان می‌دهد.
+- مجوز `Users.View` لازم **نیست** و کافی هم نیست: خروجی تجهیز است و همان مجوز لیست تجهیز را می‌خواهد (کسی که `Equipments.View` دارد از قبل با `GET /api/Equipment?technicianUserId=…` همین را می‌توانست ببیند، پس دسترسی تازه‌ای باز نمی‌شود).
+- نسخهٔ Excel جدا ندارد؛ برای Excel از `GET /api/Equipment/export?technicianUserId=…` استفاده کن.
+- **فقط وضعیت فعلی** است، نه تاریخچهٔ آنچه کاربر قبلاً داشته (آن در `GET /api/Equipment/{id}/location-history` هر تجهیز است).
 
 ## جابه‌جایی (`move`)
 
