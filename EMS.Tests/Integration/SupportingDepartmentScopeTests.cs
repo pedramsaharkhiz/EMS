@@ -83,7 +83,9 @@ namespace EMS.Tests.Integration
             // the department list and detail count its active branches
             var detail = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/SupportingDepartment/{department}"));
             Assert.Equal(2, detail.GetProperty("organizationCount").GetInt32());
-            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/SupportingDepartment?pageSize=100")));
+            // found by its title: the shared test database holds more and more departments
+            var title = Uri.EscapeDataString(detail.GetProperty("title").GetString()!);
+            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/SupportingDepartment?pageSize=100&title={title}")));
             Assert.Equal(2, list.EnumerateArray().Single(d => d.GetProperty("id").GetInt64() == department).GetProperty("organizationCount").GetInt32());
 
             // the branch row carries its department

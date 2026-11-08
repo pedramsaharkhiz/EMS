@@ -688,9 +688,14 @@ namespace EMS.Tests.Integration
                 await db.SaveChangesAsync();
             }
 
-            var all = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/technicians?pageSize=100"))).EnumerateArray().Select(Id).ToList();
-            Assert.Contains(tech.Id, all);
-            Assert.DoesNotContain(inactive.Id, all);
+            // found by personnel code: the dropdown lists every active user and the shared test database holds more and more of them
+            async Task<List<long>> LookupAsync(long userId)
+            {
+                var code = (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Users/{userId}"))).GetProperty("personnelCode").GetString();
+                return DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/technicians?pageSize=100&search={Uri.EscapeDataString(code!)}"))).EnumerateArray().Select(Id).ToList();
+            }
+            Assert.Contains(tech.Id, await LookupAsync(tech.Id));
+            Assert.DoesNotContain(inactive.Id, await LookupAsync(inactive.Id));
 
             var item = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/technicians?search=PC-tc_"))).EnumerateArray().First();
             Assert.False(string.IsNullOrWhiteSpace(item.GetProperty("fullName").GetString()));
