@@ -501,10 +501,7 @@ namespace EMS.Application.Services.Equipment
         {
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
-            var location = new EquipmentLocation(
-                OrganizationId: request.CurrentOrganizationId ?? (request.CurrentSupportingDepartmentId.HasValue ? null : entity.CurrentOrganizationId),
-                SupportingDepartmentId: request.CurrentSupportingDepartmentId ?? (request.CurrentOrganizationId.HasValue ? null : entity.CurrentSupportingDepartmentId),
-                TechnicianUserId: request.ClearTechnician ? null : request.TechnicianUserId ?? entity.TechnicianUserId);
+            var location = TargetOf(entity, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId, request.ClearTechnician);
 
             // The validator refuses these; this keeps the rule even for a caller that skips it (the database constraint is the last guard).
             if (request.CurrentOrganizationId.HasValue && request.CurrentSupportingDepartmentId.HasValue || !location.HasExactlyOneHolder)
@@ -514,7 +511,7 @@ namespace EMS.Application.Services.Equipment
             if (location == new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId))
                 return await DetailAsync(id, cancellationToken);
 
-            await RequireMoveTargetsExistAsync(request, cancellationToken);
+            await RequireMoveTargetsExistAsync(request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId, cancellationToken);
             await _locationRule.ValidateAsync(location, cancellationToken);
 
             entity.CurrentOrganizationId = location.OrganizationId;
@@ -531,14 +528,100 @@ namespace EMS.Application.Services.Equipment
             return await DetailAsync(id, cancellationToken);
         }
 
-        /// <summary>The named branch, department and technician must exist (404). Active or not, and the technician's post, are not checked.</summary>
-        private async Task RequireMoveTargetsExistAsync(EquipmentMoveDto request, CancellationToken cancellationToken)
+        /// <summary>
+        /// The state an equipment is in after a (partial) move: what was not named stays, naming a branch leaves the department and the other way
+        /// round, and <paramref name="clearTechnician"/> takes the technician off.
+        /// </summary>
+        private static EquipmentLocation TargetOf(EquipmentEntity entity, long? organizationId, long? departmentId, long? technicianId, bool clearTechnician) => new(
+            OrganizationId: organizationId ?? (departmentId.HasValue ? null : entity.CurrentOrganizationId),
+            SupportingDepartmentId: departmentId ?? (organizationId.HasValue ? null : entity.CurrentSupportingDepartmentId),
+            TechnicianUserId: clearTechnician ? null : technicianId ?? entity.TechnicianUserId);
+
+        /// <summary>
+        /// The same change for many equipment, all or nothing in one transaction. Each equipment ends in the state a single <c>move</c> would give
+        /// it; the ones already in that state are counted as unchanged and get no history entry.
+        /// </summary>
+        public async Task<EquipmentBulkMoveResultDto> BulkMoveAsync(EquipmentBulkMoveDto request, CancellationToken cancellationToken = default)
         {
-            if (request.CurrentOrganizationId is { } organization)
+            var ids = request.EquipmentIds ?? new List<long>();
+            var entities = (await _repository.GetManyForUpdateAsync(ids, cancellationToken)).ToDictionary(e => e.EquipmentId);
+
+            var problems = new List<ApiErrorDetail>();
+            var failedIds = new HashSet<long>();
+            for (var i = 0; i < ids.Count; i++)
+            {
+                if (!entities.ContainsKey(ids[i]))
+                {
+                    problems.Add(new ApiErrorDetail { Field = $"equipmentIds[{i}]", Message = "تجهیز موردنظر پیدا نشد." });
+                    failedIds.Add(ids[i]);
+                }
+            }
+            if (problems.Count > 0)
+                throw new BulkItemsException(problems, $"جابه‌جایی گروهی انجام نشد؛ {failedIds.Count} تجهیز پیدا نشد و هیچ تجهیزی جابه‌جا نشد.");
+
+            var changes = new List<(EquipmentEntity Entity, EquipmentLocation Location)>();
+            foreach (var id in ids)
+            {
+                var entity = entities[id];
+                var location = TargetOf(entity, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId, request.ClearTechnician);
+                if (!location.HasExactlyOneHolder)
+                    throw new BadRequestException(EquipmentLocation.HolderMessage, ErrorCodes.LocationHolderInvalid);
+                if (location != new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId))
+                    changes.Add((entity, location));
+            }
+
+            if (changes.Count > 0)
+            {
+                // the destination is the same for all: its existence is checked once
+                await RequireMoveTargetsExistAsync(request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId, cancellationToken);
+
+                var rule = new List<ApiErrorDetail>();
+                for (var i = 0; i < ids.Count; i++)
+                {
+                    var change = changes.FirstOrDefault(c => c.Entity.EquipmentId == ids[i]);
+                    if (change.Entity is null) continue;
+                    try { await _locationRule.ValidateAsync(change.Location, cancellationToken); }
+                    catch (BadRequestException ex) { rule.Add(new ApiErrorDetail { Field = $"equipmentIds[{i}]", Message = ex.Message }); }
+                }
+                if (rule.Count > 0)
+                    throw new BulkItemsException(rule, $"جابه‌جایی گروهی انجام نشد؛ {rule.Count} تجهیز شرایط را ندارد و هیچ تجهیزی جابه‌جا نشد.");
+
+                var description = Normalize(request.Description);
+                foreach (var (entity, location) in changes)
+                {
+                    entity.CurrentOrganizationId = location.OrganizationId;
+                    entity.CurrentSupportingDepartmentId = location.SupportingDepartmentId;
+                    entity.TechnicianUserId = location.TechnicianUserId;
+                    _repository.Update(entity);
+                    _repository.AddLocationHistory(NewHistory(entity, location, description));
+                }
+
+                // one save = one transaction: all the equipment or none (a concurrent change of any of them is a 409 for the whole request)
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                foreach (var (entity, location) in changes)
+                    _audit.Operation("LocationChanged", "Equipment", entity.EquipmentId,
+                        $"organization={location.OrganizationId};department={location.SupportingDepartmentId};technician={location.TechnicianUserId}");
+                _audit.Operation("BulkMoved", "Equipment", null, $"selected={ids.Count};changed={changes.Count}");
+            }
+
+            return new EquipmentBulkMoveResultDto
+            {
+                Selected = ids.Count,
+                Changed = changes.Count,
+                Unchanged = ids.Count - changes.Count,
+                ChangedIds = changes.Select(c => c.Entity.EquipmentId).ToList(),
+            };
+        }
+
+        /// <summary>The named branch, department and technician must exist (404). Active or not, and the technician's post, are not checked.</summary>
+        private async Task RequireMoveTargetsExistAsync(long? organizationId, long? departmentId, long? technicianId, CancellationToken cancellationToken)
+        {
+            if (organizationId is { } organization)
                 await ParentGuard.RequireAsync(_organizations, organization, x => x.OrganizationId, "شعبه", mustBeActive: false, cancellationToken);
-            if (request.CurrentSupportingDepartmentId is { } department)
+            if (departmentId is { } department)
                 await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: false, cancellationToken);
-            if (request.TechnicianUserId is { } technician)
+            if (technicianId is { } technician)
             {
                 var found = await _repository.GetTechnicianEligibilityAsync(new[] { technician }, cancellationToken);
                 if (!found.ContainsKey(technician))

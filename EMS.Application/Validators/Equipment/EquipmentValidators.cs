@@ -128,6 +128,33 @@ namespace EMS.Application.Validators.Equipment
         }
     }
 
+    public sealed class EquipmentBulkMoveDtoValidator : AbstractValidator<EquipmentBulkMoveDto>
+    {
+        public EquipmentBulkMoveDtoValidator()
+        {
+            RuleFor(x => x.EquipmentIds)
+                .NotEmpty().WithMessage("فهرست تجهیزات الزامی است و نباید خالی باشد.")
+                .Must(ids => ids is null || ids.Count <= EquipmentConstraints.BulkMoveMaxItems)
+                .WithMessage($"در هر درخواست حداکثر {EquipmentConstraints.BulkMoveMaxItems} تجهیز مجاز است.");
+            RuleForEach(x => x.EquipmentIds).GreaterThan(0).WithMessage("شناسه تجهیز باید بزرگتر از صفر باشد.");
+            RuleFor(x => x.EquipmentIds)
+                .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
+                .WithMessage("یک تجهیز نباید بیش از یک بار در فهرست بیاید.");
+
+            // the change is the one of a single move
+            RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
+            RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
+            RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
+            RuleFor(x => x.Description).TextMax(EquipmentConstraints.DescriptionMaxLength, "توضیحات");
+            RuleFor(x => x).Must(x => !(x.CurrentOrganizationId.HasValue && x.CurrentSupportingDepartmentId.HasValue))
+                .WithName("currentOrganizationId").WithMessage(EquipmentLocation.MoveBothMessage);
+            RuleFor(x => x).Must(x => !(x.ClearTechnician && x.TechnicianUserId.HasValue))
+                .WithName("clearTechnician").WithMessage(EquipmentLocation.MoveClearAndSetTechnicianMessage);
+            RuleFor(x => x).Must(x => x.CurrentOrganizationId.HasValue || x.CurrentSupportingDepartmentId.HasValue || x.TechnicianUserId.HasValue || x.ClearTechnician)
+                .WithName("technicianUserId").WithMessage(EquipmentLocation.MoveNothingMessage);
+        }
+    }
+
     public sealed class EquipmentListRequestDtoValidator : CatalogListRequestValidator<EquipmentListRequestDto>
     {
         private const int MaxValues = 200;

@@ -66,6 +66,12 @@ namespace EMS.Infrastructure.Repositories
         public async Task<Equipment?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default) =>
             await _dbSet.IncludingInactive().FirstOrDefaultAsync(x => x.EquipmentId == id, cancellationToken);
 
+        public async Task<List<Equipment>> GetManyForUpdateAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)
+        {
+            var wanted = ids.ToList();
+            return await _dbSet.IncludingInactive().Where(x => wanted.Contains(x.EquipmentId)).ToListAsync(cancellationToken);
+        }
+
         public IQueryable<EquipmentRow> QueryRows(bool active)
         {
             // The soft-delete filter is lifted for the whole query (so an equipment is not dropped by a join to a catalog row, a post or

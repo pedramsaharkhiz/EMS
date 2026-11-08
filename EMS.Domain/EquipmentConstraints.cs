@@ -20,5 +20,8 @@ namespace EMS.Domain
 
         /// <summary>The most equipment one bulk-create request may carry.</summary>
         public const int BulkCreateMaxItems = 200;
+
+        /// <summary>The most equipment one bulk-move request may carry.</summary>
+        public const int BulkMoveMaxItems = 200;
     }
 }
