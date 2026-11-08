@@ -51,27 +51,29 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    // CORS Policy
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy("DefaultCorsPolicy", policy =>
-        {
-            policy
-                .WithOrigins(
-                    "http://localhost",
-                    "http://localhost:3000",
-                    "https://localhost:3000",
-                    "http://localhost:5173",
-                    "https://localhost:5173",
-                    "http://localhost:4200",
-                    "https://localhost:4200",
-                    "http://localhost:7224",
-                    "https://localhost:7224")
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
-        });
-    });
+    // CORS: the allowed origins come from appsettings (Cors:AllowedOrigins), so a new address of the UI needs no new build.
+    // A malformed origin stops start-up instead of silently blocking (or opening) the API.
+    builder.Services.AddOptions<CorsSettings>()
+        .Bind(builder.Configuration.GetSection(CorsSettings.SectionName))
+        .Validate(options => options.Validate() is null, "Cors configuration is invalid (see Cors:AllowedOrigins).")
+        .ValidateOnStart();
+    builder.Services.AddOptions<HttpsOptions>().Bind(builder.Configuration.GetSection(HttpsOptions.SectionName));
+
+    // The policy is built from the bound options when the first request needs it (not while the builder is still being filled).
+    builder.Services.AddCors();
+    builder.Services.AddOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions>()
+        .Configure<Microsoft.Extensions.Options.IOptions<CorsSettings>>((cors, settings) =>
+            cors.AddPolicy("DefaultCorsPolicy", policy =>
+            {
+                var origins = settings.Value.AllowedOrigins;
+                if (origins.Count > 0)
+                    policy.WithOrigins(origins.ToArray());
+
+                policy
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            }));
 
     builder.Services.AddControllers(options =>
         {
@@ -226,7 +228,13 @@ try
         });
     }
 
-    app.UseHttpsRedirection();
+    if (app.Configuration.GetSection(HttpsOptions.SectionName).Get<HttpsOptions>()?.RedirectEnabled ?? true)
+        app.UseHttpsRedirection();
+    else
+        app.Logger.LogWarning("Https:RedirectEnabled is false: http requests are not redirected to https.");
+
+    if (app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<CorsSettings>>().Value.AllowedOrigins.Count == 0)
+        app.Logger.LogWarning("Cors:AllowedOrigins is empty: no browser origin may call the API.");
 
     app.UseCors("DefaultCorsPolicy");
 

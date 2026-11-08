@@ -63,6 +63,9 @@ namespace EMS.Tests.Integration
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["Logging:AuditTrail:Enabled"] = "true",
+                    // The allowed browser origins are configuration, not code (the test environment has no appsettings.<env>.json).
+                    ["Cors:AllowedOrigins:0"] = "http://localhost:3000",
+                    ["Cors:AllowedOrigins:1"] = "http://192.168.200.62",
                     // Tests start from empty catalogs whatever appsettings says (the geography seeder is exercised explicitly).
                     ["Seed:Geography:Enabled"] = "false",
                     // Write the real file sinks into a per-run directory instead of the working directory.
