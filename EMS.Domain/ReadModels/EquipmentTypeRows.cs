@@ -9,5 +9,7 @@ namespace EMS.Domain.ReadModels
         public bool IsActive { get; set; }
         public long EquipmentCategoryId { get; set; }
         public string? EquipmentCategoryTitle { get; set; }
+        /// <summary>The type has at least one active model.</summary>
+        public bool HasModels { get; set; }
     }
 }

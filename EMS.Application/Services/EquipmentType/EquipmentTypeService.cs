@@ -70,7 +70,7 @@ namespace EMS.Application.Services.EquipmentType
         private static EquipmentTypeListItemDto ToDto(EquipmentTypeWithCategoryRow row) => new()
         {
             Id = row.Id, Title = row.Title, Code = row.Code, IsActive = row.IsActive,
-            EquipmentCategoryId = row.EquipmentCategoryId, EquipmentCategoryTitle = row.EquipmentCategoryTitle,
+            EquipmentCategoryId = row.EquipmentCategoryId, EquipmentCategoryTitle = row.EquipmentCategoryTitle, HasModels = row.HasModels,
         };
 
         public const string EntityLabel = "نوع تجهیز";
@@ -79,7 +79,9 @@ namespace EMS.Application.Services.EquipmentType
         protected override Expression<Func<EquipmentTypeEntity, long>> IdSelector => x => x.EquipmentTypeId;
 
         protected override Expression<Func<EquipmentTypeEntity, EquipmentTypeListItemDto>> ListItem =>
-            x => new EquipmentTypeListItemDto { Id = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, EquipmentCategoryTitle = x.EquipmentCategory.Title, Title = x.Title, Code = x.Code, IsActive = x.IsActive };
+            x => new EquipmentTypeListItemDto { Id = x.EquipmentTypeId, EquipmentCategoryId = x.EquipmentCategoryId, EquipmentCategoryTitle = x.EquipmentCategory.Title, Title = x.Title, Code = x.Code, IsActive = x.IsActive,
+                // the models are a catalog with the soft-delete filter, and a list of deactivated types lifts it: so IsActive is explicit
+                HasModels = x.EquipmentModels.Any(m => m.IsActive) };
 
         protected override void ConfigureSorting(SortBuilder<EquipmentTypeEntity> sort) =>
             sort.By("title", x => x.Title).By("code", x => x.Code).By("equipmentcategoryid", x => x.EquipmentCategoryId);

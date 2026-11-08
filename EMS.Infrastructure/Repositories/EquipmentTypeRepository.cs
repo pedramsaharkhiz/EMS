@@ -22,6 +22,7 @@ namespace EMS.Infrastructure.Repositories
                     IsActive = t.IsActive,
                     EquipmentCategoryId = t.EquipmentCategoryId,
                     EquipmentCategoryTitle = t.EquipmentCategory.Title,
+                    HasModels = false,   // by definition: this query lists only the types without an active model
                 });
 
         public IQueryable<EquipmentTypeWithCategoryRow> QueryTypeOfModel(long modelId) =>
@@ -35,6 +36,8 @@ namespace EMS.Infrastructure.Repositories
                     IsActive = m.EquipmentType.IsActive,
                     EquipmentCategoryId = m.EquipmentType.EquipmentCategoryId,
                     EquipmentCategoryTitle = m.EquipmentType.EquipmentCategory.Title,
+                    // a deactivated model is the one asked about, so the type's OTHER models decide (explicit IsActive: the filter is lifted here)
+                    HasModels = _context.EquipmentModels.Any(x => x.EquipmentTypeId == m.EquipmentTypeId && x.IsActive),
                 });
 
         public override async Task<bool> HasActiveDependentsAsync(long id, CancellationToken cancellationToken = default)
