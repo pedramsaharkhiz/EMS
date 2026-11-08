@@ -52,9 +52,10 @@ namespace EMS.Tests.Integration
             var withModel = await NewTypeAsync();
             var model = await NewModelAsync(withModel.Id);
 
-            var listed = (await WithoutModelsAsync()).ToDictionary(Id);
+            // scoped by category: the shared test database holds more and more types without models
+            var listed = (await WithoutModelsAsync($"&equipmentCategoryId={plain.CategoryId}")).ToDictionary(Id);
             Assert.True(listed.ContainsKey(plain.Id));
-            Assert.False(listed.ContainsKey(withModel.Id));
+            Assert.DoesNotContain(withModel.Id, (await WithoutModelsAsync($"&equipmentCategoryId={withModel.CategoryId}")).Select(Id));
 
             var row = listed[plain.Id];
             Assert.Equal(plain.Title, row.GetProperty("title").GetString());
@@ -64,7 +65,7 @@ namespace EMS.Tests.Integration
 
             // when its only model is deactivated the type is a type without models again
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/EquipmentModel/{model}")).StatusCode);
-            Assert.Contains(withModel.Id, (await WithoutModelsAsync()).Select(Id));
+            Assert.Contains(withModel.Id, (await WithoutModelsAsync($"&equipmentCategoryId={withModel.CategoryId}")).Select(Id));
         }
 
         [Fact]

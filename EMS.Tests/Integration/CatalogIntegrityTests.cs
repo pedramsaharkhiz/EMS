@@ -43,8 +43,8 @@ namespace EMS.Tests.Integration
             Assert.NotEqual(id, secondId);
 
             // Default listing: active records only. ?isActive=false: the deactivated ones.
-            var active = await ReadJsonAsync(await GetAsync("/api/Brand?pageSize=100"));
-            var inactive = await ReadJsonAsync(await GetAsync("/api/Brand?pageSize=100&isActive=false"));
+            var active = await ReadJsonAsync(await GetAsync("/api/Brand?pageSize=100&title=CatReuse"));
+            var inactive = await ReadJsonAsync(await GetAsync("/api/Brand?pageSize=100&isActive=false&title=CatReuse"));
             Assert.Contains("CatReuse", Titles(active));
             Assert.Equal(1, Titles(inactive).Count(t => t == "CatReuse"));
             Assert.DoesNotContain(DataOf(inactive).EnumerateArray(), i => i.GetProperty("isActive").GetBoolean());
