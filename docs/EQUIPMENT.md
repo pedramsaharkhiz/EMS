@@ -16,8 +16,33 @@
 | `POST /api/Equipment/with-attachments` | `Equipments.Create` | ثبت همراه با فایل‌ها در یک درخواست (`201`)، همه یا هیچ؛ [توضیح](ATTACHMENTS.md#ثبت-تجهیز-همراه-با-پیوست-یک-درخواست) |
 | `POST /api/Equipment/bulk` | `Equipments.Create` | ثبت گروهی (`201`)، همه یا هیچ؛ [توضیح](#ثبت-گروهی) |
 | `PUT /api/Equipment/{id}` | `Equipments.Update` | ویرایش |
-| `POST /api/Equipment/{id}/move` | `Equipments.Assign` | تغییر مکان (با ثبت تاریخچه) |
+| `POST /api/Equipment/{id}/move` | `Equipments.Assign` | تغییر **جزئی** مکان و/یا تکنسین (با ثبت تاریخچه)؛ [توضیح](#جابه‌جایی-move) |
 | `DELETE /api/Equipment/{id}` | `Equipments.Delete` | غیرفعال‌سازی (حذف منطقی، تکرارپذیر) |
+
+## جابه‌جایی (`move`)
+
+`POST /api/Equipment/{id}/move` (مجوز `Equipments.Assign`) یک تغییر **جزئی** است: **همهٔ فیلدها اختیاری‌اند و `null` (یا نیامدن) یعنی «دست نزن».** دلیل و جزئیات تصمیم: [ADR-0015](adr/0015-partial-equipment-move.md).
+
+```json
+{ "currentOrganizationId": 12, "currentSupportingDepartmentId": null, "technicianUserId": 41, "clearTechnician": false, "description": "…", "rowVersion": "…" }
+```
+
+| درخواست | نتیجه |
+|---|---|
+| فقط `technicianUserId` | تکنسین عوض می‌شود، مکان دست‌نخورده |
+| فقط `currentOrganizationId` | تجهیز به آن شعبه می‌رود، **ستادِ فعلی خودکار خالی می‌شود**، تکنسین بدون تغییر |
+| فقط `currentSupportingDepartmentId` | به آن ستاد می‌رود، شعبهٔ فعلی خالی می‌شود، تکنسین بدون تغییر |
+| تکنسین + یکی از شعبه/ستاد | هر دو در یک ردیف تاریخچه عوض می‌شوند |
+| شعبه و ستاد هم‌زمان | `400 validation_failed` (تجهیز دقیقاً یکی را دارد) |
+| `clearTechnician: true` | تکنسین برداشته می‌شود. با `technicianUserId` هم‌زمان نمی‌آید (`400`) |
+| هیچ‌کدام از چهار مورد بالا | `400 validation_failed` («حداقل یکی را بفرست») |
+| همان وضعیت فعلی | `200` بدون خطا و بدون ردیف تاریخچه |
+
+- **`null` دیگر تکنسین را پاک نمی‌کند** (قبلاً می‌کرد). برای برداشتن تکنسین `clearTechnician: true` بفرست.
+- **تکنسین هنگام جابه‌جایی مکان می‌ماند** مگر اینکه تکنسین تازه بیاید یا `clearTechnician` باشد.
+- **ردیف تاریخچه عکس کامل وضعیت بعد از تغییر است** (مکان و تکنسین)، حتی وقتی فقط تکنسین عوض شده.
+- **فقط وجود بررسی می‌شود:** شعبه، ستاد و تکنسینِ ناموجود `404 parent_not_found`. **فعال‌بودن شعبه، ستاد و تکنسین و سمت «تکنسین» در `move` بررسی نمی‌شود.**
+- تجهیز غیرفعال را هم می‌شود جابه‌جا کرد (`404 not_found` فقط برای تجهیز ناموجود). `rowVersion` فقط وقتی تغییری هست بررسی می‌شود (`409 concurrency_conflict`).
 
 ## ثبت گروهی
 
@@ -60,6 +85,7 @@
 
 - **`GET /api/EquipmentType/without-models`** نوع‌های **فعال** که **هیچ مدل فعالی ندارند** (تجهیز چنین نوعی را فقط با خود نوع می‌شود ثبت کرد)، همراه با دسته‌شان: `id`، `title`، `code`، `isActive`، `equipmentCategoryId`، `equipmentCategoryTitle`. صفحه‌بندی‌شده؛ فیلتر `title` (شامل) و `equipmentCategoryId`؛ `sortBy`: `title` (پیش‌فرض)، `code`، `category`. وقتی تنها مدل یک نوع غیرفعال شود، آن نوع دوباره در این فهرست می‌آید.
 - **`GET /api/EquipmentType/by-model/{modelId}`** نوعِ آن مدل با دسته‌اش، وقتی کاربر مدل را انتخاب می‌کند (برای پر کردن خودکار نوع و دسته). مدل یا نوع غیرفعال هم جواب می‌دهد (با `isActive: false`)؛ مدل ناموجود `404`.
+- **`hasModels`:** هر ردیف نوع (در `GET /api/EquipmentType`، `without-models` و `by-model`) فیلد بولی `hasModels` دارد: `true` یعنی نوع حداقل یک مدل **فعال** دارد (همان معنای `without-models`، که فقط ردیف‌های `false` را می‌آورد). مدل غیرفعال حساب نمی‌شود. در لیست نوع‌های غیرفعال (`isActive=false`) هم همین قاعده است. فرانت از آن می‌فهمد برای این نوع باید مدل انتخاب شود یا خود نوع مستقیم ثبت می‌شود.
 - **شکل یکسان:** این دو مسیر همان شکل آیتم لیست «نوع تجهیز» را برمی‌گردانند (`EquipmentTypeListItemDto`)؛ دسته‌ی نوع همیشه با `equipmentCategoryId/Title` می‌آید، در لیست و جزئیات و پاسخ ثبت هم.
 - **عنوان والد در کاتالوگ‌ها:** مدل تجهیز `equipmentTypeTitle` و `brandTitle`، نوع تجهیز `equipmentCategoryTitle` و نوع خرابی `failureCategoryTitle` را کنار شناسه‌ی والد دارند (مثل شهر که `provinceTitle` دارد).
 - **قاعده‌ای اضافه نشد:** نوعی که مدل دارد را هم هنوز می‌شود مستقیم به تجهیز داد؛ این فهرست فقط «نوع‌هایی که چاره‌ای جز ثبت مستقیم ندارند» را نشان می‌دهد.
@@ -94,7 +120,7 @@
 
 ## تکنسین تجهیز
 
-- **فقط کاربر فعالی که سمت «تکنسین» دارد** می‌تواند تکنسین یک تجهیز باشد. این در `GET /technicians`، ثبت (`POST`، `/bulk`، `/with-attachments`) و `move` اعمال می‌شود. کاربر ناموجود `404 parent_not_found`، غیرفعال `400 parent_inactive` و بدون سمت تکنسین `400 technician_post_required` می‌دهد (در ثبت گروهی همان پیام‌ها در `details` ردیف).
+- **فقط کاربر فعالی که سمت «تکنسین» دارد** می‌تواند تکنسین یک تجهیز باشد. این در `GET /technicians` و ثبت (`POST`، `/bulk`، `/with-attachments`) اعمال می‌شود؛ **`move` از این قید خارج شده است** ([ADR-0015](adr/0015-partial-equipment-move.md))؛ سرنوشت خود سمت «تکنسین» در کار جداگانه‌ای مشخص می‌شود. کاربر ناموجود `404 parent_not_found`، غیرفعال `400 parent_inactive` و بدون سمت تکنسین `400 technician_post_required` می‌دهد (در ثبت گروهی همان پیام‌ها در `details` ردیف).
 - **تکنسین فعلی دست‌نخورده می‌ماند** حتی اگر سمت یا وضعیت آن کاربر بعداً عوض شود. تکنسین فقط با ثبت و `move` عوض می‌شود، پس ویرایش `PUT` به آن کاری ندارد. بازگردانی تجهیز غیرفعال فقط فعال بودن تکنسین قبلی را می‌خواهد، نه سمتش را.
 - **`GET /api/Equipment/{id}/technician`:** `id`، `fullName`، `personnelCode`، `isActive`، `postId`، `postTitle`، `supportingDepartmentId` و `supportingDepartmentTitle`. تلفن، ایمیل و کد ملی عمداً نیست. تکنسینِ غیرفعال‌شده یا تجهیز غیرفعال هم نشان داده می‌شود (`isActive: false`). تاریخچه‌ی تکنسین‌های قبلی از `GET /{id}/location-history` می‌آید.
 

@@ -96,7 +96,7 @@ namespace EMS.Tests.Integration
         // ------------------------------------------------------------------------------------ assigning
 
         [Fact]
-        public async Task A_user_without_the_technician_post_cannot_be_given_to_an_equipment()
+        public async Task A_user_without_the_technician_post_cannot_be_given_to_an_equipment_when_creating_but_a_move_does_not_restrict_it()
         {
             var f = await NewFixtureAsync();
             var manager = await NewUserAsync(UnitManagerPost);
@@ -111,12 +111,11 @@ namespace EMS.Tests.Integration
             }
             Assert.Contains("«تکنسین»", (await ReadJsonAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", Body(f, manager)))).GetProperty("message").GetString());
 
-            // move
+            // move: NOT restricted by the post (ADR-0015); create, bulk and the others still are until the technician post is retired
             var id = await NewEquipmentAsync(f, technician);
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = f.DepartmentId, technicianUserId = manager });
-            Assert.Equal(HttpStatusCode.BadRequest, move.StatusCode);
-            Assert.Equal("technician_post_required", ErrorCodeOf(await ReadJsonAsync(move)));
-            Assert.Equal(technician, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("technicianUserId").GetInt64());
+            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { technicianUserId = manager });
+            Assert.Equal(HttpStatusCode.OK, move.StatusCode);
+            Assert.Equal(manager, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("technicianUserId").GetInt64());
 
             // bulk: the message names the item
             var bulk = await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { Body(f, technician), Body(f, manager) } });

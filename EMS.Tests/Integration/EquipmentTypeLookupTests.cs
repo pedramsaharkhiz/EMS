@@ -112,6 +112,45 @@ namespace EMS.Tests.Integration
                 Assert.Matches("[؀-ۿ]", d.GetProperty("message").GetString()!);
         }
 
+        // ------------------------------------------------------------------------------------ hasModels
+
+        [Fact]
+        public async Task The_type_list_says_for_each_type_whether_it_has_an_active_model()
+        {
+            var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("hmcat") }, "id");
+            var plain = await NewTypeAsync(category);
+            var withModel = await NewTypeAsync(category);
+            var withOnlyInactiveModel = await NewTypeAsync(category);
+            await NewModelAsync(withModel.Id);
+            var inactiveModel = await NewModelAsync(withOnlyInactiveModel.Id);
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/EquipmentModel/{inactiveModel}")).StatusCode);
+
+            async Task<Dictionary<long, bool>> HasModelsAsync(string query)
+            {
+                var json = await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/EquipmentType?pageSize=100&equipmentCategoryId={category}{query}"));
+                return DataOf(json).EnumerateArray().ToDictionary(t => t.GetProperty("id").GetInt64(), t => t.GetProperty("hasModels").GetBoolean());
+            }
+
+            var list = await HasModelsAsync("");
+            Assert.False(list[plain.Id]);                    // no model at all
+            Assert.True(list[withModel.Id]);                 // an active model
+            Assert.False(list[withOnlyInactiveModel.Id]);    // its only model is deactivated: same meaning as without-models
+
+            // the list of deactivated types (the soft-delete filter is lifted there) says the same
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/EquipmentType/{plain.Id}")).StatusCode);
+            Assert.False((await HasModelsAsync("&isActive=false"))[plain.Id]);
+
+            // the two other endpoints that return the same item shape agree with it
+            var withoutModels = await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/EquipmentType/without-models?pageSize=100&equipmentCategoryId={category}"));
+            Assert.All(DataOf(withoutModels).EnumerateArray(), t => Assert.False(t.GetProperty("hasModels").GetBoolean()));
+            Assert.Contains(DataOf(withoutModels).EnumerateArray(), t => Id(t) == withOnlyInactiveModel.Id);
+
+            var byModel = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/EquipmentType/by-model/{await NewModelAsync(withModel.Id)}"));
+            Assert.True(byModel.GetProperty("hasModels").GetBoolean());
+            var byInactiveModel = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/EquipmentType/by-model/{inactiveModel}"));
+            Assert.False(byInactiveModel.GetProperty("hasModels").GetBoolean());                  // the model asked about is deactivated and is its type's only one
+        }
+
         // ------------------------------------------------------------------------------------ by-model
 
         [Fact]

@@ -1033,6 +1033,7 @@ POST api/Equipment/{id}/move
     CurrentOrganizationId : Int64?
     CurrentSupportingDepartmentId : Int64?
     TechnicianUserId : Int64?
+    ClearTechnician : Boolean
     Description : String
     RowVersion : String
   Path: id : Int64 (required)
@@ -1464,6 +1465,7 @@ GET api/EquipmentType
       Title : String
       Code : String
       IsActive : Boolean
+      HasModels : Boolean
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1508,6 +1510,7 @@ GET api/EquipmentType/by-model/{modelId}
       Title : String
       Code : String
       IsActive : Boolean
+      HasModels : Boolean
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1533,6 +1536,7 @@ GET api/EquipmentType/without-models
       Title : String
       Code : String
       IsActive : Boolean
+      HasModels : Boolean
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>

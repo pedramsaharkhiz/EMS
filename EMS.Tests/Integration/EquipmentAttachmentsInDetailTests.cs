@@ -111,7 +111,8 @@ namespace EMS.Tests.Integration
             var one = await NewEquipmentAsync(f);
             await UploadAsync(two, "a.pdf"); await UploadAsync(two, "b.pdf"); await UploadAsync(one, "c.pdf");
 
-            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment?pageSize=100"))).EnumerateArray().ToDictionary(e => e.GetProperty("id").GetInt64());
+            // newest first: the three just created are on the first page however many equipment the shared test database already holds
+            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment?pageSize=100&sortDirection=desc"))).EnumerateArray().ToDictionary(e => e.GetProperty("id").GetInt64());
             Assert.Equal(2, list[two].GetProperty("attachmentCount").GetInt32());
             Assert.Equal(0, list[none].GetProperty("attachmentCount").GetInt32());
             Assert.Equal(1, list[one].GetProperty("attachmentCount").GetInt32());
