@@ -24,6 +24,15 @@ namespace EMS.Application.Common.Security
             public const string Delete = "FailureReports.Delete";
         }
 
+        public static class TechnicianAssignments
+        {
+            public const string View = "TechnicianAssignments.View";
+            /// <summary>Assign a failure report to a technician, and cancel an assignment.</summary>
+            public const string Assign = "TechnicianAssignments.Assign";
+            /// <summary>Work on one's own assignment: accept, reject, start, complete and record actions (only the assigned technician).</summary>
+            public const string Work = "TechnicianAssignments.Work";
+        }
+
         public static class Users
         {
             public const string View = "Users.View";

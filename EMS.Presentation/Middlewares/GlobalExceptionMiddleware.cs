@@ -72,6 +72,11 @@ namespace EMS.Presentation.Middlewares
                 LogClientError(context, ex);
                 await ApiErrors.WriteAsync(context, StatusCodes.Status404NotFound, ex.Code, ex.Message);
             }
+            catch (ForbiddenException ex)
+            {
+                LogClientError(context, ex);
+                await ApiErrors.WriteAsync(context, StatusCodes.Status403Forbidden, ex.Code, ex.Message);
+            }
             catch (ConflictException ex)
             {
                 LogClientError(context, ex);

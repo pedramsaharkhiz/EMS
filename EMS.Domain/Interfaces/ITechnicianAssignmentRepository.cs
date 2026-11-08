@@ -1,21 +1,22 @@
-﻿using EMS.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using EMS.Domain.Entities;
+using EMS.Domain.ReadModels;
 
 namespace EMS.Domain.Interfaces
 {
     public interface ITechnicianAssignmentRepository : IRepository<TechnicianAssignment>
     {
-        Task<TechnicianAssignment?> GetDetailsAsync(long id, CancellationToken cancellationToken = default);
+        /// <summary>Loads an assignment for modification (tracked).</summary>
+        Task<TechnicianAssignment?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default);
 
+        /// <summary>Read-only flattened assignments (all of them; assignments are never deactivated).</summary>
+        IQueryable<TechnicianAssignmentRow> QueryRows();
 
-        Task<List<TechnicianAssignment>> GetByTechnicianUserIdAsync(long technicianUserId, CancellationToken cancellationToken = default);
+        Task<TechnicianAssignmentRow?> GetRowAsync(long id, CancellationToken cancellationToken = default);
 
-        Task<List<TechnicianAssignment>> GetActiveByTechnicianUserIdAsync(long technicianUserId, CancellationToken cancellationToken = default);
+        /// <summary>The actions recorded on an assignment, oldest first.</summary>
+        Task<List<TechnicianAssignmentActionRow>> GetActionRowsAsync(long assignmentId, CancellationToken cancellationToken = default);
 
-        Task<List<TechnicianAssignment>> GetByFailureReportIdAsync(long failureReportId, CancellationToken cancellationToken = default);
-
-        Task<bool> ExistsActiveAsync(long technicianUserId, long failureReportId, CancellationToken cancellationToken = default);
+        /// <summary>Does the report have an assignment that is still open (assigned, accepted or in progress)?</summary>
+        Task<bool> HasOpenForReportAsync(long failureReportId, CancellationToken cancellationToken = default);
     }
 }

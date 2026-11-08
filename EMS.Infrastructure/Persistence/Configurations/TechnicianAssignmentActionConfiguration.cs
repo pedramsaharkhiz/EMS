@@ -12,7 +12,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.HasKey(x => x.TechnicianAssignmentActionId);
 
             builder.Property(x => x.ActionDateTime).IsRequired();
-            builder.Property(x => x.Description).HasMaxLength(500).IsRequired(false);
+            builder.HasIndex(x => x.TechnicianAssignmentId).HasDatabaseName("IX_TechnicianAssignmentActions_Assignment");
+            builder.Property(x => x.Description).HasMaxLength(EMS.Domain.TechnicianAssignmentConstraints.NoteMaxLength).IsRequired(false);
 
             builder.HasOne(x => x.TechnicianAssignment).WithMany(x => x.TechnicianAssignmentActions).HasForeignKey(x => x.TechnicianAssignmentId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.Action).WithMany(x => x.TechnicianAssignmentActions).HasForeignKey(x => x.ActionId).OnDelete(DeleteBehavior.NoAction);

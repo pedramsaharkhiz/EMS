@@ -48,6 +48,12 @@ namespace EMS.Application.Common.Exceptions
         public const string LocationHolderInvalid = "location_holder_invalid";
         public const string BulkItemsInvalid = "bulk_items_invalid";
 
+        // technician assignments
+        public const string AssignmentAlreadyOpen = "assignment_already_open";
+        public const string AssignmentTransitionNotAllowed = "assignment_transition_not_allowed";
+        public const string AssignmentNotInProgress = "assignment_not_in_progress";
+        public const string FailureReportClosed = "failure_report_closed";
+
         // exports
         public const string ExportTooLarge = "export_too_large";
         public const string ExportBusy = "export_busy";
@@ -95,6 +101,12 @@ namespace EMS.Application.Common.Exceptions
     public sealed class NotFoundException : AppException
     {
         public NotFoundException(string message, string? code = null) : base(message, code ?? ErrorCodes.NotFound) { }
+    }
+
+    /// <summary>A 403 for a rule on one record (for example "only the assigned technician"), after the permission itself was granted.</summary>
+    public sealed class ForbiddenException : AppException
+    {
+        public ForbiddenException(string message, string? code = null) : base(message, code ?? ErrorCodes.Forbidden) { }
     }
 
     public sealed class ConflictException : AppException

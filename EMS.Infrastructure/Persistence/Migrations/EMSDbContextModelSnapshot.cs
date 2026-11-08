@@ -993,48 +993,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("FailureReports", (string)null);
                 });
 
-            modelBuilder.Entity("EMS.Domain.Entities.FailureReportAction", b =>
-                {
-                    b.Property<long>("FailureReportActionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("FailureReportActionId"));
-
-                    b.Property<long>("ActionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("CreatedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<long>("FailureReportId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<long?>("ModifiedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("ModifiedDateTime")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("FailureReportActionId");
-
-                    b.HasIndex("ActionId");
-
-                    b.HasIndex("FailureReportId");
-
-                    b.ToTable("FailureReportActions", (string)null);
-                });
-
             modelBuilder.Entity("EMS.Domain.Entities.FailureReportStatus", b =>
                 {
                     b.Property<long>("FailureReportStatusId")
@@ -1840,7 +1798,12 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ResultNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<long>("TechnicianAssignmentStatusId")
                         .HasColumnType("bigint");
@@ -1852,11 +1815,15 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AssignedByUserId");
 
-                    b.HasIndex("FailureReportId");
+                    b.HasIndex("FailureReportId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TechnicianAssignments_OpenPerReport")
+                        .HasFilter("[TechnicianAssignmentStatusId] IN (1, 2, 4)");
 
                     b.HasIndex("TechnicianAssignmentStatusId");
 
-                    b.HasIndex("TechnicianUserId");
+                    b.HasIndex("TechnicianUserId", "TechnicianAssignmentStatusId")
+                        .HasDatabaseName("IX_TechnicianAssignments_Technician_Status");
 
                     b.ToTable("TechnicianAssignments", (string)null);
                 });
@@ -1887,7 +1854,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<long>("EquipmentLocationHistoryId")
+                    b.Property<long?>("EquipmentLocationHistoryId")
                         .HasColumnType("bigint");
 
                     b.Property<bool>("IsActive")
@@ -1910,7 +1877,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EquipmentLocationHistoryId");
 
-                    b.HasIndex("TechnicianAssignmentId");
+                    b.HasIndex("TechnicianAssignmentId")
+                        .HasDatabaseName("IX_TechnicianAssignmentActions_Assignment");
 
                     b.ToTable("TechnicianAssignmentActions", (string)null);
                 });
@@ -1922,6 +1890,12 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bigint");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("TechnicianAssignmentStatusId"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
 
                     b.Property<long>("CreatedByUserId")
                         .HasColumnType("bigint");
@@ -1949,7 +1923,67 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("TechnicianAssignmentStatusId");
 
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TechnicianAssignmentStatuses_Code");
+
                     b.ToTable("TechnicianAssignmentStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 1L,
+                            Code = "Assigned",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "ارجاع‌شده"
+                        },
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 2L,
+                            Code = "Accepted",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "پذیرفته‌شده"
+                        },
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 3L,
+                            Code = "Rejected",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "ردشده"
+                        },
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 4L,
+                            Code = "InProgress",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "در حال انجام"
+                        },
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 5L,
+                            Code = "Completed",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "تکمیل‌شده"
+                        },
+                        new
+                        {
+                            TechnicianAssignmentStatusId = 6L,
+                            Code = "Cancelled",
+                            CreatedByUserId = 0L,
+                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Title = "لغوشده"
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.TechnicianSkill", b =>
@@ -2676,25 +2710,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("ReportType");
                 });
 
-            modelBuilder.Entity("EMS.Domain.Entities.FailureReportAction", b =>
-                {
-                    b.HasOne("EMS.Domain.Entities.ActionEntity", "Action")
-                        .WithMany("FailureReportActions")
-                        .HasForeignKey("ActionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("EMS.Domain.Entities.FailureReport", "FailureReport")
-                        .WithMany("FailureReportActions")
-                        .HasForeignKey("FailureReportId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Action");
-
-                    b.Navigation("FailureReport");
-                });
-
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
                 {
                     b.HasOne("EMS.Domain.Entities.FailureCategory", "FailureCategory")
@@ -2823,8 +2838,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.HasOne("EMS.Domain.Entities.EquipmentLocationHistory", "EquipmentLocationHistory")
                         .WithMany("TechnicianAssignmentActions")
                         .HasForeignKey("EquipmentLocationHistoryId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("EMS.Domain.Entities.TechnicianAssignment", "TechnicianAssignment")
                         .WithMany("TechnicianAssignmentActions")
@@ -2935,8 +2949,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.ActionEntity", b =>
                 {
-                    b.Navigation("FailureReportActions");
-
                     b.Navigation("TechnicianAssignmentActions");
                 });
 
@@ -2996,8 +3008,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.FailureReport", b =>
                 {
-                    b.Navigation("FailureReportActions");
-
                     b.Navigation("TechnicianAssignments");
                 });
 
