@@ -1,4 +1,4 @@
-﻿using EMS.Application.Dtos.OrganizationHierarchy;
+using EMS.Application.Dtos.OrganizationHierarchy;
 using EMS.Application.Validators.OrganizationHierarchy;
 using Xunit;
 
@@ -13,6 +13,7 @@ public sealed class OrganizationHierarchyValidationTests
     [InlineData("organizationManagement")]
     [InlineData("field")]
     [InlineData("organization")]
+    [InlineData("employee")]
     public void Valid_search_levels_are_accepted(string level)
     {
         var request = CreateRequest();
@@ -55,6 +56,8 @@ public sealed class OrganizationHierarchyValidationTests
     [InlineData("field", "field")]
     [InlineData("field", "organization")]
     [InlineData("organizationManagement", "field")]
+    [InlineData("organization", "employee")]
+    [InlineData("employee", "employee")]
     public void Same_or_lower_parent_level_is_rejected(
         string searchLevel,
         string parentLevel)
@@ -74,6 +77,10 @@ public sealed class OrganizationHierarchyValidationTests
     [InlineData("field", "zone")]
     [InlineData("field", "organizationManagement")]
     [InlineData("organizationManagement", "zone")]
+    [InlineData("employee", "organization")]
+    [InlineData("employee", "field")]
+    [InlineData("employee", "organizationManagement")]
+    [InlineData("employee", "zone")]
     public void Valid_parent_combinations_are_accepted(
         string searchLevel,
         string parentLevel)

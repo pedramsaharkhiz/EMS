@@ -55,6 +55,10 @@ public sealed class OrganizationHierarchyService
                 "field" =>
                     query.Where(x => x.FieldId == parentId),
 
+                // only the employee level has a branch to be filtered by (the validator refuses it for the other levels)
+                "organization" =>
+                    query.Where(x => x.OrganizationId == parentId),
+
                 _ => query.Where(x => false)
             };
         }
@@ -107,10 +111,12 @@ public sealed class OrganizationHierarchyService
         var skip = checked(
             (int)(((long)request.PageNumber - 1) * request.PageSize));
 
-        // مرتب‌سازی ثابت و قطعی برای صفحه‌بندی.
-        var rows = await query
-            .OrderBy(x => x.Title)
-            .ThenBy(x => x.Id)
+        // مرتب‌سازی ثابت و قطعی برای صفحه‌بندی (کارمند: نام خانوادگی، نام، شناسه).
+        var ordered = level == "employee"
+            ? query.OrderBy(x => x.LastName).ThenBy(x => x.FirstName).ThenBy(x => x.Id)
+            : query.OrderBy(x => x.Title).ThenBy(x => x.Id);
+
+        var rows = await ordered
             .Skip(skip)
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
@@ -250,6 +256,66 @@ public sealed class OrganizationHierarchyService
                         : x.OrganizationManagement!.Code
                 }),
 
+            // A bank employee sits directly under a branch (Employee.OrganizationId is required). Sensitive personal data (national code, birth
+            // date) is deliberately not read here.
+            "employee" => _db.Employees
+                .AsNoTracking()
+                .Select(x => new HierarchyRow
+                {
+                    Id = x.EmployeeId,
+                    Title = x.FirstName + " " + x.LastName,
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    Code = x.PersonnelCode,
+                    IsActive = x.IsActive,
+
+                    OrganizationId = x.OrganizationId,
+
+                    ZoneId = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.Zone.ZoneId
+                        : x.Organization.OrganizationManagement!.Zone.ZoneId,
+
+                    ZoneTitle = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.Zone.Title
+                        : x.Organization.OrganizationManagement!.Zone.Title,
+
+                    ZoneCode = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.Zone.Code
+                        : x.Organization.OrganizationManagement!.Zone.Code,
+
+                    ManagementId = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.OrganizationManagementId
+                        : x.Organization.OrganizationManagement!.OrganizationManagementId,
+
+                    ManagementTitle = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.Title
+                        : x.Organization.OrganizationManagement!.Title,
+
+                    ManagementCode = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.OrganizationManagement.Code
+                        : x.Organization.OrganizationManagement!.Code,
+
+                    FieldId = x.Organization.FieldId,
+
+                    FieldTitle = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.Title
+                        : null,
+
+                    FieldCode = x.Organization.FieldId.HasValue
+                        ? x.Organization.Field!.Code
+                        : null,
+
+                    ParentId = x.OrganizationId,
+                    ParentLevel = "organization",
+                    ParentTitle = x.Organization.Title,
+                    ParentCode = x.Organization.Code,
+
+                    StructureId = x.OrganizationStructureId,
+                    StructureCode = x.OrganizationStructure.OrganizationStructureCode,
+                    StructureTitle = x.OrganizationStructure.Title,
+                    StructureGrade = x.OrganizationStructure.Grade
+                }),
+
             _ => throw new InvalidOperationException(
                 "سطح جستجو پیش از اجرای Query باید اعتبارسنجی شود.")
         };
@@ -309,6 +375,17 @@ public sealed class OrganizationHierarchyService
             Code = row.Code,
             IsActive = row.IsActive,
             Parent = parent,
+            FirstName = row.FirstName,
+            LastName = row.LastName,
+            OrganizationStructure = row.StructureId.HasValue
+                ? new OrganizationStructureReferenceDto
+                {
+                    Id = row.StructureId.Value,
+                    Code = row.StructureCode,
+                    Title = row.StructureTitle,
+                    Grade = row.StructureGrade
+                }
+                : null,
             SupportingDepartmentId = row.SupportingDepartmentId,
             SupportingDepartmentTitle = row.SupportingDepartmentTitle,
 
@@ -399,5 +476,20 @@ public sealed class OrganizationHierarchyService
         public string? ParentTitle { get; set; }
 
         public string? ParentCode { get; set; }
+
+        // employee level only
+        public string? FirstName { get; set; }
+
+        public string? LastName { get; set; }
+
+        public long? OrganizationId { get; set; }
+
+        public long? StructureId { get; set; }
+
+        public string? StructureCode { get; set; }
+
+        public string? StructureTitle { get; set; }
+
+        public int? StructureGrade { get; set; }
     }
 }

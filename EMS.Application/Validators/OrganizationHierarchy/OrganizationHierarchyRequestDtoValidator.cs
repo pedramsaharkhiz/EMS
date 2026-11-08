@@ -11,7 +11,7 @@ public sealed class OrganizationHierarchyRequestDtoValidator
         RuleFor(x => x.SearchLevel)
             .Must(x => OrganizationHierarchyRules.Rank(x) >= 0)
             .WithMessage(
-                "سطح جستجو باید zone، organizationManagement، field یا organization باشد.");
+                "سطح جستجو باید zone، organizationManagement، field، organization یا employee باشد.");
 
         RuleFor(x => x.ParentLevel)
             .Must(x =>
