@@ -121,7 +121,10 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> Update(long id, [FromBody] EquipmentUpdateDto request, CancellationToken cancellationToken) =>
             Updated(await _service.UpdateAsync(id, request, cancellationToken));
 
-        /// <summary>Moves the equipment to a new location and records it in the location history.</summary>
+        /// <summary>
+        /// Changes the equipment's place (a branch OR a supporting department) and/or its technician and records it in the location history. Every field
+        /// is optional; what is not sent stays as it is; at least one change is required (see <c>EquipmentMoveDto</c>).
+        /// </summary>
         [Permission(Permissions.Equipments.Assign)]
         [HttpPost("{id:long}/move")]
         public async Task<ActionResult<ApiResponse<EquipmentDetailDto>>> Move(long id, [FromBody] EquipmentMoveDto request, CancellationToken cancellationToken) =>

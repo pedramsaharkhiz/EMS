@@ -6,6 +6,11 @@ namespace EMS.Application.Services.Equipment
         /// <summary>The message when an equipment is not with exactly one of a branch and a supporting department (the same text as the database constraint's validation).</summary>
         public const string HolderMessage = "تجهیز باید دقیقاً یکی از «شعبه» یا «دپارتمان پشتیبانی (ستاد)» را داشته باشد؛ نه هر دو و نه هیچ‌کدام.";
 
+        // the messages of the partial move (POST .../move): see EquipmentMoveDto
+        public const string MoveBothMessage = "در هر جابه‌جایی فقط یکی از «شعبه» یا «دپارتمان پشتیبانی (ستاد)» را بفرست؛ تجهیز هم‌زمان نزد هر دو نیست.";
+        public const string MoveClearAndSetTechnicianMessage = "تکنسین را هم‌زمان نمی‌شود تعیین و برداشت؛ فقط یکی از «تکنسین» یا «برداشتن تکنسین» را بفرست.";
+        public const string MoveNothingMessage = "حداقل یکی از «شعبه»، «دپارتمان پشتیبانی (ستاد)»، «تکنسین» یا «برداشتن تکنسین» را بفرست.";
+
         /// <summary>True when exactly one of the branch and the supporting department is set.</summary>
         public bool HasExactlyOneHolder => OrganizationId.HasValue ^ SupportingDepartmentId.HasValue;
     }

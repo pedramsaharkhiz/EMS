@@ -1033,6 +1033,7 @@ POST api/Equipment/{id}/move
     CurrentOrganizationId : Int64?
     CurrentSupportingDepartmentId : Int64?
     TechnicianUserId : Int64?
+    ClearTechnician : Boolean
     Description : String
     RowVersion : String
   Path: id : Int64 (required)

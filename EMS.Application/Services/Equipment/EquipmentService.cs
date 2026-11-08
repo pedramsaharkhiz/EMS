@@ -491,16 +491,31 @@ namespace EMS.Application.Services.Equipment
             _audit.Deleted("Equipment", id);
         }
 
+        /// <summary>
+        /// A partial move: what the request does not name stays as it is. The result is the current state with the named changes applied; the
+        /// branch and the department exclude each other, so naming one leaves the other. Only that the branch, the department and the technician
+        /// EXIST is checked here (a missing one would be a database error): whether they are active, or what post the technician has, is not
+        /// restricted (see docs/adr/0015-partial-equipment-move.md).
+        /// </summary>
         public async Task<EquipmentDetailDto> MoveAsync(long id, EquipmentMoveDto request, CancellationToken cancellationToken = default)
         {
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
-            var location = new EquipmentLocation(request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId);
 
-            // Moving to where it already is changes nothing and adds no history entry.
+            var location = new EquipmentLocation(
+                OrganizationId: request.CurrentOrganizationId ?? (request.CurrentSupportingDepartmentId.HasValue ? null : entity.CurrentOrganizationId),
+                SupportingDepartmentId: request.CurrentSupportingDepartmentId ?? (request.CurrentOrganizationId.HasValue ? null : entity.CurrentSupportingDepartmentId),
+                TechnicianUserId: request.ClearTechnician ? null : request.TechnicianUserId ?? entity.TechnicianUserId);
+
+            // The validator refuses these; this keeps the rule even for a caller that skips it (the database constraint is the last guard).
+            if (request.CurrentOrganizationId.HasValue && request.CurrentSupportingDepartmentId.HasValue || !location.HasExactlyOneHolder)
+                throw new BadRequestException(EquipmentLocation.HolderMessage, ErrorCodes.LocationHolderInvalid);
+
+            // Asking for what already is changes nothing and adds no history entry.
             if (location == new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId))
                 return await DetailAsync(id, cancellationToken);
 
-            await RequireLocationAsync(location, cancellationToken);
+            await RequireMoveTargetsExistAsync(request, cancellationToken);
+            await _locationRule.ValidateAsync(location, cancellationToken);
 
             entity.CurrentOrganizationId = location.OrganizationId;
             entity.CurrentSupportingDepartmentId = location.SupportingDepartmentId;
@@ -511,8 +526,24 @@ namespace EMS.Application.Services.Equipment
             _repository.AddLocationHistory(NewHistory(entity, location, Normalize(request.Description)));
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            _audit.Operation("LocationChanged", "Equipment", id, $"organization={location.OrganizationId};department={location.SupportingDepartmentId}");
+            _audit.Operation("LocationChanged", "Equipment", id,
+                $"organization={location.OrganizationId};department={location.SupportingDepartmentId};technician={location.TechnicianUserId}");
             return await DetailAsync(id, cancellationToken);
+        }
+
+        /// <summary>The named branch, department and technician must exist (404). Active or not, and the technician's post, are not checked.</summary>
+        private async Task RequireMoveTargetsExistAsync(EquipmentMoveDto request, CancellationToken cancellationToken)
+        {
+            if (request.CurrentOrganizationId is { } organization)
+                await ParentGuard.RequireAsync(_organizations, organization, x => x.OrganizationId, "شعبه", mustBeActive: false, cancellationToken);
+            if (request.CurrentSupportingDepartmentId is { } department)
+                await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: false, cancellationToken);
+            if (request.TechnicianUserId is { } technician)
+            {
+                var found = await _repository.GetTechnicianEligibilityAsync(new[] { technician }, cancellationToken);
+                if (!found.ContainsKey(technician))
+                    throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
+            }
         }
 
         // ------------------------------------------------------------------------------------------------ helpers
