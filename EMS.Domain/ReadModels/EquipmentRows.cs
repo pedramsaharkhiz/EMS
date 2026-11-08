@@ -33,8 +33,9 @@ namespace EMS.Domain.ReadModels
         public string? StatusTitle { get; set; }
         public string? StatusCode { get; set; }
 
-        public long LocationTypeId { get; set; }
-        public string? LocationTypeTitle { get; set; }
+        /// <summary>Who the equipment is with (derived: the branch or the supporting department column that is filled).</summary>
+        public EquipmentLocationKind LocationKind { get; set; }
+        public string? LocationKindTitle { get; set; }
         public long? OrganizationId { get; set; }
         public string? OrganizationTitle { get; set; }
         public long? FieldId { get; set; }
@@ -77,8 +78,9 @@ namespace EMS.Domain.ReadModels
     {
         public long Id { get; set; }
         public long EquipmentId { get; set; }
-        public long LocationTypeId { get; set; }
-        public string? LocationTypeTitle { get; set; }
+        /// <summary>Who the equipment is with (derived: the branch or the supporting department column that is filled).</summary>
+        public EquipmentLocationKind LocationKind { get; set; }
+        public string? LocationKindTitle { get; set; }
         public long? OrganizationId { get; set; }
         public string? OrganizationTitle { get; set; }
         public long? SupportingDepartmentId { get; set; }

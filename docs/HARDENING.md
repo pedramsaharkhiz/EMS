@@ -29,7 +29,7 @@
 
 ## ۳. حذف منطقی در داده‌های پایه
 
-شامل Brand، EquipmentCategory، EquipmentLocationType، EquipmentModel، EquipmentStatus، EquipmentType، FailureCategory و SupportingDepartment.
+شامل Brand، EquipmentCategory، EquipmentModel، EquipmentStatus، EquipmentType، FailureCategory و SupportingDepartment.
 
 | موضوع | رفتار جدید |
 |---|---|
@@ -39,7 +39,7 @@
 | بازگردانی | `PUT` با `isActive=true` اگر عنوان توسط رکورد فعال دیگری اشغال شده باشد `409` و اگر والدش غیرفعال باشد `400` می‌دهد. |
 | ساخت و ویرایش با والد غیرفعال | مدل روی برند یا نوع غیرفعال، و نوع روی دسته‌بندی غیرفعال، `400` می‌دهد. |
 
-وابستگی‌ها: Brand ← مدل‌ها؛ EquipmentCategory ← نوع‌ها؛ EquipmentType ← مدل‌ها و تجهیزات؛ EquipmentModel، EquipmentStatus و EquipmentLocationType ← تجهیزات؛ FailureCategory ← انواع خرابی؛ SupportingDepartment ← کاربران و تجهیزات.
+وابستگی‌ها: Brand ← مدل‌ها؛ EquipmentCategory ← نوع‌ها؛ EquipmentType ← مدل‌ها و تجهیزات؛ EquipmentModel و EquipmentStatus ← تجهیزات؛ FailureCategory ← انواع خرابی؛ SupportingDepartment ← کاربران و تجهیزات.
 
 ## ۴. کنترل هم‌زمانی (Optimistic Concurrency)
 

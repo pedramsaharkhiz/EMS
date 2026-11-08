@@ -28,7 +28,6 @@ namespace EMS.Infrastructure.Repositories
                 .ThenInclude(x => x!.EquipmentCategory)
                 .Include(x => x.EquipmentModel)
                 .Include(x => x.EquipmentStatus)
-                .Include(x => x.CurrentEquipmentLocationType)
                 .FirstOrDefaultAsync(x => x.EquipmentId == id, cancellationToken);
         }
 
@@ -108,8 +107,8 @@ namespace EMS.Infrastructure.Repositories
                 StatusTitle = e.EquipmentStatus.Title,
                 StatusCode = e.EquipmentStatus.Code,
 
-                LocationTypeId = e.CurrentEquipmentLocationTypeId,
-                LocationTypeTitle = e.CurrentEquipmentLocationType.Title,
+                LocationKind = e.CurrentOrganizationId != null ? EquipmentLocationKind.Organization : EquipmentLocationKind.SupportingDepartment,
+                LocationKindTitle = e.CurrentOrganizationId != null ? EquipmentLocationKindTitles.Organization : EquipmentLocationKindTitles.SupportingDepartment,
                 OrganizationId = e.CurrentOrganizationId,
                 OrganizationTitle = e.CurrentOrganization!.Title,
                 FieldId = e.CurrentOrganization!.FieldId,
@@ -194,8 +193,8 @@ namespace EMS.Infrastructure.Repositories
                 {
                     Id = h.EquipmentLocationHistoryId,
                     EquipmentId = h.EquipmentId,
-                    LocationTypeId = h.EquipmentLocationTypeId,
-                    LocationTypeTitle = h.EquipmentLocationType.Title,
+                    LocationKind = h.OrganizationId != null ? EquipmentLocationKind.Organization : EquipmentLocationKind.SupportingDepartment,
+                    LocationKindTitle = h.OrganizationId != null ? EquipmentLocationKindTitles.Organization : EquipmentLocationKindTitles.SupportingDepartment,
                     OrganizationId = h.OrganizationId,
                     OrganizationTitle = h.Organization!.Title,
                     SupportingDepartmentId = h.SupportingDepartmentId,

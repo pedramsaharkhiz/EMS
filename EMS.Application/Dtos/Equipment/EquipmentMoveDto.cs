@@ -1,9 +1,11 @@
 namespace EMS.Application.Dtos.Equipment
 {
-    /// <summary>Moves an equipment to a new location; every move is recorded in the location history.</summary>
+    /// <summary>
+    /// Moves an equipment to a new location; every move is recorded in the location history. The equipment goes to a branch OR to a
+    /// supporting department: exactly one of <c>currentOrganizationId</c> and <c>currentSupportingDepartmentId</c>.
+    /// </summary>
     public class EquipmentMoveDto
     {
-        public long CurrentEquipmentLocationTypeId { get; set; }
         public long? CurrentOrganizationId { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }
         public long? TechnicianUserId { get; set; }

@@ -33,10 +33,10 @@ namespace EMS.Tests.Integration
         {
             var category = await PostIdAsync("/api/EquipmentCategory", new { title = Uniq("frcat") });
             var type = await PostIdAsync("/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("frtype"), code = "T" });
-            var location = await PostIdAsync("/api/EquipmentLocationType", new { title = Uniq("frloc"), code = "L" });
+            var location = await PostIdAsync("/api/SupportingDepartment", new { cityId = await CatalogFixtures.EnsureCityAsync(this), title = Uniq("frloc") });
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", new
             {
-                yaasCode = yaas ?? Uniq("FRY"), owner = 1, equipmentTypeId = type, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentEquipmentLocationTypeId = location
+                yaasCode = yaas ?? Uniq("FRY"), owner = 1, equipmentTypeId = type, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentSupportingDepartmentId = location
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();

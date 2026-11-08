@@ -51,19 +51,19 @@ namespace EMS.Tests.Integration
             return await CatalogFixtures.PostAsync(this, "/api/SupportingDepartment", new { cityId = city, title }, "id");
         }
 
-        private sealed record Fixture(long TypeId, long LocationTypeId);
+        private sealed record Fixture(long TypeId, long DepartmentId);
         private async Task<Fixture> NewFixtureAsync()
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("tpcat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("tptype"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("tploc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             return new Fixture(type, location);
         }
 
         private static Dictionary<string, object?> Body(Fixture f, long? technician = null) => new()
         {
             ["yaasCode"] = Uniq("TPY"), ["owner"] = 1, ["equipmentTypeId"] = f.TypeId,
-            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentEquipmentLocationTypeId"] = f.LocationTypeId,
+            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentSupportingDepartmentId"] = f.DepartmentId,
             ["technicianUserId"] = technician,
         };
 
@@ -113,7 +113,7 @@ namespace EMS.Tests.Integration
 
             // move
             var id = await NewEquipmentAsync(f, technician);
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentEquipmentLocationTypeId = f.LocationTypeId, technicianUserId = manager });
+            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = f.DepartmentId, technicianUserId = manager });
             Assert.Equal(HttpStatusCode.BadRequest, move.StatusCode);
             Assert.Equal("technician_post_required", ErrorCodeOf(await ReadJsonAsync(move)));
             Assert.Equal(technician, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("technicianUserId").GetInt64());

@@ -1,10 +1,13 @@
+using EMS.Domain.Enums;
+
 namespace EMS.Application.Dtos.EquipmentLocationHistory
 {
     public class EquipmentLocationHistoryItemDto
     {
         public long Id { get; set; }
-        public long CurrentEquipmentLocationTypeId { get; set; }
-        public string? CurrentEquipmentLocationTypeTitle { get; set; }
+        /// <summary>Who the equipment was with in this entry: 1 = a branch, 2 = a supporting department.</summary>
+        public EquipmentLocationKind LocationKind { get; set; }
+        public string? LocationKindTitle { get; set; }
         public long? CurrentOrganizationId { get; set; }
         public string? CurrentOrganizationTitle { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }

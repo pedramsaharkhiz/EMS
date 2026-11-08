@@ -15,8 +15,7 @@ namespace EMS.Application.Dtos.Equipment
         public long? EquipmentModelId { get; set; }
         public long EquipmentStatusId { get; set; }
 
-        // The initial location (written to the location history as well).
-        public long CurrentEquipmentLocationTypeId { get; set; }
+        // The initial location (written to the location history as well): with a branch OR with a supporting department, exactly one of the two.
         public long? CurrentOrganizationId { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }
         public long? TechnicianUserId { get; set; }

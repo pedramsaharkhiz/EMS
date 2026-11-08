@@ -29,13 +29,15 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.HasOne(x => x.EquipmentType).WithMany(x => x.Equipments).HasForeignKey(x => x.EquipmentTypeId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.EquipmentModel).WithMany(x => x.Equipments).HasForeignKey(x => x.EquipmentModelId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.EquipmentStatus).WithMany(x => x.Equipments).HasForeignKey(x => x.EquipmentStatusId).OnDelete(DeleteBehavior.NoAction);
-            builder.HasOne(x => x.CurrentEquipmentLocationType).WithMany(x => x.CurrentEquipments).HasForeignKey(x => x.CurrentEquipmentLocationTypeId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.CurrentOrganization).WithMany(x => x.CurrentEquipments).HasForeignKey(x => x.CurrentOrganizationId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne(x => x.CurrentSupportingDepartment).WithMany(x => x.CurrentEquipments).HasForeignKey(x => x.CurrentSupportingDepartmentId).OnDelete(DeleteBehavior.NoAction);
             builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.TechnicianUserId).OnDelete(DeleteBehavior.NoAction);
 
             // The owner must be one of the defined values (the API refuses anything else; this keeps the table honest too).
             builder.ToTable(t => t.HasCheckConstraint(EquipmentConstraints.OwnerCheckName, $"[Owner] IN ({string.Join(", ", Enum.GetValues<EquipmentOwner>().Select(owner => (int)owner))})"));
+            // With a branch or with a supporting department: exactly one of the two columns is filled.
+            builder.ToTable(t => t.HasCheckConstraint(EquipmentConstraints.LocationCheckName,
+                "([CurrentOrganizationId] IS NOT NULL AND [CurrentSupportingDepartmentId] IS NULL) OR ([CurrentOrganizationId] IS NULL AND [CurrentSupportingDepartmentId] IS NOT NULL)"));
             builder.ToTable(t => t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)"));
         }
     }

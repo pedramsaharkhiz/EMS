@@ -63,14 +63,17 @@ namespace EMS.Tests.Integration
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("cncat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("cntype"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("cnloc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             var body = new Dictionary<string, object?>
             {
                 ["yaasCode"] = Uniq("CNY"), ["owner"] = (int)EquipmentOwner.Bank, ["equipmentTypeId"] = type,
-                ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentEquipmentLocationTypeId"] = location,
+                ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentSupportingDepartmentId"] = location,
             };
             foreach (var property in extra.GetType().GetProperties())
                 body[property.Name] = property.GetValue(extra);
+            // with a branch OR with a department: a test that names the branch leaves the default department out
+            if (body.TryGetValue("currentOrganizationId", out var branch) && branch is not null && !extra.GetType().GetProperties().Any(p => p.Name == "currentSupportingDepartmentId"))
+                body.Remove("currentSupportingDepartmentId");
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
             Assert.True(response.StatusCode == HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
@@ -112,7 +115,7 @@ namespace EMS.Tests.Integration
 
             // the update and the move answer with the same fields
             var detail = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"));
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentEquipmentLocationTypeId = detail.GetProperty("currentEquipmentLocationTypeId").GetInt64(), technicianUserId = technician, description = "x", currentSupportingDepartmentId = place.DepartmentId });
+            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = place.DepartmentId, technicianUserId = technician, description = "x" });
             Assert.Equal(HttpStatusCode.OK, move.StatusCode);
             AssertTechnicianLocation(await ReadDataAsync(move), technician, place);
 

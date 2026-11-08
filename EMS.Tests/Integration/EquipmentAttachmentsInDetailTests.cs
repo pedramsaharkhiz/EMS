@@ -19,12 +19,12 @@ namespace EMS.Tests.Integration
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>
             await SendAsync(method, url, body, bearer: await AdminAsync());
 
-        private sealed record Fixture(long TypeId, long LocationTypeId);
+        private sealed record Fixture(long TypeId, long DepartmentId);
         private async Task<Fixture> NewFixtureAsync()
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("adcat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("adtype"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("adloc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             return new Fixture(type, location);
         }
 
@@ -32,7 +32,7 @@ namespace EMS.Tests.Integration
         {
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", new
             {
-                yaasCode = Uniq("ADY"), owner = 1, equipmentTypeId = f.TypeId, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentEquipmentLocationTypeId = f.LocationTypeId,
+                yaasCode = Uniq("ADY"), owner = 1, equipmentTypeId = f.TypeId, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentSupportingDepartmentId = f.DepartmentId,
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
@@ -136,13 +136,13 @@ namespace EMS.Tests.Integration
             Assert.Equal(1, updated.GetProperty("attachmentCount").GetInt32());
             Assert.False(updated.TryGetProperty("attachments", out _));
 
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentEquipmentLocationTypeId = f.LocationTypeId, description = "m" });
+            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = f.DepartmentId, description = "m" });
             Assert.Equal(1, (await ReadDataAsync(move)).GetProperty("attachmentCount").GetInt32());
 
             // registration with files
             using var form = new MultipartFormDataContent
             {
-                { new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(new { yaasCode = Uniq("ADR"), owner = 1, equipmentTypeId = f.TypeId, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentEquipmentLocationTypeId = f.LocationTypeId })), "equipment" },
+                { new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(new { yaasCode = Uniq("ADR"), owner = 1, equipmentTypeId = f.TypeId, equipmentStatusId = (long)EquipmentStatusCode.InStock, currentSupportingDepartmentId = f.DepartmentId })), "equipment" },
                 { new ByteArrayContent(PdfBytes()), "file", "r.pdf" },
             };
             var request = new HttpRequestMessage(HttpMethod.Post, "/api/Equipment/with-attachments") { Content = form };

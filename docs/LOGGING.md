@@ -87,7 +87,6 @@
 |---|---|
 | Brand | `Brands.Create/Update/Delete` |
 | EquipmentCategory | `EquipmentCategories.*` |
-| EquipmentLocationType | `EquipmentLocationTypes.*` |
 | EquipmentModel | `EquipmentModels.*` |
 | EquipmentStatus | `EquipmentStatuses.*` |
 | EquipmentType | `EquipmentTypes.*` |

@@ -428,9 +428,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<long>("CurrentEquipmentLocationTypeId")
-                        .HasColumnType("bigint");
-
                     b.Property<long?>("CurrentOrganizationId")
                         .HasColumnType("bigint");
 
@@ -484,8 +481,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UX_Equipments_AssetNumber")
                         .HasFilter("[AssetNumber] IS NOT NULL");
 
-                    b.HasIndex("CurrentEquipmentLocationTypeId");
-
                     b.HasIndex("CurrentOrganizationId");
 
                     b.HasIndex("CurrentSupportingDepartmentId");
@@ -505,6 +500,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Equipments", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Equipments_Location_ExactlyOne", "([CurrentOrganizationId] IS NOT NULL AND [CurrentSupportingDepartmentId] IS NULL) OR ([CurrentOrganizationId] IS NULL AND [CurrentSupportingDepartmentId] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_Equipments_Owner", "[Owner] IN (1, 2)");
 
                             t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)");
@@ -583,9 +580,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long>("EquipmentId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("EquipmentLocationTypeId")
-                        .HasColumnType("bigint");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -612,63 +606,16 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("EquipmentId");
 
-                    b.HasIndex("EquipmentLocationTypeId");
-
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("SupportingDepartmentId");
 
                     b.HasIndex("TechnicianUserId");
 
-                    b.ToTable("EquipmentLocationHistories", (string)null);
-                });
-
-            modelBuilder.Entity("EMS.Domain.Entities.EquipmentLocationType", b =>
-                {
-                    b.Property<long>("EquipmentLocationTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("EquipmentLocationTypeId"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<long>("CreatedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<long?>("ModifiedByUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("ModifiedDateTime")
-                        .IsConcurrencyToken()
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("EquipmentLocationTypeId");
-
-                    b.HasIndex("Title")
-                        .IsUnique()
-                        .HasDatabaseName("UX_EquipmentLocationTypes_Title")
-                        .HasFilter("[IsActive] = 1");
-
-                    b.ToTable("EquipmentLocationTypes", (string)null);
+                    b.ToTable("EquipmentLocationHistories", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EquipmentLocationHistories_Location_ExactlyOne", "([OrganizationId] IS NOT NULL AND [SupportingDepartmentId] IS NULL) OR ([OrganizationId] IS NULL AND [SupportingDepartmentId] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.EquipmentModel", b =>
@@ -2575,12 +2522,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.Equipment", b =>
                 {
-                    b.HasOne("EMS.Domain.Entities.EquipmentLocationType", "CurrentEquipmentLocationType")
-                        .WithMany("CurrentEquipments")
-                        .HasForeignKey("CurrentEquipmentLocationTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("EMS.Domain.Entities.Organization", "CurrentOrganization")
                         .WithMany("CurrentEquipments")
                         .HasForeignKey("CurrentOrganizationId")
@@ -2612,8 +2553,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasForeignKey("TechnicianUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.Navigation("CurrentEquipmentLocationType");
-
                     b.Navigation("CurrentOrganization");
 
                     b.Navigation("CurrentSupportingDepartment");
@@ -2638,12 +2577,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("EMS.Domain.Entities.EquipmentLocationType", "EquipmentLocationType")
-                        .WithMany("EquipmentLocationHistories")
-                        .HasForeignKey("EquipmentLocationTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("EMS.Domain.Entities.Organization", "Organization")
                         .WithMany("EquipmentLocationHistories")
                         .HasForeignKey("OrganizationId")
@@ -2660,8 +2593,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Equipment");
-
-                    b.Navigation("EquipmentLocationType");
 
                     b.Navigation("Organization");
 
@@ -3048,13 +2979,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EMS.Domain.Entities.EquipmentLocationHistory", b =>
                 {
                     b.Navigation("TechnicianAssignmentActions");
-                });
-
-            modelBuilder.Entity("EMS.Domain.Entities.EquipmentLocationType", b =>
-                {
-                    b.Navigation("CurrentEquipments");
-
-                    b.Navigation("EquipmentLocationHistories");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.EquipmentModel", b =>

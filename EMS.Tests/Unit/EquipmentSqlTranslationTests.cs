@@ -61,7 +61,7 @@ namespace EMS.Tests.Unit
             TypeIds = new long[] { 1, 2 },
             ModelIds = new long[] { 3 },
             BrandIds = new long[] { 4 },
-            LocationTypeIds = new long[] { 5 },
+            LocationKinds = new[] { EMS.Domain.Enums.EquipmentLocationKind.Organization },
             OrganizationIds = new long[] { 6 },
             FieldIds = new long[] { 7 },
             OrganizationManagementIds = new long[] { 8 },
@@ -80,7 +80,7 @@ namespace EMS.Tests.Unit
             var exporter = new CapturingExporter();
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
-                new EquipmentLocationTypeRepository(context), new SupportingDepartmentRepository(context), new Repository<EMS.Domain.Entities.Organization>(context),
+                new SupportingDepartmentRepository(context), new Repository<EMS.Domain.Entities.Organization>(context),
                 new PermissiveEquipmentLocationRule(), exporter, new NoUser(), new UnitOfWork(context), new NoAudit(), attachments: null!, people: null!);
             return (service, exporter, context);
         }
@@ -101,7 +101,7 @@ namespace EMS.Tests.Unit
         [InlineData("model", "asc")]
         [InlineData("brand", "asc")]
         [InlineData("status", "asc")]
-        [InlineData("locationType", "asc")]
+        [InlineData("locationKind", "asc")]
         [InlineData("organization", "asc")]
         [InlineData("department", "asc")]
         [InlineData("city", "asc")]

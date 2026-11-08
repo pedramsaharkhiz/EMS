@@ -18,19 +18,19 @@ namespace EMS.Tests.Integration
         private static string Uniq(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..28];
         private const string Message = "مالک تجهیز باید شرکت یا بانک باشد.";
 
-        private sealed record Fixture(long TypeId, long LocationTypeId);
+        private sealed record Fixture(long TypeId, long DepartmentId);
         private async Task<Fixture> NewFixtureAsync()
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("owcat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("owtype"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("owloc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             return new Fixture(type, location);
         }
 
         private static Dictionary<string, object?> Body(Fixture f, object? owner) => new()
         {
             ["yaasCode"] = Uniq("OWY"), ["owner"] = owner, ["equipmentTypeId"] = f.TypeId,
-            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentEquipmentLocationTypeId"] = f.LocationTypeId,
+            ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock, ["currentSupportingDepartmentId"] = f.DepartmentId,
         };
 
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>

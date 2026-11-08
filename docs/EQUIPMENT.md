@@ -37,7 +37,8 @@
 - **نوع یا مدل:** دقیقاً یکی از `equipmentTypeId` / `equipmentModelId` (قید دیتابیس هم دارد). «نوع مؤثر» (`effectiveTypeId`) یعنی نوع خود تجهیز یا نوعِ مدلش؛ دسته‌بندی از روی آن و برند فقط از مدل می‌آید.
 - **یکتایی:** `yaasCode` **یکتا نیست** (چند تجهیز می‌توانند یاس کد یکسان داشته باشند). **`serialNumber` و `assetNumber` هر کدام یکتایند، سراسری بین همه‌ی تجهیزات** (فعال و غیرفعال)، بدون حساسیت به حروف و فاصله‌ی اطراف: `409 duplicate_serial_number` و `409 duplicate_asset_number`. تجهیز بدون سریال (یا بدون شماره دارایی) با هیچ‌کدام برخورد نمی‌کند و مقدار خالی «هیچ» است. تجهیز غیرفعال شماره‌هایش را نگه می‌دارد (همان دستگاه فیزیکی است)، پس بازگرداندنش مشکلی ندارد و تجهیز تازه نمی‌تواند همان شماره را بگیرد. هم در سرویس بررسی می‌شود و هم با ایندکس‌های یکتای `UX_Equipments_SerialNumber` و `UX_Equipments_AssetNumber`؛ اگر دو درخواست هم‌زمان از سرویس رد شوند، ایندکس همان پیام و کد فارسی را می‌دهد (`UniqueConstraintMessages`).
 - **کارایی بررسی یکتایی:** در SQL Server بررسی سریال و شماره دارایی ستون را مستقیم با `=` مقایسه می‌کند و به **collation حساس‌نبودن به حروف** (`_CI_`) ستون تکیه دارد؛ پس از ایندکس یکتا استفاده می‌شود (seek، نه خواندن کل جدول). این collation باید روی دیتابیس واقعی تأیید شود (کوئری بررسی در سرآیند `docs/sql/RefreshTokenIndexes.sql` است). تست‌ها با دیتابیس حافظه کار می‌کنند که حساس به حروف است، پس همان‌جا ستون `ToLower` می‌شود تا رفتار یکی بماند.
-- **ارجاع‌ها** (وضعیت، نوع/مدل، نوع مکان، شعبه، دپارتمان، تکنسین) باید وجود داشته باشند (`404 parent_not_found`) و فعال باشند (`400 parent_inactive`). هنگام ویرایش فقط ارجاع تازه یا بازگرداندن رکورد بررسی می‌شود.
+- **محل تجهیز: شعبه یا ستاد، دقیقاً یکی.** هر تجهیز **یا** `currentOrganizationId` (شعبه) دارد **یا** `currentSupportingDepartmentId` (دپارتمان پشتیبانی، «ستاد»)، نه هر دو و نه هیچ‌کدام. در دیتابیس قید `CK_Equipments_Location_ExactlyOne` (و همتایش روی تاریخچه، `CK_EquipmentLocationHistories_Location_ExactlyOne`) است و در API هم اعتبارسنجی فارسی دارد (`400 validation_failed` روی `currentOrganizationId`): ثبت، ثبت گروهی، ثبت با فایل و `move`. کاتالوگ «نوع مکان» **حذف شده** ([ADR-0014](adr/0014-equipment-is-with-a-branch-or-a-supporting-department.md)). پاسخ‌ها `locationKind` (۱ = شعبه، ۲ = ستاد) و `locationKindTitle` («شعبه» / «ستاد») را از روی همان دو ستون می‌دهند. با `move` تجهیز از شعبه به ستاد (یا برعکس) می‌رود و مقدار قبلی `null` می‌شود. تجهیزِ ستادی `currentCity/Province` دارد (از دپارتمان) و حوزه و ناحیه ندارد؛ تجهیزِ شعبه‌ای برعکس.
+- **ارجاع‌ها** (وضعیت، نوع/مدل، شعبه، دپارتمان، تکنسین) باید وجود داشته باشند (`404 parent_not_found`) و فعال باشند (`400 parent_inactive`). هنگام ویرایش فقط ارجاع تازه یا بازگرداندن رکورد بررسی می‌شود.
 - **`PUT` همه‌ی فیلدهای قابل ویرایش را جایگزین می‌کند:** چیزی که نفرستی (سریال، شماره دارایی، توضیحات) پاک می‌شود. مکان در `PUT` نیست؛ با `move` عوض می‌شود.
 - **تغییر مکان:** هر تغییر یک ردیف تاریخچه می‌سازد (کاربر تغییردهنده، زمان، توضیح). ایجاد هم اولین ردیف را می‌سازد. جابه‌جایی به همان مکان فعلی کاری نمی‌کند.
 - **حذف منطقی:** تجهیز غیرفعال از لیست پیش‌فرض می‌رود (`?isActive=false` آن را نشان می‌دهد)، `GET` شناسه همچنان کار می‌کند، و بازگرداندنش با `PUT` و `isActive: true` است. فیلتر سراسری حذف منطقی روی `Equipment` فعال است؛ هر کوئریِ جدید که از موجودیت دیگر به `Equipment` وصل می‌شود باید `.IncludingInactive()` داشته باشد (نمونه: `FailureReportRepository.GetDetailsAsync`).
@@ -47,9 +48,9 @@
 همه‌ی فیلترها اختیاری و با AND ترکیب می‌شوند. فیلترهای شناسه چندمقداری‌اند: `?statusId=1&statusId=2`.
 
 - متن: `search` (یاس کد، سریال یا شماره دارایی)، `yaasCode`، `serialNumber`، `assetNumber`.
-- شناسه: `statusId`، `categoryId`، `typeId` (نوع مؤثر)، `modelId`، `brandId`، `locationTypeId`، `organizationId`، `fieldId`، `organizationManagementId`، `zoneId`، `supportingDepartmentId` (دپارتمانی که شعبه را پشتیبانی می‌کند)، `currentSupportingDepartmentId` (دپارتمانی که خودِ تجهیز در آن است)، `cityId`، `provinceId`، `technicianUserId`.
+- شناسه: `statusId`، `categoryId`، `typeId` (نوع مؤثر)، `modelId`، `brandId`، `locationKind` (۱ = با شعبه، ۲ = با ستاد)، `organizationId`، `fieldId`، `organizationManagementId`، `zoneId`، `supportingDepartmentId` (دپارتمانی که شعبه را پشتیبانی می‌کند)، `currentSupportingDepartmentId` (دپارتمانی که خودِ تجهیز در آن است)، `cityId`، `provinceId`، `technicianUserId`.
 - `createdFrom` / `createdTo` (UTC، ISO 8601، شامل دو سر)، `isActive`.
-- `sortBy`: `yaasCode`، `serialNumber`، `assetNumber`، `category`، `type`، `model`، `brand`، `status`، `locationType`، `organization`، `department`، `city`، `province`، `technician`، `createdDateTime` (پیش‌فرض: `id`).
+- `sortBy`: `yaasCode`، `serialNumber`، `assetNumber`، `category`، `type`، `model`، `brand`، `status`، `locationKind`، `organization`، `department`، `city`، `province`، `technician`، `createdDateTime` (پیش‌فرض: `id`).
 
 افزودن فیلتر: یک خط در `EquipmentService.Filters` و یک property در `EquipmentListRequestDto`. افزودن ستون: property در `EquipmentRow` (و projection در `EquipmentRepository.ToRows`)، `EquipmentListItemDto`، و یک خط در `EquipmentExport`. جزئیات Excel در [EXPORTS.md](EXPORTS.md).
 
@@ -65,7 +66,7 @@
 
 ## اعتبارسنجی در برابر قیدهای دیتابیس
 
-برای هر قید جدول تجهیز، اعتبارسنجی فارسی هم هست تا درخواست پیش از رسیدن به دیتابیس رد شود (ثبت، ویرایش، `bulk` و ثبت با فایل): طول `yaasCode`، `serialNumber`، `assetNumber` و `description` (۵۰ / ۵۰ / ۵۰ / ۵۰۰)، ستون‌های الزامی (`yaasCode`، `equipmentStatusId`، `currentEquipmentLocationTypeId`، `owner`)، دو قید `CHECK` (دقیقاً یکی از نوع یا مدل؛ مالک فقط ۱ یا ۲)، کلیدهای خارجی (۷ ارجاع، `404 parent_not_found`) و ایندکس‌های یکتا. تست `EquipmentConstraintCoverageTests` فهرست قیدها را از مدل EF می‌خواند و **دقیق** مقایسه می‌کند: قیدی که بدون اعتبارسنجی اضافه شود، تست را می‌شکند.
+برای هر قید جدول تجهیز، اعتبارسنجی فارسی هم هست تا درخواست پیش از رسیدن به دیتابیس رد شود (ثبت، ویرایش، `bulk` و ثبت با فایل): طول `yaasCode`، `serialNumber`، `assetNumber` و `description` (۵۰ / ۵۰ / ۵۰ / ۵۰۰)، ستون‌های الزامی (`yaasCode`، `equipmentStatusId`، `owner`)، سه قید `CHECK` (دقیقاً یکی از نوع یا مدل؛ مالک فقط ۱ یا ۲؛ دقیقاً یکی از شعبه یا دپارتمان)، کلیدهای خارجی (۷ ارجاع، `404 parent_not_found`) و ایندکس‌های یکتا. تست `EquipmentConstraintCoverageTests` فهرست قیدها را از مدل EF می‌خواند و **دقیق** مقایسه می‌کند: قیدی که بدون اعتبارسنجی اضافه شود، تست را می‌شکند.
 
 ## مالک تجهیز
 
@@ -83,7 +84,7 @@
 - **دپارتمان پشتیبانی:** دو چیز متفاوت‌اند و نامشان جداست: `supportingDepartmentId/Title` (دپارتمانی که **شعبه را پشتیبانی می‌کند**؛ همان نامی که در گزارش خرابی و سلسله‌مراتب هم هست) و `currentSupportingDepartmentId/Title` (دپارتمانی که **خودِ تجهیز در آن است**). فیلتر لیست هم با همین نام‌هاست: `supportingDepartmentId` و `currentSupportingDepartmentId`. **توجه:** `supportingDepartmentId` پیش‌تر دپارتمانِ خودِ تجهیز را فیلتر می‌کرد و حالا دپارتمان شعبه را؛ فیلتر دپارتمانِ خودِ تجهیز `currentSupportingDepartmentId` است.
 - **شهر و استان تجهیز:** `currentCityId/Title` و `currentProvinceId/Title` (شهر و استانِ دپارتمانی که تجهیز در آن است). فیلترهای `cityId` و `provinceId` بدون تغییر ماندند.
 - **تکنسین و محل او:** `technicianUserId`، `technicianName`، `technicianIsActive`، `technicianPostId/Title`، و **محل کار تکنسین**: `technicianSupportingDepartmentId/Title`، `technicianCityId/Title`، `technicianProvinceId/Title` (دپارتمان خودِ کاربر و شهر و استان آن، نه جای تجهیز). برای تجهیز بدون تکنسین همه `null` است. در Excel: «دپارتمان تکنسین»، «شهر تکنسین»، «استان تکنسین».
-- **تاریخچه‌ی مکان** (`GET /{id}/location-history`): مکانِ **در لحظه‌ی همان ثبت** با همان نام‌های لیست می‌آید: `currentEquipmentLocationTypeId/Title`، `currentOrganizationId/Title`، `currentSupportingDepartmentId/Title`، `currentCityId/Title`، `currentProvinceId/Title`. تکنسین و ثبت‌کننده‌ی تغییر (`changedBy...`) هر دو مجموعه‌ی کامل شخص را دارند (نام، کد پرسنلی، وضعیت، سمت، دپارتمان، شهر، استان). محل کار تکنسین همان محل **فعلی** اوست؛ ردیف تاریخچه آن را در لحظه‌ی خودش ثبت نکرده است.
+- **تاریخچه‌ی مکان** (`GET /{id}/location-history`): مکانِ **در لحظه‌ی همان ثبت** با همان نام‌های لیست می‌آید: `locationKind` و `locationKindTitle`، `currentOrganizationId/Title`، `currentSupportingDepartmentId/Title`، `currentCityId/Title`، `currentProvinceId/Title`. تکنسین و ثبت‌کننده‌ی تغییر (`changedBy...`) هر دو مجموعه‌ی کامل شخص را دارند (نام، کد پرسنلی، وضعیت، سمت، دپارتمان، شهر، استان). محل کار تکنسین همان محل **فعلی** اوست؛ ردیف تاریخچه آن را در لحظه‌ی خودش ثبت نکرده است.
 - **dropdown تکنسین‌ها** و `GET /{id}/technician` هم دپارتمان، شهر و استان او را دارند.
 - **نام‌گذاری:** `technicianName` یعنی نامِ تکنسین به‌عنوان **ارجاع از تجهیز** (مثل `reportedByName` در گزارش خرابی)، و `fullName` نامِ خودِ شخص در آیتم‌هایی است که خودِ تکنسین‌اند (dropdown و `/{id}/technician`).
 
@@ -103,7 +104,7 @@
 
 | موضوع | الان | کجا عوض می‌شود |
 |---|---|---|
-| ترکیب معتبر نوع مکان، شعبه، دپارتمان و تکنسین | هر ترکیبی پذیرفته می‌شود | `IEquipmentLocationRule` (`PermissiveEquipmentLocationRule`) را با قاعده‌ی واقعی جایگزین کن |
+| ترکیب معتبر شعبه/دپارتمان و تکنسین (مثلاً «نزد تکنسین» بدون تکنسین). «دقیقاً یکی از شعبه و دپارتمان» **بسته شده** و جزو این قاعده نیست | هر ترکیبِ تکنسین پذیرفته می‌شود | `IEquipmentLocationRule` (`PermissiveEquipmentLocationRule`) را با قاعده‌ی واقعی جایگزین کن |
 | انتقال‌های مجاز وضعیت | همه‌ی انتقال‌ها آزاد است | `EquipmentStatusTransitions.IsAllowed` |
 | چه کسی تکنسین می‌شود | **کاربر فعال با سمت «تکنسین»** (`PostCode.Technician`)، در dropdown و در هر ثبت و جابه‌جایی | `EquipmentRepository.QueryTechnicians` و `GetTechnicianEligibilityAsync` (یک نقطه‌ی تصمیم) |
 | مانع غیرفعال‌سازی (مثلاً گزارش خرابی باز) | ندارد | `EquipmentService.DeleteAsync` |

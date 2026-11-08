@@ -26,12 +26,12 @@ namespace EMS.Tests.Integration
         private static readonly byte[] PngBytes = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }.Concat(Enumerable.Range(0, 2000).Select(i => (byte)(i % 251))).ToArray();
         private static byte[] PdfBytes(int size = 3000) => Encoding.ASCII.GetBytes("%PDF-1.7\n").Concat(Enumerable.Range(0, size).Select(i => (byte)(i % 200 + 32))).ToArray();
 
-        private sealed record Fixture(long TypeId, long LocationTypeId);
+        private sealed record Fixture(long TypeId, long DepartmentId);
         private async Task<Fixture> NewFixtureAsync()
         {
             var category = await CatalogFixtures.PostAsync(this, "/api/EquipmentCategory", new { title = Uniq("wacat") }, "id");
             var type = await CatalogFixtures.PostAsync(this, "/api/EquipmentType", new { equipmentCategoryId = category, title = Uniq("watype"), code = "T" }, "id");
-            var location = await CatalogFixtures.PostAsync(this, "/api/EquipmentLocationType", new { title = Uniq("waloc"), code = "L" }, "id");
+            var location = await CatalogFixtures.NewDepartmentAsync(this);
             return new Fixture(type, location);
         }
 
@@ -41,7 +41,7 @@ namespace EMS.Tests.Integration
             ["owner"] = (int)EquipmentOwner.Company,
             ["equipmentTypeId"] = f.TypeId,
             ["equipmentStatusId"] = (long)EquipmentStatusCode.InStock,
-            ["currentEquipmentLocationTypeId"] = f.LocationTypeId,
+            ["currentSupportingDepartmentId"] = f.DepartmentId,
         };
 
         private sealed record Part(string Name, string? FileName, byte[] Bytes);

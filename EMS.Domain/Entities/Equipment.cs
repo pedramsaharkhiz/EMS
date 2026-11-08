@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Enums;
+using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
@@ -14,7 +14,6 @@ namespace EMS.Domain.Entities
         public long? EquipmentTypeId { get; set; }
         public long? EquipmentModelId { get; set; }
         public long EquipmentStatusId { get; set; }
-        public long CurrentEquipmentLocationTypeId { get; set; }
         public long? CurrentOrganizationId { get; set; }
         public long? CurrentSupportingDepartmentId { get; set; }
         public long? TechnicianUserId { get; set; }
@@ -23,7 +22,6 @@ namespace EMS.Domain.Entities
         public EquipmentModel? EquipmentModel { get; set; }
         public EquipmentType? EquipmentType { get; set; }
         public EquipmentStatus EquipmentStatus { get; set; } = null!;
-        public EquipmentLocationType CurrentEquipmentLocationType { get; set; } = null!;
         public Organization? CurrentOrganization { get; set; }
         public SupportingDepartment? CurrentSupportingDepartment { get; set; }
 

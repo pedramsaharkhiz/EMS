@@ -79,7 +79,7 @@ Authorization: Bearer <token>
 
 ```js
 const form = new FormData();
-form.append("equipment", JSON.stringify({ yaasCode: "Y-1001", owner: 1, equipmentTypeId: 3, equipmentStatusId: 1, currentEquipmentLocationTypeId: 2 }));  // اول
+form.append("equipment", JSON.stringify({ yaasCode: "Y-1001", owner: 1, equipmentTypeId: 3, equipmentStatusId: 1, currentSupportingDepartmentId: 2 }));  // اول
 form.append("description", "نمای کلی");     // اختیاری، برای فایل بعدی
 form.append("file", fileA);
 form.append("file", fileB);
