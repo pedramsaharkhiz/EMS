@@ -1480,29 +1480,20 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         new
                         {
                             PostId = 1L,
-                            Code = "Technician",
+                            Code = "Line",
                             CreatedByUserId = 0L,
                             CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
-                            Title = "تکنسین"
+                            Title = "صف"
                         },
                         new
                         {
                             PostId = 2L,
-                            Code = "UnitManager",
+                            Code = "Staff",
                             CreatedByUserId = 0L,
                             CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
-                            Title = "مسئول واحد"
-                        },
-                        new
-                        {
-                            PostId = 3L,
-                            Code = "Registrar",
-                            CreatedByUserId = 0L,
-                            CreatedDateTime = new DateTime(2026, 11, 4, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Title = "ثبت‌کننده"
+                            Title = "ستاد"
                         });
                 });
 

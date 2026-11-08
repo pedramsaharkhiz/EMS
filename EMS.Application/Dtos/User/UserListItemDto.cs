@@ -33,7 +33,7 @@ public class UserListItemDto
 
     public string? ProvinceTitle { get; set; }
 
-    /// <summary>The user's post (سمت), optional; the three system posts have the codes Technician, UnitManager and Registrar.</summary>
+    /// <summary>The user's post (سمت), optional; the two system posts have the codes Line (صف) and Staff (ستاد).</summary>
     public long? PostId { get; set; }
 
     public string? PostCode { get; set; }

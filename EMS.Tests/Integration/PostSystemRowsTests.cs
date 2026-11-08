@@ -63,7 +63,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task A_system_post_keeps_its_code_but_its_title_can_be_edited()
         {
-            var url = $"/api/Post/{(long)PostCode.UnitManager}";
+            var url = $"/api/Post/{(long)PostCode.Staff}";
             var original = (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, url))).GetProperty("title").GetString();
 
             var changeCode = await SendAdminAsync(HttpMethod.Put, url, new { code = "Gone", isActive = true });
@@ -72,7 +72,7 @@ namespace EMS.Tests.Integration
 
             // sending the same code (a form that posts every field) is fine, and so is renaming
             var renamed = Uniq("mgr");
-            var ok = await SendAdminAsync(HttpMethod.Put, url, new { title = renamed, code = "UnitManager", isActive = true });
+            var ok = await SendAdminAsync(HttpMethod.Put, url, new { title = renamed, code = "Staff", isActive = true });
             Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
             Assert.Equal(renamed, (await ReadDataAsync(ok)).GetProperty("title").GetString());
 
@@ -88,14 +88,14 @@ namespace EMS.Tests.Integration
             var id = (await ReadDataAsync(created)).GetProperty("id").GetInt64();
             Assert.True(id > (long)Enum.GetValues<PostCode>().Max(), "a new post must not reuse an id reserved for the enum");
 
-            foreach (var reserved in new[] { "Technician", "registrar", " UnitManager " })
+            foreach (var reserved in new[] { "Line", "staff", " Staff " })
             {
                 var clash = await SendAdminAsync(HttpMethod.Post, "/api/Post", new { title = Uniq("clash"), code = reserved });
                 Assert.Equal(HttpStatusCode.Conflict, clash.StatusCode);
                 Assert.Equal("reserved_code", ErrorCodeOf(await ReadJsonAsync(clash)));
             }
 
-            var update = await SendAdminAsync(HttpMethod.Put, $"/api/Post/{id}", new { code = "Technician", isActive = true });
+            var update = await SendAdminAsync(HttpMethod.Put, $"/api/Post/{id}", new { code = "Line", isActive = true });
             Assert.Equal(HttpStatusCode.Conflict, update.StatusCode);
             Assert.Equal("reserved_code", ErrorCodeOf(await ReadJsonAsync(update)));
 

@@ -96,17 +96,6 @@ namespace EMS.Domain.ReadModels
         public string? Description { get; set; }
     }
 
-    /// <summary>A user who can be chosen as the technician of an equipment.</summary>
-    /// <summary>Whether a user can be the technician of an equipment: active AND holding the post "Technician" (<c>PostCode.Technician</c>).</summary>
-    public enum TechnicianEligibility
-    {
-        NotFound = 0,
-        Inactive = 1,
-        /// <summary>The user exists and is active but does not hold the post "Technician".</summary>
-        NotTechnician = 2,
-        Eligible = 3,
-    }
-
     /// <summary>The technician of one equipment with what the screens show next to the name (active or not: a past assignment keeps its person).</summary>
     public sealed class EquipmentTechnicianRow
     {

@@ -177,24 +177,28 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task An_inactive_technician_is_refused_and_an_active_one_is_accepted()
+        public async Task Any_existing_technician_is_accepted_active_or_not_and_an_unknown_one_names_its_row()
         {
             var f = await NewFixtureAsync();
             var admin = await AdminAsync();
-            var active = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x", postId: (long)PostCode.Technician);
+            var active = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x");
             var inactive = await CreateUserAsync(admin, "bt_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x");
             await SendAsync(HttpMethod.Delete, $"/api/Users/{inactive}", bearer: admin);
 
             var a = Item(f); a["technicianUserId"] = active;
             var b = Item(f); b["technicianUserId"] = inactive;
 
-            var refused = await BulkAsync(a, b);
-            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
-            Assert.Contains("غیرفعال", Details(await ReadJsonAsync(refused)).Single(d => d.Field == "items[1].technicianUserId").Message);
-
-            var accepted = await BulkAsync(a);
+            // only that the user exists is checked (ADR-0017): an inactive one is fine too
+            var accepted = await BulkAsync(a, b);
             Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
-            Assert.Equal(active, (await ReadDataAsync(accepted))[0].GetProperty("technicianUserId").GetInt64());
+            var created = await ReadDataAsync(accepted);
+            Assert.Equal(active, created[0].GetProperty("technicianUserId").GetInt64());
+            Assert.Equal(inactive, created[1].GetProperty("technicianUserId").GetInt64());
+
+            var unknown = Item(f); unknown["technicianUserId"] = 987654321;
+            var refused = await BulkAsync(a, unknown);
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Contains("یافت نشد", Details(await ReadJsonAsync(refused)).Single(d => d.Field == "items[1].technicianUserId").Message);
         }
 
         [Fact]

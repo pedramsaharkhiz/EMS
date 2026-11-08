@@ -7,12 +7,12 @@ namespace EMS.Infrastructure.Persistence.Seed;
 
 public interface ISystemPostsGuard
 {
-    /// <summary>Makes sure the three system posts exist and are intact; returns how many rows were created and repaired.</summary>
+    /// <summary>Makes sure the two system posts exist and are intact; returns how many rows were created and repaired.</summary>
     Task<(int Created, int Repaired)> EnsureAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// The code relies on three posts (تکنسین، مسئول واحد، ثبت‌کننده; <see cref="Domain.Enums.PostCode"/>). The migration inserts them and the
+/// The code relies on two posts (صف، ستاد; <see cref="Domain.Enums.PostCode"/>). The migration inserts them and the
 /// API refuses to delete, deactivate or re-code them, but nothing stops someone from changing the table directly. This runs at every
 /// start and puts them back: a missing row is created with its fixed id, a deactivated one is reactivated and a changed code is restored.
 /// Titles that administrators edited are never touched. Idempotent.

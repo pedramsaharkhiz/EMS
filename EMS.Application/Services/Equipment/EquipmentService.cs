@@ -31,7 +31,6 @@ namespace EMS.Application.Services.Equipment
     /// </summary>
     public sealed class EquipmentService : IEquipmentService
     {
-        private const string NotTechnicianMessage = "کاربر انتخاب‌شده سمت «تکنسین» ندارد و نمی‌تواند تکنسین تجهیز باشد.";
         private const string AttachmentsTable = "Equipments";
         private const string FirstLocationNote = "ثبت اولیه تجهیز";
 
@@ -354,7 +353,7 @@ namespace EMS.Application.Services.Equipment
             var models = await ResolveAsync(_models, items.Where(i => i.EquipmentModelId.HasValue).Select(i => i.EquipmentModelId!.Value), x => x.EquipmentModelId, "مدل تجهیز", cancellationToken);
             var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "شعبه", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
-            var technicianStates = await _repository.GetTechnicianEligibilityAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
+            var existingTechnicians = await _repository.FindExistingUserIdsAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
             var takenSerials = await _repository.FindExistingSerialNumbersAsync(items.Select(i => Normalize(i.SerialNumber)).OfType<string>().ToList(), cancellationToken);
             var takenAssets = await _repository.FindExistingAssetNumbersAsync(items.Select(i => Normalize(i.AssetNumber)).OfType<string>().ToList(), cancellationToken);
 
@@ -368,12 +367,9 @@ namespace EMS.Application.Services.Equipment
                 if (item.CurrentOrganizationId is { } organization && organizations[organization] is { } organizationError) Fail(i, "currentOrganizationId", organizationError);
                 if (item.CurrentSupportingDepartmentId is { } department && departments[department] is { } departmentError) Fail(i, "currentSupportingDepartmentId", departmentError);
 
-                if (item.TechnicianUserId is { } technician)
-                {
-                    if (!technicianStates.TryGetValue(technician, out var eligibility)) Fail(i, "technicianUserId", "تکنسین یافت نشد.");
-                    else if (eligibility == TechnicianEligibility.Inactive) Fail(i, "technicianUserId", "تکنسین انتخاب‌شده غیرفعال است.");
-                    else if (eligibility == TechnicianEligibility.NotTechnician) Fail(i, "technicianUserId", NotTechnicianMessage);
-                }
+                // a technician is any user: only that he exists is checked (neither his post nor whether he is active)
+                if (item.TechnicianUserId is { } technician && !existingTechnicians.Contains(technician))
+                    Fail(i, "technicianUserId", "تکنسین یافت نشد.");
 
                 if (Normalize(item.SerialNumber) is { } serial && takenSerials.Contains(serial.ToLower()))
                     Fail(i, "serialNumber", SerialTakenMessage);
@@ -623,8 +619,7 @@ namespace EMS.Application.Services.Equipment
                 await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: false, cancellationToken);
             if (technicianId is { } technician)
             {
-                var found = await _repository.GetTechnicianEligibilityAsync(new[] { technician }, cancellationToken);
-                if (!found.ContainsKey(technician))
+                if (!(await _repository.FindExistingUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
                     throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
             }
         }
@@ -727,26 +722,10 @@ namespace EMS.Application.Services.Equipment
             if (location.SupportingDepartmentId is { } department)
                 await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: true, cancellationToken);
 
-            if (location.TechnicianUserId is { } technician)
-            {
-                var eligibility = (await _repository.GetTechnicianEligibilityAsync(new[] { technician }, cancellationToken))
-                    .GetValueOrDefault(technician, TechnicianEligibility.NotFound);
-
-                // The post is required of a NEW assignment (create, move). Restoring a deactivated equipment (validateRule: false) only
-                // needs its old technician to be active: a person who changed post meanwhile must not block the restore.
-                if (eligibility == TechnicianEligibility.NotTechnician && !validateRule)
-                    eligibility = TechnicianEligibility.Eligible;
-
-                switch (eligibility)
-                {
-                    case TechnicianEligibility.NotFound:
-                        throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
-                    case TechnicianEligibility.Inactive:
-                        throw new BadRequestException("تکنسین انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
-                    case TechnicianEligibility.NotTechnician:
-                        throw new BadRequestException(NotTechnicianMessage, ErrorCodes.TechnicianPostRequired);
-                }
-            }
+            // a technician is any user: only that he exists is checked (neither his post nor whether he is active), as in a move
+            if (location.TechnicianUserId is { } technician
+                && !(await _repository.FindExistingUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
+                throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
 
             if (validateRule)
                 await _locationRule.ValidateAsync(location, cancellationToken);

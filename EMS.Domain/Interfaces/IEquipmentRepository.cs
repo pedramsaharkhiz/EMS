@@ -37,14 +37,14 @@ namespace EMS.Domain.Interfaces
 
         void AddLocationHistory(EquipmentLocationHistory entry);
 
-        /// <summary>Users that can be chosen as technician: active users that hold the post "Technician".</summary>
+        /// <summary>Users that can be chosen as technician: every active user (the post is not a criterion).</summary>
         IQueryable<TechnicianInfo> QueryTechnicians();
 
         /// <summary>
-        /// Can these users be the technician of an equipment? The single place that decides it (the dropdown and every create / move use it).
-        /// A user that does not exist is absent from the result.
+        /// Which of these users exist (active or not)? The only thing a technician is checked for: a missing user would be a foreign key
+        /// error of the database. Returned as the set of ids that exist.
         /// </summary>
-        Task<Dictionary<long, TechnicianEligibility>> GetTechnicianEligibilityAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default);
+        Task<HashSet<long>> FindExistingUserIdsAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default);
 
         /// <summary>The current technician of an equipment, or null when it has none (or the user vanished). Active or not.</summary>
         Task<EquipmentTechnicianRow?> GetTechnicianOfEquipmentAsync(long equipmentId, CancellationToken cancellationToken = default);

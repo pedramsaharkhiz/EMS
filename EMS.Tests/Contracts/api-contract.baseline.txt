@@ -1883,6 +1883,23 @@ POST api/FailureReport
     envelope: success, message, data, meta, error, traceId
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
+GET api/FailureReport/priorities
+  authorization: (authenticated)
+  response 200: ApiResponse<IReadOnlyList<FailureReportPriorityItemDto>>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Id : Int32
+      Title : String
+      Code : String
+      IsActive : Boolean
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
 DELETE api/FailureReport/{id}
   authorization: Permission:FailureReports.Delete
   Path: id : Int64 (required)
