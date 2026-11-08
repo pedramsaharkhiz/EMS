@@ -1,4 +1,4 @@
-﻿namespace EMS.Application.Dtos.OrganizationHierarchy;
+namespace EMS.Application.Dtos.OrganizationHierarchy;
 
 public static class OrganizationHierarchyRules
 {
@@ -15,6 +15,7 @@ public static class OrganizationHierarchyRules
             "organizationmanagement" => 1,
             "field" => 2,
             "organization" => 3,
+            "employee" => 4,
             _ => -1
         };
     }

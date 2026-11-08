@@ -24,7 +24,7 @@
 | قاعده‌ی شعبه | هر شعبه **دقیقاً یکی** از این دو را دارد: `FieldId` (حوزه) **یا** `OrganizationManagementId` (مدیریت شعبه). نه هیچ‌کدام و نه هر دو. این قاعده با **CHECK constraint در دیتابیس** (`CK_Organizations_FieldOrManagement_ExactlyOne`) اعمال می‌شود و `OrganizationValidator` هم همان را می‌گوید |
 | بالادست حوزه و مدیریت | حوزه همیشه زیر یک مدیریت شعبه است (`Field.OrganizationManagementId` اجباری). مدیریت شعبه همیشه زیر یک ناحیه است (`OrganizationManagement.ZoneId` اجباری) |
 | تنها ارتباط بین دو دنیا | ستاد پشتیبانی به **شعبه‌ها** وصل می‌شود، یعنی «کدام مرکز یاس به کدام شعبه‌های بانک خدمت می‌دهد» ([بخش ۵](#۵-محدوده‌ی-شعب-برای-ستاد-پشتیبانی--اجرا-شده--۲۰۲۶-۱۱-۰۴)). غیر از این هیچ ارتباط ساختاری بین ستاد و حوزه، مدیریت شعبه یا ناحیه نیست |
-| کارمند بانک | `Employee` با ساختار سازمانی `OrganizationStructure` |
+| کارمند بانک | `Employee` با ساختار سازمانی `OrganizationStructure`. **هر کارمند دقیقاً زیر یک شعبه است** (`OrganizationId` الزامی) و در `GET /api/OrganizationHierarchy` سطح پنجم `employee` است، همراه با ساختار سازمانی‌اش؛ کد ملی و تاریخ تولد برگردانده نمی‌شود ([ORGANIZATION-HIERARCHY.md](ORGANIZATION-HIERARCHY.md)) |
 | کارمند یاس | `ApplicationUser` با سمت `Post` (و ستاد پشتیبانی) |
 | جدا بودن کارمندان | **هیچ کارمند بانکی کارمند یاس نیست و برعکس.** پس `Employee` و `ApplicationUser` یک «شخص» نیستند و به هم وصل نمی‌شوند |
 | گزارش خرابی | `EmployeeId` = کارمند **بانکی** که خرابی را گزارش کرده. `ReportedByUserId` = کاربر **یاس** که گزارش را ثبت کرده |
