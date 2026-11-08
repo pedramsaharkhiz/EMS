@@ -124,6 +124,17 @@ namespace EMS.Application.Services.Equipment
 
         // ------------------------------------------------------------------------------------------------ read
 
+        public async Task<PagedResult<EquipmentListItemDto>> GetOfUserAsync(long userId, EquipmentListRequestDto request, CancellationToken cancellationToken = default)
+        {
+            // an unknown user is an error, not an empty list (a user who holds nothing is an empty list); active or not, he exists
+            if (!(await _repository.FindExistingUserIdsAsync(new[] { userId }, cancellationToken)).Contains(userId))
+                throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
+
+            // the user of the route decides: a technicianUserId sent in the query is replaced, every other list filter works as in the list
+            request.TechnicianUserIds = new[] { userId };
+            return await GetPagedAsync(request, cancellationToken);
+        }
+
         public async Task<PagedResult<EquipmentListItemDto>> GetPagedAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default)
         {
             var page = await Query(request).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);

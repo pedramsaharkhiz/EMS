@@ -81,7 +81,8 @@ namespace EMS.Tests.Integration
 
         private async Task<JsonElement> ListRowAsync(long id)
         {
-            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment?pageSize=100")));
+            // newest first: the equipment just created is on the first page however many equipment the shared test database already holds
+            var list = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment?pageSize=100&sortDirection=desc")));
             return list.EnumerateArray().Single(e => e.GetProperty("id").GetInt64() == id);
         }
 

@@ -34,6 +34,15 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentListItemDto>>>> GetAllList([FromQuery] EquipmentListRequestDto request, CancellationToken cancellationToken) =>
             Paged(await _service.GetPagedAsync(request, cancellationToken));
 
+        /// <summary>
+        /// The equipment a user holds now (he is its technician), as the equipment list: every filter, sort and page parameter of the list works
+        /// (<c>technicianUserId</c> is the route's user). Needs <c>Equipments.View</c>, like the list. 404 for an unknown user.
+        /// </summary>
+        [Permission(Permissions.Equipments.View)]
+        [HttpGet("~/api/Users/{userId:long}/equipment")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<EquipmentListItemDto>>>> GetOfUser(long userId, [FromQuery] EquipmentListRequestDto request, CancellationToken cancellationToken) =>
+            Paged(await _service.GetOfUserAsync(userId, request, cancellationToken));
+
         /// <summary>The Excel file of the equipment that match the same filters as the list (paging is ignored).</summary>
         [Permission(Permissions.Equipments.View)]
         [HttpGet("export")]
