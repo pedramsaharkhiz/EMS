@@ -111,11 +111,20 @@ namespace EMS.Application.Validators.Equipment
         {
             RuleFor(x => x.CurrentOrganizationId).PositiveId("شعبه");
             RuleFor(x => x.CurrentSupportingDepartmentId).PositiveId("دپارتمان پشتیبانی");
-            RuleFor(x => x).Must(x => x.CurrentOrganizationId.HasValue ^ x.CurrentSupportingDepartmentId.HasValue)
-                .WithName("currentOrganizationId")
-                .WithMessage(EquipmentLocation.HolderMessage);
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
             RuleFor(x => x.Description).TextMax(EquipmentConstraints.DescriptionMaxLength, "توضیحات");
+
+            // The equipment is with a branch OR a supporting department: one move names at most one of them.
+            RuleFor(x => x).Must(x => !(x.CurrentOrganizationId.HasValue && x.CurrentSupportingDepartmentId.HasValue))
+                .WithName("currentOrganizationId")
+                .WithMessage(EquipmentLocation.MoveBothMessage);
+            RuleFor(x => x).Must(x => !(x.ClearTechnician && x.TechnicianUserId.HasValue))
+                .WithName("clearTechnician")
+                .WithMessage(EquipmentLocation.MoveClearAndSetTechnicianMessage);
+            // a move that asks for nothing is a mistake of the caller, not a silent success
+            RuleFor(x => x).Must(x => x.CurrentOrganizationId.HasValue || x.CurrentSupportingDepartmentId.HasValue || x.TechnicianUserId.HasValue || x.ClearTechnician)
+                .WithName("technicianUserId")
+                .WithMessage(EquipmentLocation.MoveNothingMessage);
         }
     }
 

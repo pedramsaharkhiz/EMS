@@ -185,12 +185,10 @@ namespace EMS.Tests.Integration
                 AssertPersianValidation(await ReadJsonAsync(response), "currentOrganizationId");
             }
             var movable = await CreatedIdAsync(Body(f));
-            foreach (var move in new object[] { new { currentOrganizationId = 1, currentSupportingDepartmentId = f.DepartmentId }, new { description = "nowhere" } })
-            {
-                var response = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{movable}/move", move);
-                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-                AssertPersianValidation(await ReadJsonAsync(response), "currentOrganizationId");
-            }
+            // a move names at most one of them (and at least one thing to change: see EquipmentMoveTests)
+            var bothMove = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{movable}/move", new { currentOrganizationId = 1, currentSupportingDepartmentId = f.DepartmentId });
+            Assert.Equal(HttpStatusCode.BadRequest, bothMove.StatusCode);
+            AssertPersianValidation(await ReadJsonAsync(bothMove), "currentOrganizationId");
             Assert.Equal(new[] { "CK_EquipmentLocationHistories_Location_ExactlyOne" },
                 Model().FindEntityType(typeof(EquipmentLocationHistory))!.GetCheckConstraints().Select(c => c.Name).ToArray());
 
