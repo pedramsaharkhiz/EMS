@@ -217,12 +217,9 @@ namespace EMS.Infrastructure.Repositories
 
         public void AddLocationHistory(EquipmentLocationHistory entry) => _context.EquipmentLocationHistories.Add(entry);
 
-        // A technician is an active user that holds the post "Technician" (the row of the Posts table whose id is PostCode.Technician).
-        private const long TechnicianPostId = (long)PostCode.Technician;
-
         public IQueryable<TechnicianInfo> QueryTechnicians() =>
             _context.Users.AsNoTracking().IncludingInactive()   // a department that was deactivated still names where the technician works
-                .Where(u => u.IsActive && u.PostId == TechnicianPostId)
+                .Where(u => u.IsActive)   // every active user: the post does not decide who can be a technician
                 .OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ThenBy(u => u.Id)
                 .Select(u => new TechnicianInfo
                 {
@@ -237,15 +234,11 @@ namespace EMS.Infrastructure.Repositories
                     ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
                 });
 
-        public async Task<Dictionary<long, TechnicianEligibility>> GetTechnicianEligibilityAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
+        public async Task<HashSet<long>> FindExistingUserIdsAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
         {
             var ids = userIds.Distinct().ToList();
-            var users = await _context.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
-                .Select(u => new { u.Id, u.IsActive, u.PostId }).ToListAsync(cancellationToken);
-            return users.ToDictionary(u => u.Id, u =>
-                !u.IsActive ? TechnicianEligibility.Inactive
-                : u.PostId == TechnicianPostId ? TechnicianEligibility.Eligible
-                : TechnicianEligibility.NotTechnician);
+            var found = await _context.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken);
+            return found.ToHashSet();
         }
 
         public async Task<EquipmentTechnicianRow?> GetTechnicianOfEquipmentAsync(long equipmentId, CancellationToken cancellationToken = default)

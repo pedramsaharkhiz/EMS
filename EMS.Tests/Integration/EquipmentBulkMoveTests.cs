@@ -19,7 +19,7 @@ namespace EMS.Tests.Integration
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>
             await SendAsync(method, url, body, bearer: await AdminAsync());
 
-        private async Task<long> NewUserAsync(long? postId = (long)PostCode.Technician) =>
+        private async Task<long> NewUserAsync(long? postId = null) =>
             await CreateUserAsync(await AdminAsync(), "bm_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x", postId: postId);
 
         private async Task<long> NewBranchAsync()

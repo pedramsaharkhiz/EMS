@@ -5,8 +5,9 @@ using System.Text.Json;
 namespace EMS.Tests.Integration
 {
     /// <summary>
-    /// The technician of an equipment: only an active user holding the post "Technician" can be one (the dropdown and every create / move),
-    /// and GET /api/Equipment/{id}/technician shows the current one with his post and department.
+    /// The technician of an equipment: any user can be one (ADR-0017: no post decides it, and only that the user exists is checked, in every
+    /// create, bulk, restore and move); the dropdown lists the active users; GET /api/Equipment/{id}/technician shows the current one with his
+    /// post and department.
     /// </summary>
     public class EquipmentTechnicianTests : ApiTestBase
     {
@@ -15,8 +16,8 @@ namespace EMS.Tests.Integration
         private string? _admin;
         private async Task<string> AdminAsync() => _admin ??= (await LoginAdminAsync()).AccessToken;
         private static string Uniq(string prefix) => $"{prefix}-{Guid.NewGuid():N}"[..28];
-        private static long TechnicianPost => (long)PostCode.Technician;
-        private static long UnitManagerPost => (long)PostCode.UnitManager;
+        private static long LinePost => (long)PostCode.Line;
+        private static long StaffPost => (long)PostCode.Staff;
 
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>
             await SendAsync(method, url, body, bearer: await AdminAsync());
@@ -77,66 +78,71 @@ namespace EMS.Tests.Integration
         // ------------------------------------------------------------------------------------ the lookup
 
         [Fact]
-        public async Task The_lookup_lists_only_active_users_with_the_technician_post()
+        public async Task The_lookup_lists_every_active_user_whatever_his_post()
         {
-            var technician = await NewUserAsync(TechnicianPost);
-            var manager = await NewUserAsync(UnitManagerPost);
+            var line = await NewUserAsync(LinePost);
+            var staff = await NewUserAsync(StaffPost);
             var noPost = await NewUserAsync(null);
-            var deactivated = await NewUserAsync(TechnicianPost);
+            var deactivated = await NewUserAsync(LinePost);
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/Users/{deactivated}")).StatusCode);
 
             var ids = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/technicians?pageSize=100&search=PC-tp")))
                 .EnumerateArray().Select(t => t.GetProperty("id").GetInt64()).ToHashSet();
-            Assert.Contains(technician, ids);
-            Assert.DoesNotContain(manager, ids);
-            Assert.DoesNotContain(noPost, ids);
-            Assert.DoesNotContain(deactivated, ids);
+            Assert.Contains(line, ids);
+            Assert.Contains(staff, ids);
+            Assert.Contains(noPost, ids);                  // the post is not a criterion
+            Assert.DoesNotContain(deactivated, ids);       // the dropdown offers only active users
         }
 
         // ------------------------------------------------------------------------------------ assigning
 
         [Fact]
-        public async Task A_user_without_the_technician_post_cannot_be_given_to_an_equipment_when_creating_but_a_move_does_not_restrict_it()
+        public async Task Any_existing_user_can_be_the_technician_in_every_way_of_assigning_and_an_unknown_one_is_refused()
         {
             var f = await NewFixtureAsync();
-            var manager = await NewUserAsync(UnitManagerPost);
+            var staff = await NewUserAsync(StaffPost);
             var noPost = await NewUserAsync(null);
-            var technician = await NewUserAsync(TechnicianPost);
+            var inactive = await NewUserAsync(LinePost);
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/Users/{inactive}")).StatusCode);
 
-            foreach (var user in new[] { manager, noPost })
+            // create: no post and not even an active user is required
+            foreach (var user in new[] { staff, noPost, inactive })
             {
-                var refused = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", Body(f, user));
-                Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
-                Assert.Equal("technician_post_required", ErrorCodeOf(await ReadJsonAsync(refused)));
+                var created = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", Body(f, user));
+                Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+                Assert.Equal(user, (await ReadDataAsync(created)).GetProperty("technicianUserId").GetInt64());
             }
-            Assert.Contains("«تکنسین»", (await ReadJsonAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", Body(f, manager)))).GetProperty("message").GetString());
 
-            // move: NOT restricted by the post (ADR-0015); create, bulk and the others still are until the technician post is retired
-            var id = await NewEquipmentAsync(f, technician);
-            var move = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { technicianUserId = manager });
-            Assert.Equal(HttpStatusCode.OK, move.StatusCode);
-            Assert.Equal(manager, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("technicianUserId").GetInt64());
+            // bulk
+            Assert.Equal(HttpStatusCode.Created, (await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { Body(f, staff), Body(f, noPost), Body(f, inactive) } })).StatusCode);
 
-            // bulk: the message names the item
-            var bulk = await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { Body(f, technician), Body(f, manager) } });
+            // move
+            var id = await NewEquipmentAsync(f);
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { technicianUserId = noPost })).StatusCode);
+            Assert.Equal(noPost, (await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("technicianUserId").GetInt64());
+
+            // only that the user exists is checked: unknown is 404 on create and move, and the bulk detail names the item
+            var unknown = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", Body(f, 987654321));
+            Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+            Assert.Equal("parent_not_found", ErrorCodeOf(await ReadJsonAsync(unknown)));
+            Assert.Equal(HttpStatusCode.NotFound, (await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { technicianUserId = 987654321 })).StatusCode);
+
+            var bulk = await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { Body(f, staff), Body(f, 987654321) } });
             Assert.Equal(HttpStatusCode.BadRequest, bulk.StatusCode);
             var details = (await ReadJsonAsync(bulk)).GetProperty("error").GetProperty("details").EnumerateArray().ToList();
             Assert.Single(details);
             Assert.Equal("items[1].technicianUserId", details[0].GetProperty("field").GetString());
-            Assert.Contains("«تکنسین»", details[0].GetProperty("message").GetString());
-
-            // a technician is fine everywhere
-            Assert.Equal(HttpStatusCode.Created, (await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { Body(f, technician) } })).StatusCode);
+            Assert.Contains("تکنسین", details[0].GetProperty("message").GetString());
         }
 
         [Fact]
         public async Task An_equipment_keeps_its_technician_when_his_post_changes_and_can_still_be_restored()
         {
             var f = await NewFixtureAsync();
-            var technician = await NewUserAsync(TechnicianPost);
+            var technician = await NewUserAsync(LinePost);
             var id = await NewEquipmentAsync(f, technician);
 
-            await SetPostAsync(technician, UnitManagerPost);                                   // no longer a technician
+            await SetPostAsync(technician, StaffPost);                                   // his post changed: it never mattered
 
             var detail = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"));
             Assert.Equal(technician, detail.GetProperty("technicianUserId").GetInt64());      // nothing is taken away
@@ -160,7 +166,7 @@ namespace EMS.Tests.Integration
             var f = await NewFixtureAsync();
             var departmentTitle = Uniq("tpdept");
             var department = await NewDepartmentAsync(departmentTitle);
-            var technician = await NewUserAsync(TechnicianPost, department);
+            var technician = await NewUserAsync(LinePost, department);
             var id = await NewEquipmentAsync(f, technician);
 
             var response = await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/technician");
@@ -170,8 +176,8 @@ namespace EMS.Tests.Integration
             Assert.StartsWith("علی تکنسین", json.GetProperty("fullName").GetString());
             Assert.StartsWith("PC-tp", json.GetProperty("personnelCode").GetString());
             Assert.True(json.GetProperty("isActive").GetBoolean());
-            Assert.Equal(TechnicianPost, json.GetProperty("postId").GetInt64());
-            Assert.Equal("تکنسین", json.GetProperty("postTitle").GetString());
+            Assert.Equal(LinePost, json.GetProperty("postId").GetInt64());
+            Assert.Equal("صف", json.GetProperty("postTitle").GetString());
             Assert.Equal(department, json.GetProperty("supportingDepartmentId").GetInt64());
             Assert.Equal(departmentTitle, json.GetProperty("supportingDepartmentTitle").GetString());
 
@@ -201,7 +207,7 @@ namespace EMS.Tests.Integration
         public async Task A_deactivated_technician_or_equipment_still_shows_and_the_endpoint_needs_the_view_permission()
         {
             var f = await NewFixtureAsync();
-            var technician = await NewUserAsync(TechnicianPost);
+            var technician = await NewUserAsync(LinePost);
             var id = await NewEquipmentAsync(f, technician);
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/Users/{technician}")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/Equipment/{id}")).StatusCode);

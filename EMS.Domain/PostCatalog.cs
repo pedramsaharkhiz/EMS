@@ -8,9 +8,8 @@ namespace EMS.Domain
         /// <summary>Initial Persian titles. Administrators may rename them later; the migration only inserts them once.</summary>
         public static readonly IReadOnlyDictionary<PostCode, string> Titles = new Dictionary<PostCode, string>
         {
-            [PostCode.Technician] = "تکنسین",
-            [PostCode.UnitManager] = "مسئول واحد",
-            [PostCode.Registrar] = "ثبت‌کننده",
+            [PostCode.Line] = "صف",
+            [PostCode.Staff] = "ستاد",
         };
 
         /// <summary>The primary key of the row that represents <paramref name="code"/> (the enum value itself).</summary>

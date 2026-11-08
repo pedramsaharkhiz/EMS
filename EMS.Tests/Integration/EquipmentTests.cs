@@ -71,7 +71,7 @@ namespace EMS.Tests.Integration
         private async Task<(long Id, string FullName)> NewTechnicianAsync()
         {
             var userName = "tc_" + Guid.NewGuid().ToString("N")[..10];
-            var id = await CreateUserAsync(await AdminAsync(), userName, "Passw0rd!x", postId: (long)PostCode.Technician);   // only users with the post "Technician" can be technicians
+            var id = await CreateUserAsync(await AdminAsync(), userName, "Passw0rd!x", postId: (long)PostCode.Line);   // any user can be a technician: the post is only a label
             return (id, "Test User");
         }
 
@@ -270,7 +270,7 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task An_inactive_technician_cannot_be_chosen()
+        public async Task An_inactive_technician_can_still_be_chosen_only_that_he_exists_is_checked()
         {
             var tech = await NewTechnicianAsync();
             using (var scope = _factory.Services.CreateScope())
@@ -282,7 +282,10 @@ namespace EMS.Tests.Integration
 
             var body = await BodyAsync();
             body["technicianUserId"] = tech.Id;
-            await AssertErrorAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body), HttpStatusCode.BadRequest, "parent_inactive");
+            // ADR-0017: a technician is any user; neither his post nor whether he is active is checked
+            var created = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            Assert.Equal(tech.Id, (await ReadDataAsync(created)).GetProperty("technicianUserId").GetInt64());
         }
 
         // ------------------------------------------------------------------------------------------ uniqueness

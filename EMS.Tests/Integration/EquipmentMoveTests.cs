@@ -22,7 +22,7 @@ namespace EMS.Tests.Integration
         private async Task<HttpResponseMessage> SendAdminAsync(HttpMethod method, string url, object? body = null) =>
             await SendAsync(method, url, body, bearer: await AdminAsync());
 
-        private async Task<long> NewUserAsync(long? postId) =>
+        private async Task<long> NewUserAsync(long? postId = null) =>
             await CreateUserAsync(await AdminAsync(), "mv_" + Guid.NewGuid().ToString("N")[..10], "Passw0rd!x", postId: postId);
 
         private async Task<long> NewBranchAsync(bool active = true)
@@ -60,7 +60,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task Only_the_technician_changes_when_only_the_technician_is_sent()
         {
-            var technician = await NewUserAsync((long)PostCode.Technician);
+            var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync();
             var before = await DetailAsync(id);
 
@@ -80,7 +80,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task Naming_a_branch_moves_there_and_leaves_the_department_and_the_other_way_round_and_the_technician_stays()
         {
-            var technician = await NewUserAsync((long)PostCode.Technician);
+            var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(technician);
             var branch = await NewBranchAsync();
 
@@ -102,8 +102,8 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task The_technician_and_one_place_can_change_in_one_call()
         {
-            var first = await NewUserAsync((long)PostCode.Technician);
-            var second = await NewUserAsync((long)PostCode.Technician);
+            var first = await NewUserAsync();
+            var second = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(first);
             var branch = await NewBranchAsync();
 
@@ -116,7 +116,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task The_technician_is_taken_off_only_by_asking_for_it_explicitly()
         {
-            var technician = await NewUserAsync((long)PostCode.Technician);
+            var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(technician);
 
             // null / not sent means "leave it": this asks for something else, the technician stays
@@ -136,7 +136,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task Contradictory_or_empty_requests_are_refused_with_persian_validation_errors()
         {
-            var technician = await NewUserAsync((long)PostCode.Technician);
+            var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync();
             var department = await CatalogFixtures.NewDepartmentAsync(this);
             var branch = await NewBranchAsync();
@@ -189,7 +189,7 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task A_move_to_the_state_it_is_already_in_does_nothing_and_the_row_version_still_guards_a_real_change()
         {
-            var technician = await NewUserAsync((long)PostCode.Technician);
+            var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(technician);
             var before = await DetailAsync(id);
             var stale = before.GetProperty("rowVersion").GetString();

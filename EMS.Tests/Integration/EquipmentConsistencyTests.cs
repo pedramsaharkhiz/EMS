@@ -39,7 +39,7 @@ namespace EMS.Tests.Integration
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Users", new
             {
                 userName, password = "Passw0rd!x", firstName = "علی", lastName = "تکنسین", personnelCode = "PC-" + userName,
-                postId = (long)PostCode.Technician, supportingDepartmentId = departmentId,
+                postId = (long)PostCode.Line, supportingDepartmentId = departmentId,
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
@@ -110,7 +110,7 @@ namespace EMS.Tests.Integration
             var row = await ListRowAsync(id);
             AssertTechnicianLocation(row, technician, place);
             Assert.True(row.GetProperty("technicianIsActive").GetBoolean());
-            Assert.Equal("تکنسین", row.GetProperty("technicianPostTitle").GetString());
+            Assert.Equal("صف", row.GetProperty("technicianPostTitle").GetString());
             AssertTechnicianLocation(await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}")), technician, place);
 
             // the update and the move answer with the same fields
