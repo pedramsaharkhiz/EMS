@@ -1,3 +1,4 @@
+using EMS.Application.Common.Export;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.FailureReport;
 
@@ -6,6 +7,8 @@ namespace EMS.Application.Interfaces.FailureReport
     public interface IFailureReportService
     {
         Task<PagedResult<FailureReportListItemDto>> GetPagedAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default);
+        /// <summary>The Excel file of the reports that match the same filters and sorting as the list (paging is ignored).</summary>
+        Task<ExcelFile> ExportAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default);
         Task<FailureReportDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
         Task<FailureReportDetailDto> CreateAsync(FailureReportCreateDto request, CancellationToken cancellationToken = default);
         Task<FailureReportDetailDto> UpdateAsync(long id, FailureReportUpdateDto request, CancellationToken cancellationToken = default);

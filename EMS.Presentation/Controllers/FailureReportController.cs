@@ -4,6 +4,7 @@ using EMS.Application.Dtos.FailureReport;
 using EMS.Application.Interfaces.FailureReport;
 using EMS.Domain;
 using EMS.Domain.Enums;
+using EMS.Presentation.Conventions;
 using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,13 @@ namespace EMS.Presentation.Controllers
             [FromQuery] FailureReportListRequestDto request,
             CancellationToken cancellationToken) =>
             Paged(await _service.GetPagedAsync(request, cancellationToken));
+
+        /// <summary>The Excel file of the failure reports that match the same filters and sorting as the list (paging is ignored).</summary>
+        [Permission(Permissions.FailureReports.View)]
+        [HttpGet("export")]
+        [ExcelResponse]
+        public async Task<IActionResult> Export([FromQuery] FailureReportListRequestDto request, CancellationToken cancellationToken) =>
+            ExcelDownload(await _service.ExportAsync(request, cancellationToken));
 
         /// <summary>
         /// فهرست اولویت‌های قابل انتخاب برای گزارش خرابی.
