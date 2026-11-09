@@ -7,6 +7,9 @@ namespace EMS.Application.Interfaces.TechnicianAssignment
     public interface ITechnicianAssignmentService
     {
         Task<PagedResult<TechnicianAssignmentListItemDto>> GetPagedAsync(TechnicianAssignmentListRequestDto request, CancellationToken cancellationToken = default);
+        /// <summary>Dashboard: the assignments the caller sees, counted per status, with the open and the overdue ones.</summary>
+        Task<EMS.Application.Dtos.Dashboard.AssignmentDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default);
+
         Task<TechnicianAssignmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);
 
         /// <summary>The assignments of one report (its history); 404 for an unknown report.</summary>

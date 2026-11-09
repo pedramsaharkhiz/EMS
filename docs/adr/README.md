@@ -60,5 +60,6 @@
 | 0019 | [حذف جدول `FailureReportActions`؛ اقدام‌ها فقط از راه ارجاع ثبت می‌شوند](0019-drop-failure-report-actions.md) |
 | 0020 | [origin‌های مجاز CORS و ریدایرکت https از تنظیمات خوانده می‌شوند](0020-cors-origins-and-https-redirect-from-configuration.md) |
 | 0021 | [لیست و خروجی Excel یک منبع ردیف دارند (آمادگی برای دسترسی سطح ردیف)](0021-list-and-export-share-one-row-source.md) |
+| 0022 | [کارت‌های داشبورد: هر کارت یک endpoint با مجوز خودش، شمارش در سرویس ماژول](0022-dashboard-cards-from-module-services.md) |
 
 > ADR شماره‌های ۰۰۰۱ تا ۰۰۱۲ بعداً و به‌صورت بازنگر نوشته شده‌اند: تصمیم‌ها پیش‌تر در کد و مستندات اجرا شده بودند. هر جا گزینهٔ جایگزین در تاریخچه ثبت نشده بود، همین را صریح نوشته‌ایم.

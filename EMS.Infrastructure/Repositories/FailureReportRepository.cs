@@ -67,6 +67,7 @@ namespace EMS.Infrastructure.Repositories
                 EmployeeId = r.EmployeeId,
                 EmployeeName = r.Employee != null ? r.Employee.FirstName + " " + r.Employee.LastName : null,
                 EmployeePersonnelCode = r.Employee != null ? r.Employee.PersonnelCode : null,
+                HasOpenAssignment = r.TechnicianAssignments.Any(a => TechnicianAssignmentCatalog.OpenIds.Contains(a.TechnicianAssignmentStatusId)),
                 ReportedByUserId = r.ReportedByUserId,
                 ReportedByName = _context.Users.Where(u => u.Id == r.ReportedByUserId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault(),
                 ReportedByPersonnelCode = _context.Users.Where(u => u.Id == r.ReportedByUserId).Select(u => u.PersonnelCode).FirstOrDefault(),

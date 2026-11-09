@@ -5,10 +5,12 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Dtos.Dashboard;
 using EMS.Application.Dtos.FailureReport;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.FailureReport;
 using EMS.Domain;
+using Microsoft.EntityFrameworkCore;
 using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
 using EMS.Domain.ReadModels;
@@ -40,6 +42,7 @@ namespace EMS.Application.Services.FailureReport
             .AnyOf(r => r.OrganizationIds, x => x.OrganizationId)
             .AnyOf(r => r.SupportingDepartmentIds, x => x.SupportingDepartmentId)
             .AnyOf(r => r.EmployeeIds, x => x.EmployeeId)
+            .Eq(r => r.HasOpenAssignment, x => x.HasOpenAssignment)
             .AnyOf(r => r.ReportedByUserIds, x => x.ReportedByUserId)
             .AtLeast(r => r.ReportedFrom, x => x.ReportedDateTime)
             .AtMost(r => r.ReportedTo, x => x.ReportedDateTime);
@@ -110,6 +113,40 @@ namespace EMS.Application.Services.FailureReport
             };
         }
 
+        public async Task<FailureReportDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
+        {
+            var closedId = FailureReportStatusCatalog.IdOf(FailureReportStatusCode.Closed);
+            var rows = VisibleRows(true);
+
+            var byStatus = (await rows.GroupBy(r => r.StatusId).Select(g => new { Id = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Count);
+            var byPriority = (await rows.Where(r => r.StatusId != closedId).GroupBy(r => r.PriorityId).Select(g => new { Id = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Count);
+            var withoutAssignment = await rows.CountAsync(r => r.StatusId != closedId && !r.HasOpenAssignment, cancellationToken);
+
+            var statuses = await _statuses.QueryByActive(true).OrderBy(x => x.FailureReportStatusId).ToListAsync(cancellationToken);
+            var inactiveWithReports = byStatus.Keys.Except(statuses.Select(x => x.FailureReportStatusId)).ToList();
+            if (inactiveWithReports.Count > 0)
+                statuses.AddRange(await _statuses.QueryByActive(false).Where(x => inactiveWithReports.Contains(x.FailureReportStatusId)).ToListAsync(cancellationToken));
+
+            return new FailureReportDashboardDto
+            {
+                Total = byStatus.Values.Sum(),
+                UnresolvedCount = byStatus.Where(x => x.Key != closedId).Sum(x => x.Value),
+                UnresolvedWithoutAssignmentCount = withoutAssignment,
+                ByStatus = statuses.OrderBy(x => x.FailureReportStatusId).Select(x => new FailureReportStatusCountDto
+                {
+                    Id = x.FailureReportStatusId,
+                    Code = x.Code,
+                    Title = x.Title,
+                    Count = byStatus.GetValueOrDefault(x.FailureReportStatusId),
+                    IsUnresolved = x.FailureReportStatusId != closedId,
+                }).ToList(),
+                UnresolvedByPriority = Enumerable.Range(FailureReportPriorities.Min, FailureReportPriorities.Max - FailureReportPriorities.Min + 1)
+                    .Select(id => new DashboardPriorityCountDto { Id = id, Title = FailureReportPriorities.TitleOf(id), Count = byPriority.GetValueOrDefault(id) }).ToList(),
+            };
+        }
+
         /// <summary>The Excel file of exactly the reports the list shows for the same filters and sorting (paging is ignored).</summary>
         public async Task<ExcelFile> ExportAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default) =>
             await _exporter.ExportAsync(Query(request), FailureReportExport.Definition, cancellationToken);
@@ -119,9 +156,14 @@ namespace EMS.Application.Services.FailureReport
         /// Anything that decides WHICH reports a caller may see (a future row-level security rule) belongs here, once, so that the grid
         /// and the file can never disagree. Do not query <see cref="IFailureReportRepository.QueryRows"/> from anywhere else in this service.
         /// </summary>
+        /// <summary>
+        /// THE source of failure report rows for the list, the Excel export AND the dashboard counts (a future row-level security rule goes here, once).
+        /// </summary>
+        private IQueryable<FailureReportRow> VisibleRows(bool active) => _repository.QueryRows(active);
+
         private IQueryable<FailureReportRow> Query(FailureReportListRequestDto request)
         {
-            var rows = Filters.Apply(_repository.QueryRows(request.IsActive ?? true), request);
+            var rows = Filters.Apply(VisibleRows(request.IsActive ?? true), request);
 
             var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             if (Sorting.TryApply(request.SortBy, descending, rows, out var sorted))
@@ -264,6 +306,7 @@ namespace EMS.Application.Services.FailureReport
             dto.EmployeeId = row.EmployeeId;
             dto.EmployeeName = row.EmployeeName;
             dto.EmployeePersonnelCode = row.EmployeePersonnelCode;
+            dto.HasOpenAssignment = row.HasOpenAssignment;
             dto.ReportedByUserId = row.ReportedByUserId;
             dto.ReportedByName = row.ReportedByName;
             dto.ReportedByPersonnelCode = row.ReportedByPersonnelCode;

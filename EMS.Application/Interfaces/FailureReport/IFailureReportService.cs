@@ -7,6 +7,9 @@ namespace EMS.Application.Interfaces.FailureReport
     public interface IFailureReportService
     {
         Task<PagedResult<FailureReportListItemDto>> GetPagedAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default);
+        /// <summary>Dashboard: the reports the caller sees, counted per status, with the unresolved ones per priority and the unresolved ones nobody was assigned.</summary>
+        Task<EMS.Application.Dtos.Dashboard.FailureReportDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default);
+
         /// <summary>The Excel file of the reports that match the same filters and sorting as the list (paging is ignored).</summary>
         Task<ExcelFile> ExportAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default);
         Task<FailureReportDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default);

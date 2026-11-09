@@ -9,10 +9,13 @@ using EMS.Application.Common.People;
 using EMS.Application.Dtos.Attachment;
 using EMS.Application.Interfaces.Attachment;
 using EMS.Application.Services.Attachment;
+using EMS.Application.Dtos.Dashboard;
 using EMS.Application.Dtos.Equipment;
 using EMS.Application.Dtos.EquipmentLocationHistory;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.Equipment;
+using EMS.Domain;
+using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using EMS.Domain.ReadModels;
@@ -164,6 +167,44 @@ namespace EMS.Application.Services.Equipment
             result.Attachments = await _attachments.ListActiveAsync(AttachmentsTable, id, cancellationToken);
             result.AttachmentCount = result.Attachments.Count;
             return result;
+        }
+
+        public async Task<EquipmentFleetSummaryDto> GetFleetSummaryAsync(CancellationToken cancellationToken = default)
+        {
+            var rows = VisibleRows(true);
+            var byStatus = (await rows.GroupBy(r => r.StatusId).Select(g => new { Id = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Count);
+            var byOwner = (await rows.GroupBy(r => r.Owner).Select(g => new { Owner = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Owner, x => x.Count);
+
+            // every active status row (so an empty bar can be drawn) plus a deactivated one that still holds equipment
+            var statuses = await _statuses.QueryByActive(true).OrderBy(x => x.EquipmentStatusId).ToListAsync(cancellationToken);
+            var inactiveWithEquipment = byStatus.Keys.Except(statuses.Select(x => x.EquipmentStatusId)).ToList();
+            if (inactiveWithEquipment.Count > 0)
+                statuses.AddRange(await _statuses.QueryByActive(false).Where(x => inactiveWithEquipment.Contains(x.EquipmentStatusId)).ToListAsync(cancellationToken));
+
+            var bars = statuses.OrderBy(x => x.EquipmentStatusId).Select(x => new EquipmentStatusCountDto
+            {
+                Id = x.EquipmentStatusId,
+                Code = x.Code,
+                Title = x.Title,
+                Count = byStatus.GetValueOrDefault(x.EquipmentStatusId),
+                NeedsAction = EquipmentStatusCatalog.NeedsActionIds.Contains(x.EquipmentStatusId),
+            }).ToList();
+
+            var owners = new List<DashboardOwnerCountDto>();
+            foreach (var owner in new[] { EquipmentOwner.Bank, EquipmentOwner.Company })
+                owners.Add(new DashboardOwnerCountDto { Owner = (int)owner, Title = EquipmentOwnerTitles.TitleOf(owner), Count = byOwner.GetValueOrDefault(owner) });
+            foreach (var (owner, count) in byOwner.Where(x => x.Key != EquipmentOwner.Bank && x.Key != EquipmentOwner.Company && x.Value > 0))
+                owners.Add(new DashboardOwnerCountDto { Owner = (int)owner, Title = EquipmentOwnerTitles.TitleOf(owner), Count = count });
+
+            return new EquipmentFleetSummaryDto
+            {
+                Total = byStatus.Values.Sum(),
+                NeedsActionCount = bars.Where(b => b.NeedsAction).Sum(b => b.Count),
+                ByStatus = bars,
+                ByOwner = owners,
+            };
         }
 
         public async Task<ExcelFile> ExportAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default) =>
@@ -637,9 +678,15 @@ namespace EMS.Application.Services.Equipment
 
         // ------------------------------------------------------------------------------------------------ helpers
 
+        /// <summary>
+        /// THE source of equipment rows for the list, the Excel export AND the dashboard counts. Whatever decides which equipment a caller may see
+        /// (a future row-level security rule) belongs here, once. Do not query <see cref="IEquipmentRepository.QueryRows"/> from anywhere else in this service.
+        /// </summary>
+        private IQueryable<EquipmentRow> VisibleRows(bool active) => _repository.QueryRows(active);
+
         private IQueryable<EquipmentRow> Query(EquipmentListRequestDto request)
         {
-            var rows = Filters.Apply(_repository.QueryRows(request.IsActive ?? true), request);
+            var rows = Filters.Apply(VisibleRows(request.IsActive ?? true), request);
 
             var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             if (Sorting.TryApply(request.SortBy, descending, rows, out var sorted))

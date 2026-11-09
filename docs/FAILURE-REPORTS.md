@@ -53,7 +53,11 @@
 - **کدهای کاتالوگ:** `failureTypeCode` و `reportTypeCode` کنار عنوان‌شان می‌آیند.
 - **اشخاص:** کارمند (`employeeName`، `employeePersonnelCode`) و ثبت‌کننده (`reportedBy...` با مجموعه‌ی کامل شخص: نام، کد پرسنلی، وضعیت، سمت، دپارتمان، شهر، استان).
 
-**فیلتر لیست:** `search` (شماره‌ی ارجاع، توضیح، یاس کد تجهیز)، `referenceNumber`، و چندمقداری `equipmentId`، `failureTypeId`، `failureCategoryId`، `reportTypeId`، `statusId`، `priorityId`، `organizationId`، `employeeId`، `reportedByUserId` (مثل `?statusId=1&statusId=2`)، بازه‌ی `reportedFrom` و `reportedTo`، و `isActive`. مرتب‌سازی با `sortBy`: `referenceNumber`، `equipment`، `failureType`، `failureCategory`، `reportType`، `status`، `organization`، `priority`، `reportedDateTime`، `createdDateTime` (پیش‌فرض بر اساس id).
+**فیلتر لیست:** `search` (شماره‌ی ارجاع، توضیح، یاس کد تجهیز)، `referenceNumber`، و چندمقداری `equipmentId`، `failureTypeId`، `failureCategoryId`، `reportTypeId`، `statusId`، `priorityId`، `organizationId`، `employeeId`، `reportedByUserId` (مثل `?statusId=1&statusId=2`)، بازه‌ی `reportedFrom` و `reportedTo`، و `isActive` و `hasOpenAssignment` (`true`: دارای ارجاع باز؛ `false`: کاری که هنوز به کسی داده نشده). هر ردیف فیلد `hasOpenAssignment` هم دارد. مرتب‌سازی با `sortBy`: `referenceNumber`، `equipment`، `failureType`، `failureCategory`، `reportType`، `status`، `organization`، `priority`، `reportedDateTime`، `createdDateTime` (پیش‌فرض بر اساس id).
+
+## داشبورد
+
+سه کارت صفحهٔ اول در [DASHBOARD-DESIGN.md](DASHBOARD-DESIGN.md) تعریف شده‌اند. کارت گزارش خرابی: `GET /api/Dashboard/failure-reports` با مجوز `FailureReports.View`.
 
 ## خروجی Excel
 
