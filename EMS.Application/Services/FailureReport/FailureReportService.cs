@@ -1,10 +1,10 @@
 using EMS.Application.Common.Catalog;
 using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Export;
 using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
-using EMS.Application.Common.People;
 using EMS.Application.Dtos.FailureReport;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.FailureReport;
@@ -67,7 +67,7 @@ namespace EMS.Application.Services.FailureReport
         private readonly ICurrentUserService _currentUser;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
-        private readonly IUserReferenceRepository _people;
+        private readonly IExcelExporter _exporter;
 
         public FailureReportService(
             IFailureReportRepository repository,
@@ -80,7 +80,7 @@ namespace EMS.Application.Services.FailureReport
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IUserReferenceRepository people)
+            IExcelExporter exporter)
         {
             _repository = repository;
             _equipment = equipment;
@@ -92,33 +92,42 @@ namespace EMS.Application.Services.FailureReport
             _currentUser = currentUser;
             _unitOfWork = unitOfWork;
             _audit = audit;
-            _people = people;
+            _exporter = exporter;
         }
 
         // ------------------------------------------------------------------------------------------------ read
 
         public async Task<PagedResult<FailureReportListItemDto>> GetPagedAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default)
         {
-            var rows = Filters.Apply(_repository.QueryRows(request.IsActive ?? true), request);
-            var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-            if (!Sorting.TryApply(request.SortBy, descending, rows, out var sorted))
-                sorted = descending ? rows.OrderByDescending(x => x.Id) : rows.OrderBy(x => x.Id);
-
-            var page = await sorted.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
-
-            // the reporters of the whole page in one query
-            var people = await _people.GetPeopleAsync(page.Items.Select(r => (long?)r.ReportedByUserId), cancellationToken);
-            var items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList();
-            foreach (var item in items)
-                PersonReferenceMapper.Fill(item, "ReportedBy", people.GetValueOrDefault(item.ReportedByUserId));
+            var page = await Query(request).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
 
             return new PagedResult<FailureReportListItemDto>
             {
-                Items = items,
+                Items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList(),
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
             };
+        }
+
+        /// <summary>The Excel file of exactly the reports the list shows for the same filters and sorting (paging is ignored).</summary>
+        public async Task<ExcelFile> ExportAsync(FailureReportListRequestDto request, CancellationToken cancellationToken = default) =>
+            await _exporter.ExportAsync(Query(request), FailureReportExport.Definition, cancellationToken);
+
+        /// <summary>
+        /// THE way to reach the rows of the list and of the Excel export: the same filters, the same sorting, the same source.
+        /// Anything that decides WHICH reports a caller may see (a future row-level security rule) belongs here, once, so that the grid
+        /// and the file can never disagree. Do not query <see cref="IFailureReportRepository.QueryRows"/> from anywhere else in this service.
+        /// </summary>
+        private IQueryable<FailureReportRow> Query(FailureReportListRequestDto request)
+        {
+            var rows = Filters.Apply(_repository.QueryRows(request.IsActive ?? true), request);
+
+            var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            if (Sorting.TryApply(request.SortBy, descending, rows, out var sorted))
+                return sorted;
+
+            return descending ? rows.OrderByDescending(x => x.Id) : rows.OrderBy(x => x.Id);
         }
 
         public Task<FailureReportDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
@@ -215,8 +224,6 @@ namespace EMS.Application.Services.FailureReport
         {
             var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();
             var detail = Fill(new FailureReportDetailDto(), row);
-            var reporter = await _people.GetPeopleAsync(new long?[] { row.ReportedByUserId }, cancellationToken);
-            PersonReferenceMapper.Fill(detail, "ReportedBy", reporter.GetValueOrDefault(row.ReportedByUserId));
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             return detail;
@@ -258,8 +265,19 @@ namespace EMS.Application.Services.FailureReport
             dto.EmployeeName = row.EmployeeName;
             dto.EmployeePersonnelCode = row.EmployeePersonnelCode;
             dto.ReportedByUserId = row.ReportedByUserId;
+            dto.ReportedByName = row.ReportedByName;
+            dto.ReportedByPersonnelCode = row.ReportedByPersonnelCode;
+            dto.ReportedByIsActive = row.ReportedByIsActive;
+            dto.ReportedByPostId = row.ReportedByPostId;
+            dto.ReportedByPostTitle = row.ReportedByPostTitle;
+            dto.ReportedBySupportingDepartmentId = row.ReportedBySupportingDepartmentId;
+            dto.ReportedBySupportingDepartmentTitle = row.ReportedBySupportingDepartmentTitle;
+            dto.ReportedByCityId = row.ReportedByCityId;
+            dto.ReportedByCityTitle = row.ReportedByCityTitle;
+            dto.ReportedByProvinceId = row.ReportedByProvinceId;
+            dto.ReportedByProvinceTitle = row.ReportedByProvinceTitle;
             dto.PriorityId = row.PriorityId;
-            dto.PriorityTitle = FailureReportPriorities.TitleOf(row.PriorityId);
+            dto.PriorityTitle = row.PriorityTitle;
             dto.ReportedDateTime = row.ReportedDateTime;
             dto.Description = row.Description;
             dto.IsActive = row.IsActive;

@@ -1,3 +1,5 @@
+using ClosedXML.Excel;
+using EMS.Application.Common.Globalization;
 using EMS.Domain.Entities;
 using EMS.Domain.Enums;
 using EMS.Infrastructure.Persistence;
@@ -419,6 +421,158 @@ namespace EMS.Tests.Integration
             var created = await SendAsync(HttpMethod.Post, "/api/FailureReport", Body(f), bearer: token);
             Assert.Equal(HttpStatusCode.Created, created.StatusCode);
             Assert.Equal(registrar, (await ReadDataAsync(created)).GetProperty("reportedByUserId").GetInt64());
+        }
+
+        // ------------------------------------------------------------------------------------------ Excel export
+
+        private async Task<(string FileName, List<string> Headers, XLWorkbook Book)> ExportAsync(string query)
+        {
+            var response = await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport/export?{query}");
+            Assert.True(response.StatusCode == HttpStatusCode.OK, $"export -> {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", response.Content.Headers.ContentType!.MediaType);
+            var fileName = response.Content.Headers.ContentDisposition!.FileNameStar ?? response.Content.Headers.ContentDisposition.FileName!;
+            var book = new XLWorkbook(new MemoryStream(await response.Content.ReadAsByteArrayAsync()));
+            var sheet = book.Worksheet(1);
+            var headers = Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList();
+            return (fileName, headers, book);
+        }
+
+        private static List<string> ColumnOf(IXLWorksheet sheet, List<string> headers, string header) =>
+            Enumerable.Range(2, Math.Max(0, (sheet.LastRowUsed()?.RowNumber() ?? 1) - 1))
+                .Select(r => sheet.Cell(r, headers.IndexOf(header) + 1).GetString()).ToList();
+
+        [Fact]
+        public async Task Export_is_an_xlsx_that_shows_what_the_list_shows_with_persian_headers_and_jalali_dates()
+        {
+            var f = await NewFixtureAsync();
+            var tag = Guid.NewGuid().ToString("N")[..8];
+            var admin = await LoginAdminAsync();
+            var first = await CreateAsync(Body(f, $"XR-{tag}-1", priority: 5));
+            await CreateAsync(Body(f, $"XR-{tag}-2", priority: 1));
+            await CreateAsync(Body(f, $"OT-{tag}"));
+
+            var (fileName, headers, book) = await ExportAsync($"search=XR-{tag}&sortBy=referenceNumber");
+            using var _ = book;
+            Assert.Matches(@"^گزارش-خرابی-\d{4}-\d{2}-\d{2}\.xlsx$", fileName);
+            var sheet = book.Worksheet(1);
+            Assert.Equal("گزارش‌های خرابی", sheet.Name);
+            Assert.True(sheet.RightToLeft);
+            foreach (var title in new[] { "شناسه", "شماره ارجاع", "وضعیت گزارش", "اولویت", "نوع گزارش", "دسته‌بندی خرابی", "نوع خرابی", "یاس کد تجهیز", "شعبه", "ثبت‌کننده", "کد پرسنلی ثبت‌کننده", "زمان گزارش", "فعال", "تاریخ ایجاد" })
+                Assert.Contains(title, headers);
+
+            string Cell(int row, string header) => sheet.Cell(row, headers.IndexOf(header) + 1).GetString();
+
+            Assert.Equal(3, sheet.LastRowUsed()!.RowNumber());                       // header + the two XR- rows, not the OT- one
+            Assert.Equal($"XR-{tag}-1", Cell(2, "شماره ارجاع"));
+            Assert.Equal("باز", Cell(2, "وضعیت گزارش"));
+            Assert.Equal("فوری", Cell(2, "اولویت"));
+            Assert.Equal("بله", Cell(2, "فعال"));
+
+            // every cell is the very value the list returns for the same report
+            var listed = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport?search=XR-{tag}&sortBy=referenceNumber"))).EnumerateArray().ToList();
+            Assert.Equal(2, listed.Count);
+            for (var i = 0; i < 2; i++)
+            {
+                var row = i + 2;
+                var item = listed[i];
+                Assert.Equal(item.GetProperty("id").GetInt64().ToString(), Cell(row, "شناسه"));
+                Assert.Equal(item.GetProperty("referenceNumber").GetString(), Cell(row, "شماره ارجاع"));
+                Assert.Equal(item.GetProperty("failureReportStatusTitle").GetString(), Cell(row, "وضعیت گزارش"));
+                Assert.Equal(item.GetProperty("priorityTitle").GetString(), Cell(row, "اولویت"));
+                Assert.Equal(item.GetProperty("failureTypeTitle").GetString(), Cell(row, "نوع خرابی"));
+                Assert.Equal(item.GetProperty("equipmentYaasCode").GetString(), Cell(row, "یاس کد تجهیز"));
+                Assert.Equal(item.GetProperty("organizationTitle").GetString(), Cell(row, "شعبه"));
+                Assert.Equal(item.GetProperty("reportedByName").GetString(), Cell(row, "ثبت‌کننده"));
+                Assert.Equal(item.GetProperty("reportedByPersonnelCode").GetString(), Cell(row, "کد پرسنلی ثبت‌کننده"));
+                Assert.Equal(item.GetProperty("description").GetString(), Cell(row, "توضیحات"));
+            }
+            Assert.False(string.IsNullOrWhiteSpace(Cell(2, "ثبت‌کننده")));
+            Assert.Equal(admin.UserId, first.GetProperty("reportedByUserId").GetInt64());
+
+            // the date is the Jalali form of the very same UTC moment the API returns
+            var reportedUtc = DateTime.Parse(listed[0].GetProperty("reportedDateTime").GetString()!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal);
+            Assert.Equal(PersianDate.ToDateTime(reportedUtc), Cell(2, "زمان گزارش"));
+        }
+
+        [Fact]
+        public async Task Export_and_list_always_agree_on_which_reports_and_in_which_order_for_every_kind_of_filter()
+        {
+            var f1 = await NewFixtureAsync();
+            var f2 = await NewFixtureAsync();
+            var tag = Guid.NewGuid().ToString("N")[..8];
+            var a = await CreateAsync(Body(f1, $"AG-{tag}-1", priority: 2));
+            var b = await CreateAsync(Body(f2, $"AG-{tag}-2", priority: 4));
+            var c = await CreateAsync(Body(f1, $"AG-{tag}-3", priority: 4));
+            // c is closed, b is deactivated
+            var closing = UpdateBodyFrom(c);
+            closing["failureReportStatusId"] = Closed;
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(c)}", closing)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Delete, $"/api/FailureReport/{Id(b)}")).StatusCode);
+
+            foreach (var query in new[]
+            {
+                $"search=AG-{tag}&sortBy=referenceNumber",
+                $"search=AG-{tag}&sortBy=referenceNumber&sortDirection=desc",
+                $"search=AG-{tag}&statusId={Closed}",
+                $"search=AG-{tag}&priorityId=4&priorityId=2",
+                $"search=AG-{tag}&equipmentId={f1.EquipmentId}&sortBy=priority&sortDirection=desc",
+                $"search=AG-{tag}&organizationId={f2.OrganizationId}&isActive=false",
+                $"search=AG-{tag}&isActive=false",
+                $"search=AG-{tag}&reportedFrom={DateTime.UtcNow.AddMinutes(-30):O}&reportedTo={DateTime.UtcNow.AddMinutes(30):O}&sortBy=reportedDateTime",
+                $"search=no-such-{tag}",
+            })
+            {
+                var listed = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport?pageSize=100&{query}")))
+                    .EnumerateArray().Select(i => i.GetProperty("referenceNumber").GetString()!).ToList();
+
+                var (_, headers, book) = await ExportAsync(query);
+                using var _b = book;
+                var exported = ColumnOf(book.Worksheet(1), headers, "شماره ارجاع");
+
+                Assert.True(listed.SequenceEqual(exported), $"'{query}': list [{string.Join(",", listed)}] vs file [{string.Join(",", exported)}]");
+            }
+
+            // sanity: the filters above really did select different things
+            Assert.Equal(new[] { $"AG-{tag}-1", $"AG-{tag}-3" }, ColumnOf(await SheetOf($"search=AG-{tag}&sortBy=referenceNumber")));
+            Assert.Equal(new[] { $"AG-{tag}-2" }, ColumnOf(await SheetOf($"search=AG-{tag}&isActive=false")));
+        }
+
+        private async Task<(IXLWorksheet Sheet, List<string> Headers)> SheetOf(string query)
+        {
+            var (_, headers, book) = await ExportAsync(query);
+            return (book.Worksheet(1), headers);
+        }
+
+        private static List<string> ColumnOf((IXLWorksheet Sheet, List<string> Headers) s) => ColumnOf(s.Sheet, s.Headers, "شماره ارجاع");
+
+        [Fact]
+        public async Task Export_of_a_filter_that_matches_nothing_is_a_valid_file_and_invalid_filters_are_json_errors()
+        {
+            var (_, _, book) = await ExportAsync($"search=nothing-{Guid.NewGuid():N}");
+            using (book)
+                Assert.Equal(1, book.Worksheet(1).LastRowUsed()!.RowNumber());       // just the header
+
+            var bad = await SendAdminAsync(HttpMethod.Get, "/api/FailureReport/export?statusId=0");
+            Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+            Assert.Equal("validation_failed", ErrorCodeOf(await ReadJsonAsync(bad)));
+        }
+
+        [Fact]
+        public async Task Export_needs_the_same_permission_as_the_list()
+        {
+            var admin = await AdminAsync();
+            async Task<string> TokenWithAsync(params string[] permissions)
+            {
+                var name = "fx_" + Guid.NewGuid().ToString("N")[..10];
+                var userId = await CreateUserAsync(admin, name, "Passw0rd!x");
+                await AssignRoleAsync(admin, userId, await CreateRoleAsync(admin, "role_" + name, permissions));
+                return (await LoginAsync(name, "Passw0rd!x")).AccessToken;
+            }
+
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Get, "/api/FailureReport/export", await TokenWithAsync("Skills.View")));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Get, "/api/FailureReport/export", await TokenWithAsync("FailureReports.Create")));
+            Assert.Equal(HttpStatusCode.OK, await StatusOfAsync(HttpMethod.Get, "/api/FailureReport/export", await TokenWithAsync("FailureReports.View")));
+            Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Get, "/api/FailureReport/export")).StatusCode);
         }
     }
 }

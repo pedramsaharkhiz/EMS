@@ -57,6 +57,8 @@ public static class EquipmentExport
 2. در کنترلر یک action با `[ExcelResponse]` که `Task<IActionResult>` برمی‌گرداند و از `ExcelDownload(...)` استفاده می‌کند.
 3. سرویس `IExcelExporter.ExportAsync(query, Definition)` را صدا می‌زند. `query` همان کوئری فیلترشده‌ی لیست (بدون صفحه‌بندی) است.
 
+> ماژول‌هایی که خروجی دارند: تجهیز (`EquipmentExport`) و گزارش خرابی (`FailureReportExport`). قاعدهٔ مشترک: **خروجی و لیست از یک کوئری ساخته می‌شوند** ([ADR-0021](adr/0021-list-and-export-share-one-row-source.md)).
+
 ### چه چیزی خودکار است
 
 - شیت **راست‌به‌چپ** با نام فارسی (حداکثر ۳۱ کاراکتر، کاراکترهای ممنوع حذف می‌شود)، فونت Tahoma، هدر پررنگ و ثابت با فیلتر، عرض ستون متناسب با محتوا.

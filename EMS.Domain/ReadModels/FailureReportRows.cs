@@ -47,8 +47,22 @@ namespace EMS.Domain.ReadModels
         public string? EmployeePersonnelCode { get; set; }
 
         public long ReportedByUserId { get; set; }
+        // the user who registered the report, with the same person set as every other screen (list, detail and Excel read these, not a second lookup)
+        public string? ReportedByName { get; set; }
+        public string? ReportedByPersonnelCode { get; set; }
+        public bool? ReportedByIsActive { get; set; }
+        public long? ReportedByPostId { get; set; }
+        public string? ReportedByPostTitle { get; set; }
+        public long? ReportedBySupportingDepartmentId { get; set; }
+        public string? ReportedBySupportingDepartmentTitle { get; set; }
+        public long? ReportedByCityId { get; set; }
+        public string? ReportedByCityTitle { get; set; }
+        public long? ReportedByProvinceId { get; set; }
+        public string? ReportedByProvinceTitle { get; set; }
 
         public int PriorityId { get; set; }
+        /// <summary>The Persian title of <see cref="PriorityId"/> (computed here, not stored).</summary>
+        public string PriorityTitle => FailureReportPriorities.TitleOf(PriorityId);
         public DateTime ReportedDateTime { get; set; }
         public string? Description { get; set; }
         public bool IsActive { get; set; }
