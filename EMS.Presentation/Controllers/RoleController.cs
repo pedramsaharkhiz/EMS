@@ -1,6 +1,7 @@
 ﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.Permission;
 using EMS.Application.Dtos.Role;
 using EMS.Application.Dtos.User;
 using EMS.Application.Dtos.UserRole;
@@ -133,6 +134,24 @@ public sealed class RoleController : BaseApiController
 
         return Success(permissions);
     }
+
+    /// <summary>
+    /// Every permission of the system, grouped with Persian titles, with <c>granted</c> on those the role holds: the "role access" screen in one request.
+    /// (By id; the route above reads by name and returns only the names.)
+    /// </summary>
+    [Permission(Permissions.Roles.View)]
+    [HttpGet("{roleId:long}/permissions")]
+    public async Task<ActionResult<ApiResponse<RolePermissionsDto>>> GetRolePermissions(long roleId, CancellationToken cancellationToken) =>
+        Success(await _roleService.GetRolePermissionsAsync(roleId, cancellationToken));
+
+    /// <summary>
+    /// Replaces the role's permissions with exactly the given list (the whole list, not only the changes) and returns the new state.
+    /// The users of the role must refresh their token (their old one gets 401). The administrator role cannot be changed (409 protected_record).
+    /// </summary>
+    [Permission(Permissions.Roles.ManagePermissions)]
+    [HttpPut("{roleId:long}/permissions")]
+    public async Task<ActionResult<ApiResponse<RolePermissionsDto>>> SetRolePermissions(long roleId, [FromBody] SetRolePermissionsDto request, CancellationToken cancellationToken) =>
+        Updated(await _roleService.SetRolePermissionsAsync(roleId, request.Permissions, cancellationToken));
 
     // ---------------------------------------------------------
     // Role -> Users

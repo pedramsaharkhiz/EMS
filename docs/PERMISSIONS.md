@@ -1,0 +1,73 @@
+# دسترسی‌ها و نقش‌ها
+
+قاعده‌های کسب‌وکاری: [BUSINESS-DECISIONS.md ۳.۱۷](BUSINESS-DECISIONS.md). تصمیم فنی: [ADR-0006](adr/0006-permission-based-authorization-with-live-revalidation.md) و [ADR-0023](adr/0023-permission-catalog-and-protected-admin-role.md).
+
+## مدل
+
+- هر endpoint یک **دسترسی** (permission) می‌خواهد، به شکل `منبع.عمل` (مثل `Equipments.Update`).
+- دسترسی فقط به **نقش** داده می‌شود، نه به کاربر. هر کاربر **دقیقاً یک نقش فعال** دارد.
+- خواندن داده‌های پایه (dropdownها: برند، وضعیت، شهر، ...) برای هر کاربر واردشده آزاد است و دسترسی نمی‌خواهد.
+- «صفحه» در بک‌اند وجود ندارد. فرانت از روی دسترسی‌ها تصمیم می‌گیرد کدام صفحه و دکمه را نشان بدهد (پایین‌تر).
+- دسترسی سطح ردیف (این‌که کاربر *کدام* تجهیز یا گزارش را ببیند) هنوز وجود ندارد.
+
+## مسیرها
+
+| مسیر | مجوز | شرح |
+|---|---|---|
+| `GET /api/Permission` | هر کاربر واردشده | **کاتالوگ همه‌ی دسترسی‌ها**، گروه‌بندی‌شده با عنوان و توضیح فارسی |
+| `GET /api/Role/{id}/permissions` | `Roles.View` | همه‌ی دسترسی‌ها با علامت `granted` روی آن‌هایی که نقش دارد (صفحه‌ی «دسترسی نقش» در یک درخواست) |
+| `PUT /api/Role/{id}/permissions` | `Roles.ManagePermissions` | جایگزینی دسترسی‌های نقش با فهرست داده‌شده؛ پاسخ همان شکل `GET` |
+| `GET /api/Identity/me` | هر کاربر واردشده | کاربر واردشده با نقش و دسترسی‌های **فعلی** (از دیتابیس، نه توکن) |
+| `GET /api/Role`، `POST`، `PUT /{id}`، `DELETE /{id}` | `Roles.View/Create/Update/Delete` | مدیریت نقش‌ها؛ هر ردیف `isSystem` دارد |
+| `GET/PUT/POST/DELETE /api/Role/{id}/users...` | `Roles.View` / `Roles.ManageUsers` | کاربران یک نقش |
+| `GET/PUT/POST/DELETE /api/Users/{id}/roles...` | `Users.View` / `Users.ManageRoles` | نقش یک کاربر |
+| `POST /api/Role/AssignPermissions`، `GET /api/Role/{roleName}/permissions` | مثل بالا | مسیرهای قدیمی بر اساس **نام** نقش؛ هنوز کار می‌کنند |
+
+### `GET /api/Permission`
+
+```json
+[
+  { "key": "Equipments", "title": "تجهیزات", "permissions": [
+      { "name": "Equipments.View", "action": "View", "title": "مشاهده تجهیزات", "description": "فهرست و جزئیات تجهیزات، ..." },
+      { "name": "Equipments.Assign", "action": "Assign", "title": "جابه‌جایی تجهیز", "description": "..." }
+  ] }
+]
+```
+
+`name` همان چیزی است که هنگام ذخیره‌ی نقش فرستاده می‌شود. ترتیب گروه‌ها و دسترسی‌ها ثابت است.
+
+### `GET` و `PUT /api/Role/{id}/permissions`
+
+پاسخ: `roleId`، `roleName`، `isActive`، `isSystem`، `grantedCount`، `totalCount` و `groups[]` (همان شکل کاتالوگ، هر دسترسی با `granted`).
+
+بدنه‌ی `PUT`: `{ "permissions": ["Equipments.View", "FailureReports.View"] }`.
+
+- **کل فهرست جایگزین می‌شود.** همیشه همه‌ی دسترسی‌های تیک‌خورده را بفرست، نه فقط تغییرها. فهرست خالی یعنی نقش هیچ دسترسی‌ای ندارد.
+- دسترسی ناشناخته `400 validation_failed` می‌دهد و چیزی ذخیره نمی‌شود.
+- با هر تغییر واقعی، توکن کاربران آن نقش **همان لحظه** `401` می‌گیرد؛ کلاینت یک بار `RefreshToken` می‌زند و دسترسی‌های تازه را می‌گیرد. ذخیره‌ی همان فهرست قبلی کاری نمی‌کند و کسی بیرون انداخته نمی‌شود.
+- تغییر در audit ثبت می‌شود (چه چیزی داده و چه چیزی گرفته شد).
+
+### نقش مدیر سیستم (`Admin`)
+
+`isSystem = true`. همیشه **همه‌ی** دسترسی‌ها را دارد (دسترسی تازه هنگام راه‌اندازی برنامه خودکار به آن اضافه می‌شود). تغییر دسترسی‌ها، تغییر نام، غیرفعال‌سازی و حذف آن `409 protected_record` می‌دهد. دلیل: اگر کسی دسترسی‌های مدیر را کم کند، ممکن است هیچ‌کس نماند که بتواند دسترسی بدهد. افزودن و برداشتن **کاربر** از این نقش آزاد است.
+
+### `GET /api/Identity/me`
+
+`userId`، `userName`، `fullName`، سمت (`postId/Code/Title`)، `supportingDepartmentId/Title`، `roles[]` و `permissions[]` (مرتب). برای وقتی که صفحه دوباره بارگذاری می‌شود یا بعد از `401` و refresh؛ فرانت نباید به فهرستی که هنگام ورود ذخیره کرده تکیه کند.
+
+## فرانت چطور صفحه و دکمه را تصمیم بگیرد
+
+- یک صفحه را نشان بده اگر کاربر دسترسی `View` منبع آن را دارد (صفحه‌ی تجهیزات = `Equipments.View`). صفحه‌ی داده‌های پایه (برند، مدل، ...) دسترسی `View` ندارد؛ نمایشش را به داشتن یکی از `Create/Update/Delete` همان منبع وصل کن.
+- هر دکمه را به دسترسی عمل خودش وصل کن (دکمه‌ی «ثبت تجهیز» = `Equipments.Create`).
+- داشبورد: هر کارت با مجوز خودش ([DASHBOARD-DESIGN.md](DASHBOARD-DESIGN.md)).
+- پنهان کردن در UI امنیت نیست؛ سرور در هر درخواست دوباره بررسی می‌کند (`403`).
+- «انجام کار ارجاع» (`TechnicianAssignments.Work`) علاوه بر دسترسی، فقط برای ارجاع‌های خود کاربر کار می‌کند.
+
+## افزودن یک دسترسی تازه (برای توسعه‌دهنده)
+
+1. ثابت را به `Permissions` اضافه کن (`EMS.Application/Common/Security/Permissions.cs`).
+2. اگر منبع تازه است، عنوان فارسی گروه را به `PermissionCatalog.GroupTitles` اضافه کن. اگر عمل یکی از `View/Create/Update/Delete` نیست، یا عنوان عمومی «عمل + منبع» گویای کار واقعی نیست، یک خط در `PermissionCatalog.Overrides` بنویس.
+3. `[Permission(...)]` را روی action بگذار.
+4. baseline قرارداد API را بازتولید کن.
+
+اگر عنوان فارسی جا بماند، برنامه هنگام شروع متوقف می‌شود و تست `PermissionCatalogTitlesTests` هم قرمز می‌شود؛ پس دسترسی بدون نام در صفحه‌ی مدیریت نمی‌تواند وجود داشته باشد. نقش مدیر سیستم دسترسی تازه را خودکار می‌گیرد؛ بقیه‌ی نقش‌ها نه.
