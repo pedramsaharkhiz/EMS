@@ -1,9 +1,12 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Export;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.User;
 using EMS.Application.Extensions;
+using EMS.Application.Services.User;
 using EMS.Application.Interfaces.Auth;
+using EMS.Domain.ReadModels;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -16,26 +19,25 @@ public sealed partial class UserManagementService : IUserManagementService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly EMSDbContext _dbContext;
     private readonly IAuditEventLogger _audit;
+    private readonly IExcelExporter _exporter;
 
     public UserManagementService(
         UserManager<ApplicationUser> userManager,
         EMSDbContext dbContext,
-        IAuditEventLogger audit)
+        IAuditEventLogger audit,
+        IExcelExporter exporter)
     {
         _userManager = userManager;
         _dbContext = dbContext;
         _audit = audit;
+        _exporter = exporter;
     }
 
     public async Task<PagedResult<UserListItemDto>> GetPagedAsync(
         UserListRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        if (request.RoleId <= 0 || request.SkillId <= 0)
-        {
-            throw new BadRequestException(
-                "شناسه نقش و مهارت باید مثبت باشد.");
-        }
+        ValidateListRequest(request);
 
         var pageNumber = Math.Max(1, request.PageNumber);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -151,6 +153,59 @@ public sealed partial class UserManagementService : IUserManagementService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The Excel file of exactly the users the list shows for the same filters. The rows come from <see cref="BuildUserQuery"/>, the same
+    /// source as the list, so whatever limits the list (a future row-level security rule, see <see cref="VisibleUsers"/>) limits the file.
+    /// </summary>
+    public async Task<ExcelFile> ExportAsync(
+        UserListRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateListRequest(request);
+        return await _exporter.ExportAsync(BuildUserRows(request), UserExport.Definition, cancellationToken);
+    }
+
+    private static void ValidateListRequest(UserListRequestDto request)
+    {
+        if (request.RoleId <= 0 || request.SkillId <= 0)
+        {
+            throw new BadRequestException(
+                "شناسه نقش و مهارت باید مثبت باشد.");
+        }
+    }
+
+    /// <summary>
+    /// The rows of the export: the filtered list query, ordered like the list, flattened with the place of work and the roles and skills.
+    /// The soft-delete filter is lifted, as in the list's own lookups, so a deactivated post or department still names where the user works.
+    /// </summary>
+    private IQueryable<UserRow> BuildUserRows(UserListRequestDto request)
+    {
+        var roles = ActiveRoleMembers();
+        var skills = ActiveSkillMembers();
+
+        return BuildUserQuery(request)
+            .IncludingInactive()
+            .OrderBy(x => x.Id)
+            .Select(x => new UserRow
+            {
+                Id = x.Id,
+                UserName = x.UserName ?? string.Empty,
+                FirstName = x.FirstName,
+                LastName = x.LastName,
+                PersonnelCode = x.PersonnelCode,
+                NationalCode = x.NationalCode,
+                PhoneNumber = x.PhoneNumber,
+                Email = x.Email,
+                PostTitle = x.Post!.Title,
+                SupportingDepartmentTitle = x.SupportingDepartment!.Title,
+                CityTitle = x.SupportingDepartment!.City.Title,
+                ProvinceTitle = x.SupportingDepartment!.City.Province.Title,
+                RoleNames = string.Join("، ", roles.Where(r => r.UserId == x.Id).OrderBy(r => r.Name).Select(r => r.Name)),
+                SkillTitles = string.Join("، ", skills.Where(r => r.UserId == x.Id).OrderBy(r => r.Name).Select(r => r.Name)),
+                IsActive = x.IsActive,
+            });
     }
 
     public async Task<UserDetailDto?> GetByIdAsync(

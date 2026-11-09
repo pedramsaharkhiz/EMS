@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Models;
+﻿using EMS.Application.Common.Export;
+using EMS.Application.Common.Models;
 using EMS.Application.Dtos.User;
 
 namespace EMS.Application.Interfaces.Auth;
@@ -8,6 +9,11 @@ public interface IUserManagementService
     Task<PagedResult<UserListItemDto>> GetPagedAsync(
         UserListRequestDto request,
         CancellationToken cancellationToken = default);
+    /// <summary>The Excel file of the users that match the same filters as the list (paging is ignored; the order is by id like the list).</summary>
+    Task<ExcelFile> ExportAsync(
+        UserListRequestDto request,
+        CancellationToken cancellationToken = default);
+
     Task<UserDetailDto?> GetByIdAsync(
         long id,
         CancellationToken cancellationToken = default);
