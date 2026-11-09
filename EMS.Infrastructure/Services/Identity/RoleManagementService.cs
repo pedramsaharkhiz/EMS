@@ -1,4 +1,5 @@
 ﻿using EMS.Application.Common.Exceptions;
+using EMS.Application.Common.Security;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.Role;
@@ -191,6 +192,10 @@ public sealed class RoleManagementService : IRoleManagementService
 
         var accessChanges = role.IsActive != request.IsActive || !string.Equals(role.Name, name, StringComparison.Ordinal);
 
+        // The administrator role is what guarantees somebody can always manage access: it keeps its name and stays active.
+        if (SystemRoles.IsSystem(role.Name) && accessChanges)
+            throw new ConflictException("نقش مدیر سیستم قابل تغییر نام یا غیرفعال‌سازی نیست.", ErrorCodes.ProtectedRecord);
+
         role.Name = name;
         role.IsActive = request.IsActive;
 
@@ -225,6 +230,9 @@ public sealed class RoleManagementService : IRoleManagementService
 
         if (role is null)
             return false;
+
+        if (SystemRoles.IsSystem(role.Name))
+            throw new ConflictException("نقش مدیر سیستم قابل حذف نیست.", ErrorCodes.ProtectedRecord);
 
         var hasAssignments = await _dbContext.UserRoles
             .AnyAsync(

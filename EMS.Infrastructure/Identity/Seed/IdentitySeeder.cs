@@ -32,7 +32,7 @@ public class IdentitySeeder : IIdentitySeeder
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
-        const string adminRoleName = "Admin";
+        const string adminRoleName = SystemRoles.Admin;
         const string superAdminUserName = "admin";
         const string superAdminPassword = "Admin@123456";
 

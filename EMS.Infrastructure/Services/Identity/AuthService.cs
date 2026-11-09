@@ -284,6 +284,37 @@ namespace EMS.Infrastructure.Services.Identity
         /// removing a role from a user or deactivating a role is a soft change (IsActive = false), and
         /// UserManager.GetRolesAsync would still report such roles.
         /// </summary>
+        public async Task<EMS.Application.Dtos.Permission.CurrentUserDto> GetCurrentUserAsync(long userId, CancellationToken cancellationToken = default)
+        {
+            var user = await _dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.Id, u.UserName, u.FirstName, u.LastName, u.IsActive, u.PostId, u.SupportingDepartmentId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (user is null || !user.IsActive)
+                throw new UnauthorizedAppException("کاربر نامعتبر است.", ErrorCodes.InvalidUser);
+
+            var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
+            var post = await GetPostAsync(user.PostId, cancellationToken);
+            var departmentTitle = user.SupportingDepartmentId is { } departmentId
+                ? await _dbContext.SupportingDepartments.IncludingInactive().AsNoTracking()
+                    .Where(d => d.SupportingDepartmentId == departmentId).Select(d => d.Title).FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            return new EMS.Application.Dtos.Permission.CurrentUserDto
+            {
+                UserId = user.Id,
+                UserName = user.UserName ?? string.Empty,
+                FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                PostId = user.PostId,
+                PostCode = post?.Code,
+                PostTitle = post?.Title,
+                SupportingDepartmentId = user.SupportingDepartmentId,
+                SupportingDepartmentTitle = departmentTitle,
+                Roles = roles.OrderBy(r => r, StringComparer.Ordinal).ToList(),
+                Permissions = permissions.Where(p => !Retired.Contains(p)).OrderBy(p => p, StringComparer.Ordinal).ToList(),
+            };
+        }
+
         /// <summary>The user's post (a deactivated post is still reported: the user keeps the post they had).</summary>
         private async Task<(string? Code, string? Title)?> GetPostAsync(long? postId, CancellationToken cancellationToken)
         {
