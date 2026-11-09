@@ -4,6 +4,7 @@ using EMS.Application.Common.Security;
 using EMS.Application.Dtos.User;
 using EMS.Application.Dtos.UserRole;
 using EMS.Application.Interfaces.Auth;
+using EMS.Presentation.Conventions;
 using EMS.Presentation.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,15 @@ public sealed class UsersController : BaseApiController
         return Paged(result);
     }
 
+
+    // GET: /api/Users/export  (the Excel file of the users the list shows for the same filters)
+    [Permission(Permissions.Users.View)]
+    [HttpGet("export")]
+    [ExcelResponse]
+    public async Task<IActionResult> Export(
+        [FromQuery] UserListRequestDto request,
+        CancellationToken cancellationToken) =>
+        ExcelDownload(await _users.ExportAsync(request, cancellationToken));
 
     // GET: /api/Users/10
     [Permission(Permissions.Users.View)]

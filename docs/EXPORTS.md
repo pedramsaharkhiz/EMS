@@ -57,7 +57,9 @@ public static class EquipmentExport
 2. در کنترلر یک action با `[ExcelResponse]` که `Task<IActionResult>` برمی‌گرداند و از `ExcelDownload(...)` استفاده می‌کند.
 3. سرویس `IExcelExporter.ExportAsync(query, Definition)` را صدا می‌زند. `query` همان کوئری فیلترشده‌ی لیست (بدون صفحه‌بندی) است.
 
-> ماژول‌هایی که خروجی دارند: تجهیز (`EquipmentExport`) و گزارش خرابی (`FailureReportExport`). قاعدهٔ مشترک: **خروجی و لیست از یک کوئری ساخته می‌شوند** ([ADR-0021](adr/0021-list-and-export-share-one-row-source.md)).
+> ماژول‌هایی که خروجی دارند: تجهیز (`EquipmentExport`)، گزارش خرابی (`FailureReportExport`) و کاربران (`UserExport`). قاعدهٔ مشترک: **خروجی و لیست از یک کوئری ساخته می‌شوند** ([ADR-0021](adr/0021-list-and-export-share-one-row-source.md)).
+
+**کاربران (`GET /api/Users/export`، مجوز `Users.View`):** همان فیلترهای لیست کاربران (`search`، `roleId`، `skillId`، `hasRole`، `hasSkill`، `isActive`، ...؛ صفحه‌بندی نادیده گرفته می‌شود، ترتیب مثل لیست بر اساس شناسه). ستون‌ها همان چیزهایی‌اند که لیست نشان می‌دهد: نام کاربری، نام، نام خانوادگی، کد پرسنلی، کد ملی، تلفن، ایمیل، سمت، دپارتمان پشتیبانی، شهر، استان، نقش‌ها، مهارت‌ها (هر کدام در یک سلول، مرتب و با «، » جدا) و فعال. کد پرسنلی، کد ملی، تلفن و نام کاربری **متن**‌اند تا صفرهای ابتدایی بمانند. **هیچ دادهٔ امنیتی** (رمز، هش، stamp) در فایل یا حتی در کوئری نیست. نقطهٔ ورود واحد ردیف‌ها: `VisibleUsers()` در `UserManagementService` (لیست و فایل هر دو از `BuildUserQuery` می‌آیند؛ جزئیات کاربر هم باید بعداً همان قاعدهٔ دید را بگیرد).
 
 ### چه چیزی خودکار است
 
