@@ -39,5 +39,9 @@ namespace EMS.Application.Interfaces.Equipment
 
         /// <summary>The Excel file of the equipment that match the same filters as the list.</summary>
         Task<ExcelFile> ExportAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
+
+        /// <summary>Returns a paged, searchable list of active equipment at an organization. An unknown organization returns 404.</summary>
+        Task<PagedResult<OrganizationEquipmentListItemDto>> GetOfOrganizationAsync(OrganizationEquipmentListRequestDto request, CancellationToken cancellationToken = default);
+
     }
 }

@@ -176,5 +176,15 @@ namespace EMS.Presentation.Controllers
             return Success(owners);
         }
 
+        /// <summary>Returns active equipment at an organization, with search across Yaas code, serial number and asset number.</summary>
+        [Permission(Permissions.Equipments.View)]
+        [HttpGet("by-organization")]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<OrganizationEquipmentListItemDto>>>> GetOfOrganization([FromQuery] OrganizationEquipmentListRequestDto request, CancellationToken cancellationToken)
+        {
+            var result = await _service.GetOfOrganizationAsync(request, cancellationToken);
+            return Paged(result);
+        }
+
+
     }
 }

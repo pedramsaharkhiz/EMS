@@ -206,6 +206,35 @@ namespace EMS.Application.Validators.Equipment
         }
     }
 
+        /// <summary>Validates organization equipment filters, paging and sorting.</summary>
+        public sealed class OrganizationEquipmentListRequestDtoValidator : CatalogListRequestValidator<OrganizationEquipmentListRequestDto>
+        {
+            public OrganizationEquipmentListRequestDtoValidator()
+            {
+                RuleFor(x => x.OrganizationId)
+                    .GreaterThan(0)
+                    .WithMessage("شناسه سازمان باید بزرگ‌تر از صفر باشد.");
+
+                RuleFor(x => x.Search)
+                    .MaximumLength(100)
+                    .WithMessage("عبارت جست‌وجو نمی‌تواند بیشتر از 100 کاراکتر باشد.");
+
+            }
+
+            /// <summary>Allows sorting by the fields exposed in the response.</summary>
+            private static bool IsSupportedSort(string? sortBy)
+            {
+                if (string.IsNullOrWhiteSpace(sortBy))
+                    return true;
+
+                return sortBy.Equals("id", StringComparison.OrdinalIgnoreCase)
+                    || sortBy.Equals("yaasCode", StringComparison.OrdinalIgnoreCase)
+                    || sortBy.Equals("serialNumber", StringComparison.OrdinalIgnoreCase)
+                    || sortBy.Equals("assetNumber", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+
     public sealed class TechnicianListRequestDtoValidator : CatalogListRequestValidator<TechnicianListRequestDto>
     {
         public TechnicianListRequestDtoValidator()

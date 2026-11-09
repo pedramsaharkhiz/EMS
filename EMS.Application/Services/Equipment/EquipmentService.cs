@@ -860,5 +860,36 @@ namespace EMS.Application.Services.Equipment
         private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         private static NotFoundException NotFound() => new("تجهیز موردنظر پیدا نشد.", ErrorCodes.NotFound);
+
+        /// <summary>Returns active equipment currently located at the requested organization using the shared equipment filters and paging.</summary>
+        public async Task<PagedResult<OrganizationEquipmentListItemDto>> GetOfOrganizationAsync(OrganizationEquipmentListRequestDto request, CancellationToken cancellationToken = default)
+        {
+            var organizationExists = await _organizations.ExistsIncludingInactiveAsync(x => x.OrganizationId == request.OrganizationId, cancellationToken);
+
+            if (!organizationExists)
+                throw new NotFoundException("سازمان موردنظر پیدا نشد.", ErrorCodes.NotFound);
+
+            var filters = new EquipmentListRequestDto
+            {
+                OrganizationIds = new[] { request.OrganizationId },
+                Search = request.Search?.Trim(),
+                IsActive = true,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize,
+                SortBy = request.SortBy,
+                SortDirection = request.SortDirection
+            };
+
+            var query = Query(filters).Select(x => new OrganizationEquipmentListItemDto
+            {
+                Id = x.Id,
+                YaasCode = x.YaasCode,
+                SerialNumber = x.SerialNumber,
+                AssetNumber = x.AssetNumber
+            });
+
+            return await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+        }
+
     }
 }
