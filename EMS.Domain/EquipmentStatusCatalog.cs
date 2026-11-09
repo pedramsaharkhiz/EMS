@@ -19,6 +19,18 @@ namespace EMS.Domain
             [EquipmentStatusCode.Decommissioned] = "از رده خارج",
         };
 
+        /// <summary>
+        /// The statuses that count as "نیازمند اقدام" on the dashboard (in maintenance, out of service, damaged). Only these system rows:
+        /// a status an administrator adds never changes the number by itself.
+        /// </summary>
+        public static readonly IReadOnlyList<EquipmentStatusCode> NeedsActionCodes = new[]
+        {
+            EquipmentStatusCode.UnderMaintenance, EquipmentStatusCode.OutOfService, EquipmentStatusCode.Damaged,
+        };
+
+        /// <summary>The ids of <see cref="NeedsActionCodes"/> (the id of a system row is its enum value).</summary>
+        public static readonly long[] NeedsActionIds = NeedsActionCodes.Select(c => (long)c).ToArray();
+
         /// <summary>The primary key of the row that represents <paramref name="code"/> (the enum value itself).</summary>
         public static long IdOf(EquipmentStatusCode code) => (long)code;
 

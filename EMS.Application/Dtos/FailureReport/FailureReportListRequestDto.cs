@@ -24,6 +24,8 @@ namespace EMS.Application.Dtos.FailureReport
         [FromQuery(Name = "supportingDepartmentId")] public long[]? SupportingDepartmentIds { get; set; }
         [FromQuery(Name = "employeeId")] public long[]? EmployeeIds { get; set; }
         [FromQuery(Name = "reportedByUserId")] public long[]? ReportedByUserIds { get; set; }
+        /// <summary>true: only reports with an open assignment; false: only reports without one (work not given to anyone yet).</summary>
+        public bool? HasOpenAssignment { get; set; }
         /// <summary>Reported at or after (UTC, ISO 8601).</summary>
         public DateTime? ReportedFrom { get; set; }
         /// <summary>Reported at or before (UTC, ISO 8601), inclusive as sent.</summary>

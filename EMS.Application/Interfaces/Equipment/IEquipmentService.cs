@@ -34,6 +34,9 @@ namespace EMS.Application.Interfaces.Equipment
         Task<EquipmentTechnicianDto?> GetTechnicianAsync(long equipmentId, CancellationToken cancellationToken = default);
         Task<PagedResult<TechnicianItemDto>> GetTechniciansAsync(TechnicianListRequestDto request, CancellationToken cancellationToken = default);
 
+        /// <summary>Dashboard: the equipment the caller sees, counted per status and owner ("دارایی‌های ثبت‌شده").</summary>
+        Task<EMS.Application.Dtos.Dashboard.EquipmentFleetSummaryDto> GetFleetSummaryAsync(CancellationToken cancellationToken = default);
+
         /// <summary>The Excel file of the equipment that match the same filters as the list.</summary>
         Task<ExcelFile> ExportAsync(EquipmentListRequestDto request, CancellationToken cancellationToken = default);
     }

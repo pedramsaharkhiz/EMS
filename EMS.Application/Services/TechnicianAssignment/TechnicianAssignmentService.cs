@@ -5,11 +5,13 @@ using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
 using EMS.Application.Common.People;
+using EMS.Application.Dtos.Dashboard;
 using EMS.Application.Dtos.TechnicianAssignment;
 using EMS.Application.Dtos.TechnicianAssignmentStatus;
 using EMS.Application.Extensions;
 using EMS.Application.Interfaces.TechnicianAssignment;
 using EMS.Domain;
+using Microsoft.EntityFrameworkCore;
 using EMS.Domain.Entities;
 using EMS.Domain.Enums;
 using EMS.Domain.Interfaces;
@@ -145,6 +147,32 @@ namespace EMS.Application.Services.TechnicianAssignment
                 })
                 .ToList();
 
+        public async Task<AssignmentDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
+        {
+            var rows = VisibleRows();
+            var byStatus = (await rows.GroupBy(r => r.StatusId).Select(g => new { Id = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Count);
+
+            var now = DateTime.UtcNow;
+            var openIds = TechnicianAssignmentCatalog.OpenIds;
+            var overdue = await rows.CountAsync(r => r.DeadlineDateTime != null && r.DeadlineDateTime < now && openIds.Contains(r.StatusId), cancellationToken);
+
+            return new AssignmentDashboardDto
+            {
+                Total = byStatus.Values.Sum(),
+                OpenCount = byStatus.Where(x => openIds.Contains(x.Key)).Sum(x => x.Value),
+                OverdueCount = overdue,
+                ByStatus = (await _statuses.GetAllAsync(cancellationToken)).OrderBy(x => x.TechnicianAssignmentStatusId).Select(x => new AssignmentStatusCountDto
+                {
+                    Id = x.TechnicianAssignmentStatusId,
+                    Code = x.Code,
+                    Title = x.Title,
+                    Count = byStatus.GetValueOrDefault(x.TechnicianAssignmentStatusId),
+                    IsOpen = TechnicianAssignmentCatalog.IsOpen(x.TechnicianAssignmentStatusId),
+                }).ToList(),
+            };
+        }
+
         // ------------------------------------------------------------------------------------------------ write
 
         public async Task<TechnicianAssignmentDetailDto> AssignAsync(long failureReportId, TechnicianAssignmentCreateDto request, CancellationToken cancellationToken = default)
@@ -276,9 +304,15 @@ namespace EMS.Application.Services.TechnicianAssignment
             return await DetailAsync(id, cancellationToken);
         }
 
+        /// <summary>
+        /// THE source of assignment rows for the lists AND the dashboard counts (a future row-level security rule goes here, once;
+        /// an assignment is visible when its failure report is).
+        /// </summary>
+        private IQueryable<TechnicianAssignmentRow> VisibleRows() => _repository.QueryRows();
+
         private async Task<PagedResult<TechnicianAssignmentListItemDto>> PageAsync(TechnicianAssignmentListRequestDto request, CancellationToken cancellationToken)
         {
-            var rows = Filters.Apply(_repository.QueryRows(), request);
+            var rows = Filters.Apply(VisibleRows(), request);
             var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             if (!Sorting.TryApply(request.SortBy, descending, rows, out var sorted))
                 sorted = descending ? rows.OrderByDescending(x => x.Id) : rows.OrderBy(x => x.Id);

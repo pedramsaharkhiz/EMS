@@ -40,6 +40,8 @@ namespace EMS.Application.Dtos.FailureReport
         public long? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public string? EmployeePersonnelCode { get; set; }
+        /// <summary>Does the report have an open assignment (assigned, accepted or in progress)?</summary>
+        public bool HasOpenAssignment { get; set; }
         public long ReportedByUserId { get; set; }
         // the user who registered the report, with the same person set as a technician
         public string? ReportedByName { get; set; }

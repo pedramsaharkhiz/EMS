@@ -76,6 +76,7 @@ namespace EMS.Tests.Unit
             OrganizationIds = new long[] { 6 },
             SupportingDepartmentIds = new long[] { 7 },
             EmployeeIds = new long[] { 8 },
+            HasOpenAssignment = false,
             ReportedByUserIds = new long[] { 9 },
             ReportedFrom = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ReportedTo = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
