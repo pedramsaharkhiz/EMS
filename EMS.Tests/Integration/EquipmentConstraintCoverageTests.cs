@@ -151,6 +151,41 @@ namespace EMS.Tests.Integration
             }
         }
 
+        [Theory]
+        [InlineData(false, false, false, false)]
+        [InlineData(false, false, true, false)]
+        [InlineData(false, true, false, true)]
+        [InlineData(false, true, true, true)]
+        [InlineData(true, false, false, true)]
+        [InlineData(true, false, true, false)]
+        [InlineData(true, true, false, false)]
+        [InlineData(true, true, true, false)]
+        public async Task Create_accepts_only_valid_holder_and_technician_combinations(bool branch, bool department, bool technician, bool allowed)
+        {
+            var fixture = await NewFixtureAsync();
+            long branchId;
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+                var organization = new Organization
+                {
+                    Title = Uniq("matrix-branch"), OrganizationType = new OrganizationType { Title = Uniq("matrix-type") },
+                    OrganizationManagement = new OrganizationManagement { Title = Uniq("matrix-management"), Zone = new Zone { Title = Uniq("matrix-zone") } }
+                };
+                db.Add(organization);
+                await db.SaveChangesAsync();
+                branchId = organization.OrganizationId;
+            }
+            var body = Body(fixture);
+            body["currentOrganizationId"] = branch ? branchId : null;
+            body["currentSupportingDepartmentId"] = department ? fixture.DepartmentId : null;
+            body["technicianUserId"] = technician ? 1L : null;
+            var response = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", body);
+            Assert.Equal(allowed ? HttpStatusCode.Created : HttpStatusCode.BadRequest, response.StatusCode);
+            if (!allowed)
+                AssertPersianValidation(await ReadJsonAsync(response), branch == department ? "currentOrganizationId" : "technicianUserId");
+        }
+
         // ------------------------------------------------------------------------------------ CHECK constraints
 
         [Fact]

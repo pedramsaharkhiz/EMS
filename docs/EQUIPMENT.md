@@ -187,3 +187,19 @@ WHERE CurrentOrganizationId IS NOT NULL AND TechnicianUserId IS NOT NULL;
 ```
 
 اصلاح داده‌های ناسازگار باید صریح و توسط مالک داده انجام شود؛ migration نباید تکنسین‌ها را خودکار پاک کند.
+
+## اجرای تست قید روی SQL Server
+
+تست `SqlEquipmentLocationConstraintTests` با نوشتن مستقیم در SQL، هشت ترکیب شعبه/ستاد/تکنسین، ویرایش نامعتبر، انتقال صحیح با برداشت تکنسین و شکست migration در حضور دادهٔ قدیمی ناسازگار را بررسی می‌کند. دیتابیس هر تست نام مستقل با پیشوند `EMS_location_test_` دارد و در پایان حذف می‌شود. این تست‌ها بدون `EMS_TEST_SQL` اجرا نمی‌شوند.
+
+از ریشهٔ مخزن در PowerShell، با حسابی که روی SQL آزمایشی اجازهٔ ساخت و حذف دیتابیس دارد:
+
+```powershell
+$env:EMS_TEST_SQL = 'Server=localhost;Database=EMS_constraints_test;Integrated Security=True;Encrypt=True'
+dotnet test EMS.Tests/EMS.Tests.csproj --filter 'FullyQualifiedName~SchemaDriftTests|FullyQualifiedName~SqlEquipmentLocationConstraintTests|FullyQualifiedName~SqlMigrationStartupTests' --logger 'console;verbosity=normal'
+Remove-Item Env:EMS_TEST_SQL
+```
+
+نام سرور و روش احراز هویت را با محیط خود هماهنگ کنید. اطلاعات ورود را در فایل‌های مخزن ذخیره نکنید. این دستور روی دیتابیس عملیاتی اجرا نشود: `SqlMigrationStartupTests` دیتابیس معرفی‌شده در اتصال را حذف و دوباره ایجاد می‌کند؛ نامش باید شامل `test` باشد. تست جدید تجهیزات نیز دیتابیس‌های مستقل موقت ایجاد می‌کند. از دیتابیس دارای اطلاعات واقعی استفاده نکنید.
+
+migration جدید توسط صاحب محصول با شناسهٔ `20261111093443_SetConstraintForOrganizationSupoortingDepartmentTechnecianInEquipment` ثبت شده است؛ تست تطابق مدل باید پس از دریافت این migration پاس شود.
