@@ -21,11 +21,12 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.DeadlineDateTime).IsRequired(false);
             builder.Property(x => x.CompletedDateTime).IsRequired(false);
 
-            // One report has at most one open assignment (assigned, accepted or in progress); finished ones stay as history.
-            builder.HasIndex(x => x.FailureReportId)
+            // A report may have several open assignments (assigned, accepted or in progress), but a technician at most one per report;
+            // finished ones stay as history.
+            builder.HasIndex(x => new { x.FailureReportId, x.TechnicianUserId })
                 .IsUnique()
                 .HasFilter($"[TechnicianAssignmentStatusId] IN ({string.Join(", ", TechnicianAssignmentCatalog.OpenIds)})")
-                .HasDatabaseName(TechnicianAssignmentConstraints.OneOpenPerReportIndexName);
+                .HasDatabaseName(TechnicianAssignmentConstraints.OneOpenPerReportAndTechnicianIndexName);
             builder.HasIndex(x => new { x.TechnicianUserId, x.TechnicianAssignmentStatusId }).HasDatabaseName("IX_TechnicianAssignments_Technician_Status");
 
             builder.HasOne(x => x.FailureReport).WithMany(x => x.TechnicianAssignments).HasForeignKey(x => x.FailureReportId).OnDelete(DeleteBehavior.NoAction);

@@ -61,7 +61,7 @@ namespace EMS.Presentation.Controllers
 
         // ------------------------------------------------------------------------------------------ write
 
-        /// <summary>Assigns the report to a technician (status Assigned). 409 when the report already has an open assignment or is closed.</summary>
+        /// <summary>Assigns the report to a technician (status Assigned). 409 when this technician already has an open assignment on it, or the report is closed.</summary>
         [Permission(Permissions.TechnicianAssignments.Assign)]
         [HttpPost("~/api/FailureReport/{failureReportId:long}/assignments")]
         [ProducesResponseType<ApiResponse<TechnicianAssignmentDetailDto>>(StatusCodes.Status201Created)]
@@ -70,6 +70,19 @@ namespace EMS.Presentation.Controllers
         {
             var result = await _service.AssignAsync(failureReportId, request, cancellationToken);
             return CreatedAt(nameof(GetById), new { id = result.Id }, result);
+        }
+
+        /// <summary>
+        /// Assigns the report to several technicians at once (one task each; up to 20). All or nothing. A report may have several open assignments, a technician at most one.
+        /// </summary>
+        [Permission(Permissions.TechnicianAssignments.Assign)]
+        [HttpPost("~/api/FailureReport/{failureReportId:long}/assignments/bulk")]
+        [ProducesResponseType<ApiResponse<IReadOnlyList<TechnicianAssignmentDetailDto>>>(StatusCodes.Status201Created)]
+        public async Task<ActionResult<ApiResponse<IReadOnlyList<TechnicianAssignmentDetailDto>>>> AssignBulk(
+            long failureReportId, [FromBody] TechnicianAssignmentBulkCreateDto request, CancellationToken cancellationToken)
+        {
+            var result = await _service.AssignBulkAsync(failureReportId, request, cancellationToken);
+            return CreatedAt(nameof(GetAllList), new { failureReportId }, result);
         }
 
         /// <summary>Cancels an open assignment (the reason is required).</summary>

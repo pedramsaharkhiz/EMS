@@ -26,7 +26,7 @@ namespace EMS.Application.Services.TechnicianAssignment
     /// rejects it, starts the work, records actions and completes it; the assigner may cancel it while it is open.
     /// <list type="bullet">
     /// <item>Status changes follow <see cref="TechnicianAssignmentCatalog.CanMove"/>; Rejected, Completed and Cancelled are final.</item>
-    /// <item>A report has at most one open assignment (assigned, accepted or in progress); a new one is created after the old one is final.</item>
+    /// <item>A report may have several open assignments (assigned, accepted or in progress), one per technician; a technician gets a new one after his old one is final.</item>
     /// <item>Accept, reject, start, complete and recording actions are only for the assigned technician (403 otherwise); assigning and cancelling need only the permission.</item>
     /// <item>Starting an assignment moves an Open report to "در حال رسیدگی"; completing it does not close the report (closing stays a separate decision).</item>
     /// </list>
@@ -178,35 +178,78 @@ namespace EMS.Application.Services.TechnicianAssignment
         public async Task<TechnicianAssignmentDetailDto> AssignAsync(long failureReportId, TechnicianAssignmentCreateDto request, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();
-            var report = await _reports.GetForUpdateAsync(failureReportId, cancellationToken) ?? throw ReportNotFound();
-
-            if (!report.IsActive)
-                throw new BadRequestException("گزارش خرابی غیرفعال است و ارجاع ندارد.", ErrorCodes.ParentInactive);
-            if (report.FailureReportStatusId == FailureReportStatusCatalog.IdOf(FailureReportStatusCode.Closed))
-                throw new ConflictException("گزارش خرابی بسته شده است و نمی‌توان آن را ارجاع داد.", ErrorCodes.FailureReportClosed);
-
+            await RequireAssignableReportAsync(failureReportId, cancellationToken);
             await RequireUserAsync(request.TechnicianUserId, cancellationToken);
 
-            if (await _repository.HasOpenForReportAsync(failureReportId, cancellationToken))
-                throw new ConflictException("این گزارش خرابی یک ارجاع باز دارد؛ برای ارجاع دوباره، ابتدا آن را لغو کنید.", ErrorCodes.AssignmentAlreadyOpen);
+            if ((await _repository.GetOpenTechnicianIdsOfReportAsync(failureReportId, cancellationToken)).Contains(request.TechnicianUserId))
+                throw new ConflictException(AlreadyOpenMessage, ErrorCodes.AssignmentAlreadyOpen);
 
-            var entity = new TechnicianAssignmentEntity
-            {
-                FailureReportId = failureReportId,
-                TechnicianAssignmentStatusId = TechnicianAssignmentCatalog.IdOf(TechnicianAssignmentStatusCode.Assigned),
-                TechnicianUserId = request.TechnicianUserId,
-                AssignedByUserId = userId,
-                AssignedDateTime = DateTime.UtcNow,
-                DeadlineDateTime = request.DeadlineDateTime.HasValue ? ToUtc(request.DeadlineDateTime.Value) : null,
-                Description = Normalize(request.Description),
-            };
-
+            var entity = NewAssignment(failureReportId, userId, request.TechnicianUserId, request.DeadlineDateTime, request.Description);
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _audit.Created("TechnicianAssignment", entity.TechnicianAssignmentId);
             return await DetailAsync(entity.TechnicianAssignmentId, cancellationToken);
         }
+
+        public async Task<IReadOnlyList<TechnicianAssignmentDetailDto>> AssignBulkAsync(long failureReportId, TechnicianAssignmentBulkCreateDto request, CancellationToken cancellationToken = default)
+        {
+            var userId = RequireCurrentUser();
+            await RequireAssignableReportAsync(failureReportId, cancellationToken);
+
+            // Every problem of every item is collected first: all or nothing, and the caller sees all of them at once.
+            var people = await _people.GetPeopleAsync(request.Items.Select(i => (long?)i.TechnicianUserId), cancellationToken);
+            var alreadyOpen = await _repository.GetOpenTechnicianIdsOfReportAsync(failureReportId, cancellationToken);
+            var problems = new List<ApiErrorDetail>();
+            for (var i = 0; i < request.Items.Count; i++)
+            {
+                var technician = request.Items[i].TechnicianUserId;
+                if (!people.ContainsKey(technician))
+                    problems.Add(new ApiErrorDetail { Field = $"items[{i}].technicianUserId", Message = "کاربر موردنظر پیدا نشد." });
+                else if (alreadyOpen.Contains(technician))
+                    problems.Add(new ApiErrorDetail { Field = $"items[{i}].technicianUserId", Message = AlreadyOpenMessage });
+            }
+            if (problems.Count > 0)
+                throw new BulkItemsException(problems, $"ارجاع گروهی انجام نشد؛ {problems.Select(p => p.Field).Distinct().Count()} ردیف خطا دارد و هیچ ارجاعی ثبت نشد.");
+
+            var entities = request.Items
+                .Select(i => NewAssignment(failureReportId, userId, i.TechnicianUserId, i.DeadlineDateTime, i.Description))
+                .ToList();
+            await _repository.AddRangeAsync(entities, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);      // one save: the assignments are created together or not at all
+
+            foreach (var entity in entities)
+                _audit.Created("TechnicianAssignment", entity.TechnicianAssignmentId);
+
+            var result = new List<TechnicianAssignmentDetailDto>();
+            foreach (var entity in entities)
+                result.Add(await DetailAsync(entity.TechnicianAssignmentId, cancellationToken));
+            return result;
+        }
+
+        private const string AlreadyOpenMessage = "این تکنسین برای این گزارش خرابی یک ارجاع باز دارد؛ برای ارجاع دوباره، ابتدا آن را لغو کنید.";
+
+        /// <summary>The report must exist, be active and not closed; it may already have open assignments of OTHER technicians.</summary>
+        private async Task RequireAssignableReportAsync(long failureReportId, CancellationToken cancellationToken)
+        {
+            var report = await _reports.GetForUpdateAsync(failureReportId, cancellationToken) ?? throw ReportNotFound();
+
+            if (!report.IsActive)
+                throw new BadRequestException("گزارش خرابی غیرفعال است و ارجاع ندارد.", ErrorCodes.ParentInactive);
+            if (report.FailureReportStatusId == FailureReportStatusCatalog.IdOf(FailureReportStatusCode.Closed))
+                throw new ConflictException("گزارش خرابی بسته شده است و نمی‌توان آن را ارجاع داد.", ErrorCodes.FailureReportClosed);
+        }
+
+        private static TechnicianAssignmentEntity NewAssignment(long failureReportId, long assignedByUserId, long technicianUserId, DateTime? deadline, string? description) => new()
+        {
+            FailureReportId = failureReportId,
+            TechnicianAssignmentStatusId = TechnicianAssignmentCatalog.IdOf(TechnicianAssignmentStatusCode.Assigned),
+            TechnicianUserId = technicianUserId,
+            AssignedByUserId = assignedByUserId,
+            AssignedDateTime = DateTime.UtcNow,
+            DeadlineDateTime = deadline.HasValue ? ToUtc(deadline.Value) : null,
+            Description = Normalize(description),
+        };
 
         public Task<TechnicianAssignmentDetailDto> AcceptAsync(long id, TechnicianAssignmentTransitionDto request, CancellationToken cancellationToken = default) =>
             MoveAsync(id, TechnicianAssignmentStatusCode.Accepted, request, technicianOnly: true, cancellationToken);

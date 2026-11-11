@@ -27,6 +27,7 @@ Assigned ──accept──> Accepted ──start──> InProgress ──comple
 | مسیر | مجوز | شرح |
 |---|---|---|
 | `POST /api/FailureReport/{id}/assignments` | `TechnicianAssignments.Assign` | ارجاع به تکنسین. بدنه: `technicianUserId`، `deadlineDateTime?` (آینده)، `description?`. پاسخ `201` |
+| `POST /api/FailureReport/{id}/assignments/bulk` | `TechnicianAssignments.Assign` | **ارجاع گروهی:** چند تکنسین برای یک گزارش. بدنه: `items[]` (۱ تا ۲۰) با `technicianUserId`، `description` (**اجباری**، شرح کار همان تکنسین) و `deadlineDateTime?`. همه یا هیچ. پاسخ `201` با فهرست ارجاع‌ها به ترتیب درخواست |
 | `GET /api/FailureReport/{id}/assignments` | `TechnicianAssignments.View` | تاریخچهٔ ارجاع‌های گزارش (فیلتر و مرتب‌سازی مثل لیست) |
 | `GET /api/TechnicianAssignment` | `View` | لیست |
 | `GET /api/TechnicianAssignment/{id}` | `View` | جزئیات با اقدام‌ها و `rowVersion` |
@@ -53,7 +54,8 @@ Assigned ──accept──> Accepted ──start──> InProgress ──comple
 
 | کد | وضعیت | چه وقت |
 |---|---|---|
-| `assignment_already_open` | 409 | گزارش یک ارجاع باز دارد |
+| `assignment_already_open` | 409 | **این تکنسین** برای این گزارش یک ارجاع باز دارد (تکنسین دیگر می‌تواند ارجاع باز داشته باشد) |
+| `bulk_items_invalid` | 400 | ارجاع گروهی: بعضی ردیف‌ها رد شدند و چیزی ثبت نشد؛ `details` ردیف و فیلد را نشان می‌دهد (`items[1].technicianUserId`): تکنسین ناشناس یا دارای ارجاع باز روی همین گزارش |
 | `failure_report_closed` | 409 | گزارش بسته است |
 | `assignment_transition_not_allowed` | 409 | گذار مجاز نیست (مثلاً شروع پیش از پذیرش، یا هر کاری روی ارجاع پایانی) |
 | `assignment_not_in_progress` | 409 | ثبت اقدام روی ارجاعی که «در حال انجام» نیست |
@@ -65,3 +67,9 @@ Assigned ──accept──> Accepted ──start──> InProgress ──comple
 ## استقرار
 
 اسکریپت‌های `docs/sql/DropFailureReportActions.sql` و سپس `docs/sql/TechnicianAssignments.sql` (یا `dotnet ef database update`). مجوزهای تازه (`TechnicianAssignments.View/Assign/Work`) برای نقش مدیر سیستم خودکار اضافه می‌شوند؛ برای نقش‌های دیگر از `POST /api/Role/AssignPermissions` استفاده کن.
+
+## چند تکنسین برای یک گزارش
+
+یک گزارش می‌تواند هم‌زمان چند ارجاع باز داشته باشد، **یکی برای هر تکنسین** (مثلاً تعمیر برق یخچال و تعمیر درب آن). هر ارجاع مسیر خودش را می‌رود و رد یا لغو یکی بقیه را تغییر نمی‌دهد. شروع اولین ارجاع گزارش را «در حال رسیدگی» می‌کند؛ بستن گزارش همچنان دستی است. کارت «ارجاع‌های باز» در داشبورد **ارجاع‌ها** را می‌شمارد، نه گزارش‌ها را، و «گزارش بدون ارجاع» یعنی گزارش بدون هیچ ارجاع باز. ثبت گروهی هم‌زمان با ارجاع تکی قابل‌استفاده است (می‌شود بعداً تکنسین دیگری اضافه کرد).
+
+برای استقرار اسکریپت `docs/sql/AssignmentOpenPerReportAndTechnician.sql` (ایندکس یکتا عوض می‌شود؛ روی داده‌ی موجود امن است).

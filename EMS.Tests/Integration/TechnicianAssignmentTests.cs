@@ -144,7 +144,7 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task A_report_has_one_open_assignment_and_can_be_assigned_again_after_a_cancel()
+        public async Task A_technician_has_one_open_assignment_per_report_and_can_be_assigned_again_after_a_cancel()
         {
             var report = await NewReportAsync();
             var (technician, _) = await NewTechnicianAsync();
@@ -167,6 +167,147 @@ namespace EMS.Tests.Integration
             var history = await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{report.Id}/assignments?sortDirection=desc");
             var items = (await ReadDataAsync(history)).EnumerateArray().ToList();
             Assert.Equal(new[] { Id(again), Id(first) }, items.Select(Id));
+        }
+
+        [Fact]
+        public async Task A_report_can_have_open_assignments_for_several_technicians_each_working_on_his_own()
+        {
+            var report = await NewReportAsync();
+            var (electrician, electricianToken) = await NewTechnicianAsync();
+            var (carpenter, carpenterToken) = await NewTechnicianAsync();
+
+            var a = Id(await AssignAsync(report.Id, electrician));
+            var b = Id(await AssignAsync(report.Id, carpenter));          // a second technician on the same report is fine
+            Assert.NotEqual(a, b);
+
+            // each one works on his own: one rejects, the other completes; neither touches the other's assignment
+            Assert.Equal(HttpStatusCode.OK, (await PostAsync(carpenterToken, b, "reject", new { note = "در مرخصی هستم" })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await PostAsync(electricianToken, a, "accept")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await PostAsync(electricianToken, a, "start")).StatusCode);
+            Assert.Equal("InProgress", await ReportStatusCodeAsync(report.Id));
+            Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(electricianToken, b, "accept")).StatusCode);   // not his
+
+            var history = DataOf(await ReadJsonAsync(await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{report.Id}/assignments?sortDirection=asc"))).EnumerateArray().ToList();
+            Assert.Equal(new[] { "InProgress", "Rejected" }, history.Select(h => h.GetProperty("statusCode").GetString()));
+        }
+
+        // ------------------------------------------------------------------------------------------ bulk
+
+        private async Task<HttpResponseMessage> BulkAsync(long reportId, params object[] items) =>
+            await AsAdminAsync(HttpMethod.Post, $"/api/FailureReport/{reportId}/assignments/bulk", new { items });
+
+        [Fact]
+        public async Task Bulk_assigns_one_failure_to_several_technicians_each_with_his_own_task_and_deadline()
+        {
+            var report = await NewReportAsync();
+            var (electrician, _) = await NewTechnicianAsync();
+            var (carpenter, carpenterToken) = await NewTechnicianAsync();
+            var admin = await LoginAdminAsync();
+            var deadline = DateTime.UtcNow.AddDays(2);
+
+            var response = await BulkAsync(report.Id,
+                new { technicianUserId = electrician, description = "تعمیر برق دستگاه", deadlineDateTime = deadline },
+                new { technicianUserId = carpenter, description = "تعمیر درب یخچال" });
+            Assert.True(response.StatusCode == HttpStatusCode.Created, $"bulk -> {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+            var created = (await ReadDataAsync(response)).EnumerateArray().ToList();
+
+            Assert.Equal(2, created.Count);
+            Assert.Equal(new[] { electrician, carpenter }, created.Select(c => c.GetProperty("technicianUserId").GetInt64()));          // the order of the request
+            Assert.Equal(new[] { "تعمیر برق دستگاه", "تعمیر درب یخچال" }, created.Select(c => c.GetProperty("description").GetString()));
+            Assert.All(created, c =>
+            {
+                Assert.Equal("Assigned", c.GetProperty("statusCode").GetString());
+                Assert.Equal(report.Id, c.GetProperty("failureReportId").GetInt64());
+                Assert.Equal(admin.UserId, c.GetProperty("assignedByUserId").GetInt64());
+                Assert.False(string.IsNullOrEmpty(c.GetProperty("technicianName").GetString()));
+            });
+            Assert.NotEqual(JsonValueKind.Null, created[0].GetProperty("deadlineDateTime").ValueKind);
+            Assert.Equal(JsonValueKind.Null, created[1].GetProperty("deadlineDateTime").ValueKind);
+
+            // both are on the report's history and each technician sees only his own work on his own
+            var history = DataOf(await ReadJsonAsync(await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{report.Id}/assignments"))).EnumerateArray().Select(Id).ToList();
+            Assert.Equal(created.Select(Id).OrderBy(i => i), history.OrderBy(i => i));
+            Assert.Equal(HttpStatusCode.OK, (await PostAsync(carpenterToken, Id(created[1]), "accept")).StatusCode);
+
+            // the dashboard counts the assignments, and the report now has open work
+            Assert.True(await HasOpenAssignmentAsync(report.Id));
+        }
+
+        [Fact]
+        public async Task Bulk_is_all_or_nothing_and_lists_every_problem_item_by_item()
+        {
+            var report = await NewReportAsync();
+            var (taken, _) = await NewTechnicianAsync();
+            var (free, _) = await NewTechnicianAsync();
+            await AssignAsync(report.Id, taken);                              // already has an open assignment on this report
+
+            var response = await BulkAsync(report.Id,
+                new { technicianUserId = free, description = "کار اول" },
+                new { technicianUserId = taken, description = "کار دوم" },
+                new { technicianUserId = 999999999L, description = "کار سوم" });
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var json = await ReadJsonAsync(response);
+            Assert.Equal("bulk_items_invalid", ErrorCodeOf(json));
+            Assert.Equal(new[] { "items[1].technicianUserId", "items[2].technicianUserId" }, ErrorFieldsOf(json));
+
+            // nothing was saved, not even the valid first item
+            var all = DataOf(await ReadJsonAsync(await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{report.Id}/assignments"))).EnumerateArray().ToList();
+            Assert.Single(all);
+            Assert.Equal(taken, all[0].GetProperty("technicianUserId").GetInt64());
+        }
+
+        [Fact]
+        public async Task Bulk_refuses_a_bad_request_before_touching_anything()
+        {
+            var report = await NewReportAsync();
+            var (technician, _) = await NewTechnicianAsync();
+            var (other, _) = await NewTechnicianAsync();
+
+            async Task<(HttpStatusCode, List<string>)> ValidationAsync(params object[] items)
+            {
+                var response = await BulkAsync(report.Id, items);
+                var json = await ReadJsonAsync(response);
+                return (response.StatusCode, response.StatusCode == HttpStatusCode.BadRequest && json.GetProperty("error").TryGetProperty("details", out _) ? ErrorFieldsOf(json) : new List<string>());
+            }
+
+            Assert.Equal(HttpStatusCode.BadRequest, (await ValidationAsync()).Item1);                                                                 // empty list
+            var noTask = await ValidationAsync(new { technicianUserId = technician });
+            Assert.Equal(HttpStatusCode.BadRequest, noTask.Item1);
+            Assert.Contains("items[0].description", noTask.Item2, StringComparer.OrdinalIgnoreCase);                                                      // the task is required in a bulk
+            var past = await ValidationAsync(new { technicianUserId = technician, description = "x", deadlineDateTime = DateTime.UtcNow.AddDays(-1) });
+            Assert.Contains("items[0].deadlineDateTime", past.Item2, StringComparer.OrdinalIgnoreCase);
+            var twice = await ValidationAsync(new { technicianUserId = technician, description = "الف" }, new { technicianUserId = technician, description = "ب" });
+            Assert.Contains("items[1].technicianUserId", twice.Item2, StringComparer.OrdinalIgnoreCase);                                                  // one technician once
+
+            var tooMany = Enumerable.Range(0, 21).Select(_ => (object)new { technicianUserId = other, description = "x" }).ToArray();
+            Assert.Equal(HttpStatusCode.BadRequest, (await BulkAsync(report.Id, tooMany)).StatusCode);                                               // at most 20
+
+            Assert.Empty(DataOf(await ReadJsonAsync(await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{report.Id}/assignments"))).EnumerateArray());
+        }
+
+        [Fact]
+        public async Task Bulk_needs_an_assignable_report_and_the_assign_permission()
+        {
+            var report = await NewReportAsync();
+            var (technician, _) = await NewTechnicianAsync();
+            var item = new { technicianUserId = technician, description = "تعمیر" };
+
+            Assert.Equal(HttpStatusCode.NotFound, (await BulkAsync(999999999, item)).StatusCode);
+
+            await SetReportStatusAsync(report.Id, FailureReportStatusCode.Closed);
+            var closed = await BulkAsync(report.Id, item);
+            Assert.Equal(HttpStatusCode.Conflict, closed.StatusCode);
+            Assert.Equal("failure_report_closed", ErrorCodeOf(await ReadJsonAsync(closed)));
+
+            var open = await NewReportAsync();
+            var viewer = (await NewUserAsync("TechnicianAssignments.View")).Token;
+            var worker = (await NewUserAsync("TechnicianAssignments.Work")).Token;
+            var assigner = (await NewUserAsync("TechnicianAssignments.Assign")).Token;
+            var url = $"/api/FailureReport/{open.Id}/assignments/bulk";
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, url, viewer, new { items = new[] { item } }));
+            Assert.Equal(HttpStatusCode.Forbidden, await StatusOfAsync(HttpMethod.Post, url, worker, new { items = new[] { item } }));
+            Assert.Equal(HttpStatusCode.Created, await StatusOfAsync(HttpMethod.Post, url, assigner, new { items = new[] { item } }));
+            Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Post, url, new { items = new[] { item } })).StatusCode);
         }
 
         [Fact]
@@ -434,6 +575,9 @@ namespace EMS.Tests.Integration
         }
 
         // ------------------------------------------------------------------------------------------ database helpers
+
+        private async Task<bool> HasOpenAssignmentAsync(long reportId) =>
+            (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/FailureReport/{reportId}"))).GetProperty("hasOpenAssignment").GetBoolean();
 
         private async Task SetReportStatusAsync(long reportId, FailureReportStatusCode status)
         {

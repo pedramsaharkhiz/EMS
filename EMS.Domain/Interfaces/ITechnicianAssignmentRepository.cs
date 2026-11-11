@@ -16,7 +16,7 @@ namespace EMS.Domain.Interfaces
         /// <summary>The actions recorded on an assignment, oldest first.</summary>
         Task<List<TechnicianAssignmentActionRow>> GetActionRowsAsync(long assignmentId, CancellationToken cancellationToken = default);
 
-        /// <summary>Does the report have an assignment that is still open (assigned, accepted or in progress)?</summary>
-        Task<bool> HasOpenForReportAsync(long failureReportId, CancellationToken cancellationToken = default);
+        /// <summary>The technicians who have an assignment on the report that is still open (assigned, accepted or in progress).</summary>
+        Task<HashSet<long>> GetOpenTechnicianIdsOfReportAsync(long failureReportId, CancellationToken cancellationToken = default);
     }
 }
