@@ -504,6 +504,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_Equipments_Owner", "[Owner] IN (1, 2)");
 
+                            t.HasCheckConstraint("CK_Equipments_Technician_RequiresDepartment", "[TechnicianUserId] IS NULL OR [CurrentSupportingDepartmentId] IS NOT NULL");
+
                             t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)");
                         });
                 });
