@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
 {
@@ -19,6 +19,7 @@ namespace EMS.Domain.Entities
 
         public FailureReport FailureReport { get; set; } = null!;
         public TechnicianAssignmentStatus TechnicianAssignmentStatus { get; set; } = null!;
+        public ICollection<AssignmentNote> AssignmentNotes { get; set; } = new List<AssignmentNote>();
         public ICollection<TechnicianAssignmentAction> TechnicianAssignmentActions { get; set; } = new List<TechnicianAssignmentAction>();
     }
 }

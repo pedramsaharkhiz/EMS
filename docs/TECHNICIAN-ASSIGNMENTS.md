@@ -65,3 +65,7 @@ Assigned ──accept──> Accepted ──start──> InProgress ──comple
 ## استقرار
 
 اسکریپت‌های `docs/sql/DropFailureReportActions.sql` و سپس `docs/sql/TechnicianAssignments.sql` (یا `dotnet ef database update`). مجوزهای تازه (`TechnicianAssignments.View/Assign/Work`) برای نقش مدیر سیستم خودکار اضافه می‌شوند؛ برای نقش‌های دیگر از `POST /api/Role/AssignPermissions` استفاده کن.
+
+## یادداشت‌های موضوع‌دار ارجاع
+
+هر ارجاع می‌تواند چند یادداشت مستقل از اقدام‌ها، `Description` و `ResultNote` داشته باشد. فقط ارجاع‌دهنده می‌نویسد؛ ارجاع‌دهنده و تکنسین می‌خوانند؛ فقط نویسنده ویرایش و حذف می‌کند. اولین مشاهدهٔ تکنسین صریحاً ثبت می‌شود و با تغییر واقعی متن یا موضوع پاک می‌شود. وضعیت پایانی ارجاع مانع یادداشت نیست. مسیرها، مجوزها و migration موردنیاز در [ASSIGNMENT-NOTES.md](ASSIGNMENT-NOTES.md) آمده‌اند.

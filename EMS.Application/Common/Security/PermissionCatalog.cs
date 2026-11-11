@@ -20,6 +20,8 @@ namespace EMS.Application.Common.Security
         /// <summary>Resource (the part before the dot) -> Persian title of the group.</summary>
         private static readonly IReadOnlyDictionary<string, string> GroupTitles = new Dictionary<string, string>
         {
+            [nameof(Permissions.NoteCategories)] = "موضوعات یادداشت",
+            [nameof(Permissions.AssignmentNotes)] = "یادداشت‌های ارجاع",
             [nameof(Permissions.Equipments)] = "تجهیزات",
             [nameof(Permissions.FailureReports)] = "گزارش‌های خرابی",
             [nameof(Permissions.TechnicianAssignments)] = "ارجاع به تکنسین",
@@ -55,6 +57,7 @@ namespace EMS.Application.Common.Security
         /// <summary>Permissions whose generic title would not say what they do, or that deserve an explanation.</summary>
         private static readonly IReadOnlyDictionary<string, (string? Title, string? Description)> Overrides = new Dictionary<string, (string?, string?)>
         {
+            [Permissions.AssignmentNotes.MarkSeen] = ("ثبت مشاهده یادداشت ارجاع", "ثبت اولین مشاهده؛ فقط توسط تکنسین همان ارجاع."),
             [Permissions.Equipments.View] = (null, "فهرست و جزئیات تجهیزات، تاریخچه‌ی مکان، پیوست‌ها، خروجی اکسل و کارت تجهیزات در داشبورد."),
             [Permissions.Equipments.Create] = (null, "ثبت تکی و گروهی تجهیز، با پیوست یا بدون آن."),
             [Permissions.Equipments.Update] = (null, "ویرایش مشخصات تجهیز، بازگردانی تجهیز غیرفعال و افزودن یا حذف پیوست."),

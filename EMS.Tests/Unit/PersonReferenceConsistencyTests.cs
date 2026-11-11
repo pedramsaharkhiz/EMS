@@ -7,6 +7,7 @@ namespace EMS.Tests.Unit
     public class PersonReferenceConsistencyTests
     {
         [Theory]
+        [InlineData(typeof(EMS.Application.Dtos.AssignmentNote.AssignmentNoteItemDto), "CreatedBy")]
         [InlineData(typeof(EMS.Application.Dtos.Equipment.EquipmentListItemDto), "Technician")]
         [InlineData(typeof(EMS.Application.Dtos.EquipmentLocationHistory.EquipmentLocationHistoryItemDto), "Technician")]
         [InlineData(typeof(EMS.Application.Dtos.EquipmentLocationHistory.EquipmentLocationHistoryItemDto), "ChangedBy")]

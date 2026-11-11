@@ -16,6 +16,8 @@ namespace EMS.Application.Extensions
                 cfg.AddMaps(new[] { "EMS.Domain", "EMS.Infrastructure", "EMS.Application" });
             });
             services.AddValidatorsFromAssemblyContaining<LoginRequestDtoValidator>();
+            services.AddScoped<EMS.Application.Interfaces.AssignmentNote.IAssignmentNoteAccessPolicy,
+                EMS.Application.Services.AssignmentNote.ParticipantAssignmentNoteAccessPolicy>();
             // A technician is allowed only at a supporting department.
             services.AddScoped<IEquipmentLocationRule, DepartmentTechnicianLocationRule>();
             // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).

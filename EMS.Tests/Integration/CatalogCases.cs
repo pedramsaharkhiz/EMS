@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.NoteCategory;
 using EMS.Application.Dtos.Brand;
 using EMS.Application.Dtos.City;
 using EMS.Application.Dtos.EquipmentCategory;
@@ -34,6 +35,9 @@ namespace EMS.Tests.Integration
 
         public static readonly IReadOnlyList<CatalogCase> All = new List<CatalogCase>
         {
+            new("NoteCategory", "/api/NoteCategory", "id", "NoteCategories", false, typeof(NoteCategoryDetailDto), typeof(NoteCategoryListItemDto),
+                (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title })),
+
             new("Brand", "/api/Brand", "id", "Brands", true, typeof(BrandDetailDto), typeof(BrandListItemDto),
                 (_, title) => Task.FromResult(new Dictionary<string, object?> { ["title"] = title, ["code"] = "BR" })),
 

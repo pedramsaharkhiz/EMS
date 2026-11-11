@@ -169,6 +169,22 @@ namespace EMS.Application.Common.Security
         }
 
 
+        public static class NoteCategories
+        {
+            public const string Create = "NoteCategories.Create";
+            public const string Update = "NoteCategories.Update";
+            public const string Delete = "NoteCategories.Delete";
+        }
+
+        public static class AssignmentNotes
+        {
+            public const string View = "AssignmentNotes.View";
+            public const string Create = "AssignmentNotes.Create";
+            public const string Update = "AssignmentNotes.Update";
+            public const string Delete = "AssignmentNotes.Delete";
+            public const string MarkSeen = "AssignmentNotes.MarkSeen";
+        }
+
         /// <summary>
         /// Permissions that no longer exist because reading reference data (brands, statuses, provinces, ...) is open to every
         /// signed-in user (see <c>[Lookup]</c>). Roles saved earlier may still carry them: they are accepted when a role is
