@@ -1,45 +1,33 @@
-﻿ D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs(21): error TESTERROR:
-      EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migrated_table_checks_all_eight_insert_combinations_and_updates (2ms): Error Message: System.ArgumentException : Keyword not supported: 'id'.
+﻿Total tests: 4
+     Passed: 1
+     Failed: 3
+Test Run Failed.
+ Total time: 2.1486 Seconds
+  EMS.Tests test net10.0 failed with 3 error(s) (2.6s)
+    D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs(18): error TESTERROR:
+      EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing (47ms): Error Message: Assert.Contains() Failure: Sub-string not found
+      String:    "EMS_new"
+      Not found: "test"
       Stack Trace:
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.GetIndex(String keyword)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.set_Item(String keyword, Object value)
-         at System.Data.Common.DbConnectionStringBuilder.set_ConnectionString(String value)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder..ctor(String connectionString)
-         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 21
+         at EMS.Tests.Integration.SqlMigrationStartupTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 18
+         at EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 27
+      --- End of stack trace from previous location ---
+    D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs(22): error TESTERROR:
+      EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migration_refuses_legacy_invalid_data_until_explicitly_corrected (47ms): Error Message: Assert.Contains() Failure: Sub-string not found
+      String:    "EMS_new"
+      Not found: "test"
+      Stack Trace:
+         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 22
+         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migration_refuses_legacy_invalid_data_until_explicitly_corrected() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 115
+      --- End of stack trace from previous location ---
+    D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs(22): error TESTERROR:
+      EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migrated_table_checks_all_eight_insert_combinations_and_updates (2ms): Error Message: Assert.Contains() Failure: Sub-string not found
+      String:    "EMS_new"
+      Not found: "test"
+      Stack Trace:
+         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 22
          at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migrated_table_checks_all_eight_insert_combinations_and_updates() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 71
       --- End of stack trace from previous location ---
 
-    D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs(21): error TESTERROR:
-      EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migration_refuses_legacy_invalid_data_until_explicitly_corrected (45ms): Error Message: System.ArgumentException : Keyword not supported: 'id'.
-      Stack Trace:
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.GetIndex(String keyword)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.set_Item(String keyword, Object value)
-         at System.Data.Common.DbConnectionStringBuilder.set_ConnectionString(String value)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder..ctor(String connectionString)
-         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 21
-         at EMS.Tests.Integration.SqlEquipmentLocationConstraintTests.Migration_refuses_legacy_invalid_data_until_explicitly_corrected() in D:\test\EMS\EMS.Tests\Integration\SqlEquipmentLocationConstraintTests.cs:line 115
-      --- End of stack trace from previous location ---
-
- EMS.Tests test net10.0 failed with 3 error(s) (2.4s)
-    D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs(17): error TESTERROR:
-      EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing (45ms): Error Message: System.ArgumentException : Keyword not supported: 'id'.
-      Stack Trace:
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.GetIndex(String keyword)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.set_Item(String keyword, Object value)
-         at System.Data.Common.DbConnectionStringBuilder.set_ConnectionString(String value)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder..ctor(String connectionString)
-         at EMS.Tests.Integration.SqlMigrationStartupTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 17
-         at EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 27
-      --- End of stack trace from previous location ---
-
- EMS.Tests test net10.0 failed with 3 error(s) (2.4s)
-    D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs(17): error TESTERROR:
-      EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing (45ms): Error Message: System.ArgumentException : Keyword not supported: 'id'.
-      Stack Trace:
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.GetIndex(String keyword)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder.set_Item(String keyword, Object value)
-         at System.Data.Common.DbConnectionStringBuilder.set_ConnectionString(String value)
-         at Microsoft.Data.SqlClient.SqlConnectionStringBuilder..ctor(String connectionString)
-         at EMS.Tests.Integration.SqlMigrationStartupTests.NewContext() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 17
-         at EMS.Tests.Integration.SqlMigrationStartupTests.Pending_migrations_are_only_reported_when_off_and_applied_in_order_when_on_and_a_second_run_does_nothing() in D:\test\EMS\EMS.Tests\Integration\SqlMigrationStartupTests.cs:line 27
-      --- End of stack trace from previous location ---
+Test summary: total: 4, failed: 3, succeeded: 1, skipped: 0, duration: 2.5s
+Build failed with 3 error(s) and 49 warning(s) in 17.3s
