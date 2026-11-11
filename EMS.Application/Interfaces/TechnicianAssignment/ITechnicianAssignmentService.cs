@@ -20,6 +20,9 @@ namespace EMS.Application.Interfaces.TechnicianAssignment
 
         Task<TechnicianAssignmentDetailDto> AssignAsync(long failureReportId, TechnicianAssignmentCreateDto request, CancellationToken cancellationToken = default);
 
+        /// <summary>Assigns the report to several technicians at once, each with his own task. All or nothing (400 <c>bulk_items_invalid</c> lists every refused item).</summary>
+        Task<IReadOnlyList<TechnicianAssignmentDetailDto>> AssignBulkAsync(long failureReportId, TechnicianAssignmentBulkCreateDto request, CancellationToken cancellationToken = default);
+
         // transitions: Assigned -> Accepted | Rejected | Cancelled; Accepted -> InProgress | Cancelled; InProgress -> Completed | Cancelled
         Task<TechnicianAssignmentDetailDto> AcceptAsync(long id, TechnicianAssignmentTransitionDto request, CancellationToken cancellationToken = default);
         Task<TechnicianAssignmentDetailDto> RejectAsync(long id, TechnicianAssignmentReasonDto request, CancellationToken cancellationToken = default);

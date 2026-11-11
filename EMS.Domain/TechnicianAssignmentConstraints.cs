@@ -5,6 +5,10 @@ namespace EMS.Domain
     {
         public const int DescriptionMaxLength = 500;
         public const int NoteMaxLength = 500;
-        public const string OneOpenPerReportIndexName = "UX_TechnicianAssignments_OpenPerReport";
+        /// <summary>A technician has at most one open assignment per report (a report may have several open ones, one per technician).</summary>
+        public const string OneOpenPerReportAndTechnicianIndexName = "UX_TechnicianAssignments_OpenPerReportAndTechnician";
+
+        /// <summary>The most assignments one bulk request may create (the technicians of one failure).</summary>
+        public const int BulkMaxItems = 20;
     }
 }

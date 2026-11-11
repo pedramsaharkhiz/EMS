@@ -29,6 +29,47 @@ namespace EMS.Application.Validators.TechnicianAssignment
         }
     }
 
+    public sealed class TechnicianAssignmentBulkItemDtoValidator : AbstractValidator<TechnicianAssignmentBulkItemDto>
+    {
+        public TechnicianAssignmentBulkItemDtoValidator()
+        {
+            RuleFor(x => x.TechnicianUserId).GreaterThan(0).WithMessage("شناسه تکنسین باید بزرگتر از صفر باشد.");
+            RuleFor(x => x.DeadlineDateTime)
+                .Must(d => !d.HasValue || AssignmentRules.ToUtc(d.Value) > DateTime.UtcNow)
+                .WithMessage("مهلت انجام کار باید در آینده باشد.");
+            RuleFor(x => x.Description).NotEmpty().WithMessage("شرح کار این تکنسین الزامی است.");
+            RuleFor(x => x.Description).MaximumLength(TechnicianAssignmentConstraints.DescriptionMaxLength)
+                .WithMessage($"توضیحات ارجاع نمی‌تواند بیشتر از {TechnicianAssignmentConstraints.DescriptionMaxLength} کاراکتر باشد.");
+        }
+    }
+
+    public sealed class TechnicianAssignmentBulkCreateDtoValidator : AbstractValidator<TechnicianAssignmentBulkCreateDto>
+    {
+        public TechnicianAssignmentBulkCreateDtoValidator()
+        {
+            RuleFor(x => x.Items)
+                .NotEmpty().WithMessage("فهرست ارجاع‌ها الزامی است و نباید خالی باشد.")
+                .Must(items => items is null || items.Count <= TechnicianAssignmentConstraints.BulkMaxItems)
+                .WithMessage($"در هر درخواست حداکثر {TechnicianAssignmentConstraints.BulkMaxItems} ارجاع مجاز است.");
+
+            RuleForEach(x => x.Items)
+                .NotNull().WithMessage("ردیف ارجاع نمی‌تواند خالی باشد.")
+                .SetValidator(new TechnicianAssignmentBulkItemDtoValidator()!);
+
+            // A technician has at most one open assignment per report: the same technician twice in one request is a mistake, the later rows are refused.
+            RuleFor(x => x.Items).Custom((items, context) =>
+            {
+                if (items is null) return;
+                var seen = new HashSet<long>();
+                for (var i = 0; i < items.Count; i++)
+                {
+                    if (items[i] is { TechnicianUserId: > 0 } item && !seen.Add(item.TechnicianUserId))
+                        context.AddFailure($"Items[{i}].TechnicianUserId", "این تکنسین در همین درخواست تکرار شده است.");
+                }
+            });
+        }
+    }
+
     public sealed class TechnicianAssignmentTransitionDtoValidator : AbstractValidator<TechnicianAssignmentTransitionDto>
     {
         public TechnicianAssignmentTransitionDtoValidator() =>

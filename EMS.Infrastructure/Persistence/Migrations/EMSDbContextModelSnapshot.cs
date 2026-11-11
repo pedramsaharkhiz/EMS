@@ -1817,12 +1817,12 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AssignedByUserId");
 
-                    b.HasIndex("FailureReportId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_TechnicianAssignments_OpenPerReport")
-                        .HasFilter("[TechnicianAssignmentStatusId] IN (1, 2, 4)");
-
                     b.HasIndex("TechnicianAssignmentStatusId");
+
+                    b.HasIndex("FailureReportId", "TechnicianUserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TechnicianAssignments_OpenPerReportAndTechnician")
+                        .HasFilter("[TechnicianAssignmentStatusId] IN (1, 2, 4)");
 
                     b.HasIndex("TechnicianUserId", "TechnicianAssignmentStatusId")
                         .HasDatabaseName("IX_TechnicianAssignments_Technician_Status");
