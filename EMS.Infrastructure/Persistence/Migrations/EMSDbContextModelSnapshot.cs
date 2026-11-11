@@ -74,6 +74,59 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("ActionEntities", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.AssignmentNote", b =>
+                {
+                    b.Property<long>("AssignmentNoteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AssignmentNoteId"));
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("NoteCategoryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("SeenDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("TechnicianAssignmentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("AssignmentNoteId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("NoteCategoryId");
+
+                    b.HasIndex("TechnicianAssignmentId", "CreatedDateTime", "AssignmentNoteId");
+
+                    b.ToTable("AssignmentNotes", (string)null);
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.AttachmentContent", b =>
                 {
                     b.Property<Guid>("StreamId")
@@ -1168,6 +1221,49 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationManagementId");
 
                     b.ToTable("Fields", (string)null);
+                });
+
+            modelBuilder.Entity("EMS.Domain.Entities.NoteCategory", b =>
+                {
+                    b.Property<long>("NoteCategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("NoteCategoryId"));
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("NoteCategoryId");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("UX_NoteCategories_Title")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("NoteCategories", (string)null);
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.Organization", b =>
@@ -2510,6 +2606,31 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.AssignmentNote", b =>
+                {
+                    b.HasOne("EMS.Infrastructure.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("EMS.Domain.Entities.NoteCategory", "NoteCategory")
+                        .WithMany()
+                        .HasForeignKey("NoteCategoryId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("EMS.Domain.Entities.TechnicianAssignment", "TechnicianAssignment")
+                        .WithMany("AssignmentNotes")
+                        .HasForeignKey("TechnicianAssignmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("NoteCategory");
+
+                    b.Navigation("TechnicianAssignment");
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.City", b =>
                 {
                     b.HasOne("EMS.Domain.Entities.Province", "Province")
@@ -3100,6 +3221,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.TechnicianAssignment", b =>
                 {
+                    b.Navigation("AssignmentNotes");
+
                     b.Navigation("TechnicianAssignmentActions");
                 });
 
