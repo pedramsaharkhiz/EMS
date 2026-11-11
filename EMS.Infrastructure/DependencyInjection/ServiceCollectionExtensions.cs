@@ -227,6 +227,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IIdentitySeeder, IdentitySeeder>();
         services.AddScoped<IGeographySeeder, GeographySeeder>();
+        services.AddScoped<INoteCategorySeeder, NoteCategorySeeder>();
         services.AddScoped<IAttachmentTableSeeder, AttachmentTableSeeder>();
         services.AddScoped<ISystemPostsGuard, SystemPostsGuard>();
         services.AddScoped<ISystemCatalogsGuard, SystemCatalogsGuard>();

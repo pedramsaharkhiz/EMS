@@ -266,6 +266,9 @@ try
         // The Tables registry follows the [Attachable] entities (a new attachable entity needs no seed of its own).
         await scope.ServiceProvider.GetRequiredService<IAttachmentTableSeeder>().SeedAsync();
 
+        // Default note subjects are ordinary editable catalog rows; existing/inactive titles are preserved.
+        await scope.ServiceProvider.GetRequiredService<INoteCategorySeeder>().SeedAsync();
+
         // Optional reference data (Seed:Geography:Enabled): the provinces of Iran with their capitals. Off by default.
         if (app.Configuration.GetValue<bool>("Seed:Geography:Enabled"))
             await scope.ServiceProvider.GetRequiredService<IGeographySeeder>().SeedAsync();
