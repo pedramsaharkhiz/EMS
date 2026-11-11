@@ -13,6 +13,9 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.ToTable("TechnicianAssignments");
             builder.HasKey(x => x.TechnicianAssignmentId);
 
+            builder.Property(x => x.Title).HasMaxLength(TechnicianAssignmentConstraints.TitleMaxLength).IsRequired();
+            builder.Property(x => x.PriorityId).IsRequired();
+            builder.Property(x => x.ViewedDateTime).IsRequired(false);
             builder.Property(x => x.Description).HasMaxLength(TechnicianAssignmentConstraints.DescriptionMaxLength).IsRequired(false);
             builder.Property(x => x.ResultNote).HasMaxLength(TechnicianAssignmentConstraints.NoteMaxLength).IsRequired(false);
             // Optimistic concurrency without a new column: an update fails if the row was modified by someone else after it was read.

@@ -35,11 +35,13 @@ namespace EMS.Application.Services.TechnicianAssignment
     public sealed class TechnicianAssignmentService : ITechnicianAssignmentService
     {
         private static readonly FilterBuilder<TechnicianAssignmentRow, TechnicianAssignmentListRequestDto> Filters = new FilterBuilder<TechnicianAssignmentRow, TechnicianAssignmentListRequestDto>()
-            .Search(r => r.Search, x => x.FailureReportReferenceNumber, x => x.EquipmentYaasCode, x => x.Description)
+            .Search(r => r.Search, x => x.Title, x => x.FailureReportReferenceNumber, x => x.EquipmentYaasCode, x => x.Description)
             .AnyOf(r => r.FailureReportIds, x => x.FailureReportId)
             .AnyOf(r => r.TechnicianUserIds, x => x.TechnicianUserId)
             .AnyOf(r => r.AssignedByUserIds, x => x.AssignedByUserId)
             .AnyOf(r => r.StatusIds, x => x.StatusId)
+            .AnyOf(r => r.PriorityIds, x => x.PriorityId)
+            .Add(r => r.IsSeen switch { true => x => x.ViewedDateTime != null, false => x => x.ViewedDateTime == null, _ => null })
             .AtLeast(r => r.AssignedFrom, x => x.AssignedDateTime)
             .AtMost(r => r.AssignedTo, x => x.AssignedDateTime)
             .Add(r => r.Overdue == true ? OverdueNow() : null)
@@ -64,6 +66,9 @@ namespace EMS.Application.Services.TechnicianAssignment
             .By("deadlinedatetime", x => x.DeadlineDateTime)
             .By("completeddatetime", x => x.CompletedDateTime)
             .By("status", x => x.StatusId)
+            .By("priority", x => x.PriorityId)
+            .By("title", x => x.Title)
+            .By("vieweddatetime", x => x.ViewedDateTime)
             .By("reportreference", x => x.FailureReportReferenceNumber)
             .By("createddatetime", x => x.CreatedDateTime);
 
@@ -157,8 +162,15 @@ namespace EMS.Application.Services.TechnicianAssignment
             var openIds = TechnicianAssignmentCatalog.OpenIds;
             var overdue = await rows.CountAsync(r => r.DeadlineDateTime != null && r.DeadlineDateTime < now && openIds.Contains(r.StatusId), cancellationToken);
 
+            var unseen = await rows.CountAsync(r => r.ViewedDateTime == null && openIds.Contains(r.StatusId), cancellationToken);
+            var byPriority = (await rows.Where(r => openIds.Contains(r.StatusId)).GroupBy(r => r.PriorityId).Select(g => new { Id = g.Key, Count = g.Count() }).ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id, x => x.Count);
+
             return new AssignmentDashboardDto
             {
+                UnseenCount = unseen,
+                OpenByPriority = Enumerable.Range(FailureReportPriorities.Min, FailureReportPriorities.Max - FailureReportPriorities.Min + 1)
+                    .Select(id => new DashboardPriorityCountDto { Id = id, Title = FailureReportPriorities.TitleOf(id), Count = byPriority.GetValueOrDefault(id) }).ToList(),
                 Total = byStatus.Values.Sum(),
                 OpenCount = byStatus.Where(x => openIds.Contains(x.Key)).Sum(x => x.Value),
                 OverdueCount = overdue,
@@ -184,7 +196,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             if ((await _repository.GetOpenTechnicianIdsOfReportAsync(failureReportId, cancellationToken)).Contains(request.TechnicianUserId))
                 throw new ConflictException(AlreadyOpenMessage, ErrorCodes.AssignmentAlreadyOpen);
 
-            var entity = NewAssignment(failureReportId, userId, request.TechnicianUserId, request.DeadlineDateTime, request.Description);
+            var entity = NewAssignment(failureReportId, userId, request.TechnicianUserId, request.Title, request.PriorityId, request.DeadlineDateTime, request.Description);
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -213,7 +225,7 @@ namespace EMS.Application.Services.TechnicianAssignment
                 throw new BulkItemsException(problems, $"ارجاع گروهی انجام نشد؛ {problems.Select(p => p.Field).Distinct().Count()} ردیف خطا دارد و هیچ ارجاعی ثبت نشد.");
 
             var entities = request.Items
-                .Select(i => NewAssignment(failureReportId, userId, i.TechnicianUserId, i.DeadlineDateTime, i.Description))
+                .Select(i => NewAssignment(failureReportId, userId, i.TechnicianUserId, i.Title, i.PriorityId, i.DeadlineDateTime, i.Description))
                 .ToList();
             await _repository.AddRangeAsync(entities, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);      // one save: the assignments are created together or not at all
@@ -240,16 +252,36 @@ namespace EMS.Application.Services.TechnicianAssignment
                 throw new ConflictException("گزارش خرابی بسته شده است و نمی‌توان آن را ارجاع داد.", ErrorCodes.FailureReportClosed);
         }
 
-        private static TechnicianAssignmentEntity NewAssignment(long failureReportId, long assignedByUserId, long technicianUserId, DateTime? deadline, string? description) => new()
+        private static TechnicianAssignmentEntity NewAssignment(long failureReportId, long assignedByUserId, long technicianUserId, string? title, int priorityId, DateTime? deadline, string? description) => new()
         {
             FailureReportId = failureReportId,
             TechnicianAssignmentStatusId = TechnicianAssignmentCatalog.IdOf(TechnicianAssignmentStatusCode.Assigned),
             TechnicianUserId = technicianUserId,
             AssignedByUserId = assignedByUserId,
+            Title = Normalize(title)!,
+            PriorityId = priorityId,
             AssignedDateTime = DateTime.UtcNow,
             DeadlineDateTime = deadline.HasValue ? ToUtc(deadline.Value) : null,
             Description = Normalize(description),
         };
+
+        public async Task<TechnicianAssignmentDetailDto> MarkSeenAsync(long id, CancellationToken cancellationToken = default)
+        {
+            var userId = RequireCurrentUser();
+            var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
+            RequireTechnician(entity, userId);
+
+            // Only the first sight counts and it never changes afterwards: seeing it again changes nothing (and writes nothing).
+            if (entity.ViewedDateTime is null)
+            {
+                entity.ViewedDateTime = DateTime.UtcNow;
+                _repository.Update(entity);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                _audit.Operation("Seen", "TechnicianAssignment", id);
+            }
+
+            return await DetailAsync(id, cancellationToken);
+        }
 
         public Task<TechnicianAssignmentDetailDto> AcceptAsync(long id, TechnicianAssignmentTransitionDto request, CancellationToken cancellationToken = default) =>
             MoveAsync(id, TechnicianAssignmentStatusCode.Accepted, request, technicianOnly: true, cancellationToken);
@@ -287,6 +319,7 @@ namespace EMS.Application.Services.TechnicianAssignment
                     throw new BadRequestException("ردیف تاریخچه‌ی مکان متعلق به تجهیز این گزارش نیست.", ErrorCodes.BadRequest);
             }
 
+            entity.ViewedDateTime ??= DateTime.UtcNow;      // (an action is only possible after accepting, so he has seen it; this keeps the rule in one sentence)
             var action = new TechnicianAssignmentAction
             {
                 TechnicianAssignmentId = id,
@@ -320,6 +353,9 @@ namespace EMS.Application.Services.TechnicianAssignment
                     ErrorCodes.AssignmentTransitionNotAllowed);
 
             entity.TechnicianAssignmentStatusId = TechnicianAssignmentCatalog.IdOf(target);
+            // A technician who acts on the assignment has obviously seen it, even if he never opened it (for example, accepted it from the list).
+            if (technicianOnly)
+                entity.ViewedDateTime ??= DateTime.UtcNow;
             if (target == TechnicianAssignmentStatusCode.Completed)
                 entity.CompletedDateTime = DateTime.UtcNow;
             var note = Normalize(request.Note);
@@ -396,6 +432,11 @@ namespace EMS.Application.Services.TechnicianAssignment
             dto.StatusCode = row.StatusCode;
             dto.StatusTitle = row.StatusTitle;
             dto.TechnicianUserId = row.TechnicianUserId;
+            dto.Title = row.Title;
+            dto.PriorityId = row.PriorityId;
+            dto.PriorityTitle = row.PriorityTitle;
+            dto.ViewedDateTime = row.ViewedDateTime;
+            dto.IsSeen = row.ViewedDateTime.HasValue;
             dto.AssignedByUserId = row.AssignedByUserId;
             dto.AssignedDateTime = row.AssignedDateTime;
             dto.DeadlineDateTime = row.DeadlineDateTime;

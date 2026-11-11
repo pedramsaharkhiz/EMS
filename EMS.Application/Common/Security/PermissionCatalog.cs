@@ -67,7 +67,7 @@ namespace EMS.Application.Common.Security
 
             [Permissions.TechnicianAssignments.View] = ("مشاهده ارجاع‌ها", "فهرست و جزئیات ارجاع‌ها، اقدام‌های ثبت‌شده و کارت ارجاع‌ها در داشبورد."),
             [Permissions.TechnicianAssignments.Assign] = ("ارجاع گزارش خرابی به تکنسین", "ارجاع گزارش خرابی به یک تکنسین و لغو ارجاع باز."),
-            [Permissions.TechnicianAssignments.Work] = ("انجام کار ارجاع", "پذیرش، رد، شروع و تکمیل ارجاع و ثبت اقدام؛ فقط برای ارجاع‌هایی که به خود کاربر داده شده است."),
+            [Permissions.TechnicianAssignments.Work] = ("انجام کار ارجاع", "پذیرش، رد، شروع و تکمیل ارجاع، ثبت اقدام و ثبت «دیدم»؛ فقط برای ارجاع‌هایی که به خود کاربر داده شده است."),
 
             [Permissions.Users.View] = (null, "فهرست و جزئیات کاربران، نقش هر کاربر و خروجی اکسل."),
             [Permissions.Users.Update] = (null, "ویرایش مشخصات کاربر و تغییر کلمه عبور او."),

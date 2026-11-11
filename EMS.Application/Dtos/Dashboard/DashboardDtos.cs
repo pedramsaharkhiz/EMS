@@ -71,6 +71,10 @@ namespace EMS.Application.Dtos.Dashboard
         public int OpenCount { get; set; }
         /// <summary>Open with a deadline in the past (the same meaning as <c>isOverdue</c> and the <c>overdue</c> filter).</summary>
         public int OverdueCount { get; set; }
+        /// <summary>Open assignments the technician has not seen yet.</summary>
+        public int UnseenCount { get; set; }
+        /// <summary>The open assignments per priority; all five priorities are listed, even with zero.</summary>
+        public List<DashboardPriorityCountDto> OpenByPriority { get; set; } = new();
         public List<AssignmentStatusCountDto> ByStatus { get; set; } = new();
     }
 }

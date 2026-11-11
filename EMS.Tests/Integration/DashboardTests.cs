@@ -97,7 +97,7 @@ namespace EMS.Tests.Integration
 
         private async Task<long> AssignAsync(long reportId)
         {
-            var response = await AsAdminAsync(HttpMethod.Post, $"/api/FailureReport/{reportId}/assignments", new { technicianUserId = (await LoginAdminAsync()).UserId });
+            var response = await AsAdminAsync(HttpMethod.Post, $"/api/FailureReport/{reportId}/assignments", new { title = "تعمیر", priorityId = 3, technicianUserId = (await LoginAdminAsync()).UserId });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return Id(await ReadDataAsync(response));
         }
@@ -264,6 +264,16 @@ namespace EMS.Tests.Integration
 
             Assert.Equal(after.GetProperty("total").GetInt32(), await ListCountAsync("/api/TechnicianAssignment"));
             Assert.Equal(after.GetProperty("overdueCount").GetInt32(), await ListCountAsync("/api/TechnicianAssignment?overdue=true"));
+
+            // "not seen" and "open by priority" are what the list says for the same filters
+            var openStatuses = string.Join("&", after.GetProperty("byStatus").EnumerateArray().Where(b => b.GetProperty("isOpen").GetBoolean()).Select(b => $"statusId={Id(b)}"));
+            Assert.Equal(before.GetProperty("unseenCount").GetInt32() + 2, after.GetProperty("unseenCount").GetInt32());                  // the two open ones were never seen; the cancelled one is not "open"
+            Assert.Equal(after.GetProperty("unseenCount").GetInt32(), await ListCountAsync($"/api/TechnicianAssignment?{openStatuses}&isSeen=false"));
+            var priorities = after.GetProperty("openByPriority").EnumerateArray().ToList();
+            Assert.Equal(new[] { 1, 2, 3, 4, 5 }, priorities.Select(p => p.GetProperty("id").GetInt32()));
+            Assert.Equal(after.GetProperty("openCount").GetInt32(), priorities.Sum(p => p.GetProperty("count").GetInt32()));
+            foreach (var p in priorities)
+                Assert.Equal(p.GetProperty("count").GetInt32(), await ListCountAsync($"/api/TechnicianAssignment?{openStatuses}&priorityId={p.GetProperty("id").GetInt32()}"));
             foreach (var bar in after.GetProperty("byStatus").EnumerateArray())
                 Assert.Equal(bar.GetProperty("count").GetInt32(), await ListCountAsync($"/api/TechnicianAssignment?statusId={Id(bar)}"));
             _ = second;

@@ -1803,6 +1803,9 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("PriorityId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ResultNote")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1812,6 +1815,14 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("TechnicianUserId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ViewedDateTime")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("TechnicianAssignmentId");
 
