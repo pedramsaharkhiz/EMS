@@ -78,24 +78,33 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task Naming_a_branch_moves_there_and_leaves_the_department_and_the_other_way_round_and_the_technician_stays()
+        public async Task Moving_to_a_branch_requires_explicitly_clearing_the_technician()
         {
             var technician = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(technician);
             var branch = await NewBranchAsync();
 
-            var toBranch = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentOrganizationId = branch }));
+            var refused = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentOrganizationId = branch });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Equal("technician_requires_department", ErrorCodeOf(await ReadJsonAsync(refused)));
+            Assert.Equal(technician, Long(await DetailAsync(id), "technicianUserId"));
+            Assert.Equal(1, await HistoryCountAsync(id));
+            var toBranch = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentOrganizationId = branch, clearTechnician = true }));
             Assert.Equal(branch, Long(toBranch, "currentOrganizationId"));
             Assert.Null(Long(toBranch, "currentSupportingDepartmentId"));        // left automatically
             Assert.Equal(1, toBranch.GetProperty("locationKind").GetInt32());
-            Assert.Equal(technician, Long(toBranch, "technicianUserId"));         // not sent: unchanged
+            Assert.Null(Long(toBranch, "technicianUserId"));
+            var assignAtBranch = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { technicianUserId = technician });
+            Assert.Equal(HttpStatusCode.BadRequest, assignAtBranch.StatusCode);
+            Assert.Equal("technician_requires_department", ErrorCodeOf(await ReadJsonAsync(assignAtBranch)));
+            Assert.Equal(2, await HistoryCountAsync(id));
 
             var department = await CatalogFixtures.NewDepartmentAsync(this);
             var toDepartment = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = department }));
             Assert.Equal(department, Long(toDepartment, "currentSupportingDepartmentId"));
             Assert.Null(Long(toDepartment, "currentOrganizationId"));
             Assert.Equal(2, toDepartment.GetProperty("locationKind").GetInt32());
-            Assert.Equal(technician, Long(toDepartment, "technicianUserId"));
+            Assert.Null(Long(toDepartment, "technicianUserId"));
             Assert.Equal(3, await HistoryCountAsync(id));
         }
 
@@ -105,10 +114,10 @@ namespace EMS.Tests.Integration
             var first = await NewUserAsync();
             var second = await NewUserAsync();
             var id = await NewEquipmentAtDepartmentAsync(first);
-            var branch = await NewBranchAsync();
+            var department = await CatalogFixtures.NewDepartmentAsync(this);
 
-            var after = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentOrganizationId = branch, technicianUserId = second }));
-            Assert.Equal(branch, Long(after, "currentOrganizationId"));
+            var after = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{id}/move", new { currentSupportingDepartmentId = department, technicianUserId = second }));
+            Assert.Equal(department, Long(after, "currentSupportingDepartmentId"));
             Assert.Equal(second, Long(after, "technicianUserId"));
             Assert.Equal(2, await HistoryCountAsync(id));
         }

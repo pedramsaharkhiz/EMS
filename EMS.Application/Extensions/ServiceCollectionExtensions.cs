@@ -16,8 +16,8 @@ namespace EMS.Application.Extensions
                 cfg.AddMaps(new[] { "EMS.Domain", "EMS.Infrastructure", "EMS.Application" });
             });
             services.AddValidatorsFromAssemblyContaining<LoginRequestDtoValidator>();
-            // Open business rule: any location is accepted until the business decides (see IEquipmentLocationRule).
-            services.AddScoped<IEquipmentLocationRule, PermissiveEquipmentLocationRule>();
+            // A technician is allowed only at a supporting department.
+            services.AddScoped<IEquipmentLocationRule, DepartmentTechnicianLocationRule>();
             // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("fa");
             return services;

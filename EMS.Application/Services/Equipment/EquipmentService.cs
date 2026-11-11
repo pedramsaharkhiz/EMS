@@ -486,6 +486,7 @@ namespace EMS.Application.Services.Equipment
         {
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
+            await _locationRule.ValidateAsync(new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId), cancellationToken);
             var yaasCode = request.YaasCode.Trim();
             var reactivating = !entity.IsActive && request.IsActive;
             var statusChanged = entity.EquipmentStatusId != request.EquipmentStatusId;

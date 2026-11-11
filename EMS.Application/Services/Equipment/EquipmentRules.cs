@@ -1,9 +1,12 @@
+using EMS.Application.Common.Exceptions;
+
 namespace EMS.Application.Services.Equipment
 {
     /// <summary>The location an equipment is at (or moves to).</summary>
     public sealed record EquipmentLocation(long? OrganizationId, long? SupportingDepartmentId, long? TechnicianUserId)
     {
-        /// <summary>The message when an equipment is not with exactly one of a branch and a supporting department (the same text as the database constraint's validation).</summary>
+        public const string TechnicianMessage = "تکنسین فقط برای تجهیز نزد دپارتمان پشتیبانی (ستاد) قابل تعیین است؛ تجهیز نزد شعبه نمی‌تواند تکنسین داشته باشد.";
+
         public const string HolderMessage = "تجهیز باید دقیقاً یکی از «شعبه» یا «دپارتمان پشتیبانی (ستاد)» را داشته باشد؛ نه هر دو و نه هیچ‌کدام.";
 
         // the messages of the partial move (POST .../move): see EquipmentMoveDto
@@ -15,22 +18,21 @@ namespace EMS.Application.Services.Equipment
         public bool HasExactlyOneHolder => OrganizationId.HasValue ^ SupportingDepartmentId.HasValue;
     }
 
-    /// <summary>
-    /// The business rule that says which combinations of organization, department and technician are valid
-    /// (e.g. "at a technician" requires a technician). "Exactly one of branch and supporting department" is NOT here: it is a database
-    /// constraint and is always checked. The decision is still open with the business, so the registered rule
-    /// (<see cref="PermissiveEquipmentLocationRule"/>) accepts everything. When it is decided, write the rule here and register
-    /// it instead; creating and moving an equipment already call it, and nothing else has to change.
-    /// Throw <c>BadRequestException</c> to refuse.
-    /// </summary>
+    /// <summary>A technician is optional and allowed only when the equipment is at a supporting department.</summary>
     public interface IEquipmentLocationRule
     {
         Task ValidateAsync(EquipmentLocation location, CancellationToken cancellationToken);
     }
 
-    public sealed class PermissiveEquipmentLocationRule : IEquipmentLocationRule
+    public sealed class DepartmentTechnicianLocationRule : IEquipmentLocationRule
     {
-        public Task ValidateAsync(EquipmentLocation location, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task ValidateAsync(EquipmentLocation location, CancellationToken cancellationToken)
+        {
+            if (location.TechnicianUserId.HasValue && !location.SupportingDepartmentId.HasValue)
+                throw new BadRequestException(EquipmentLocation.TechnicianMessage,
+                    ErrorCodes.TechnicianRequiresDepartment);
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>

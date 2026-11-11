@@ -45,6 +45,7 @@ namespace EMS.Application.Common.Exceptions
         public const string StatusTransitionNotAllowed = "status_transition_not_allowed";
         public const string OrganizationsAlreadyAssigned = "organizations_already_assigned";
         public const string DuplicateReferenceNumber = "duplicate_reference_number";
+        public const string TechnicianRequiresDepartment = "technician_requires_department";
         public const string LocationHolderInvalid = "location_holder_invalid";
         public const string BulkItemsInvalid = "bulk_items_invalid";
 

@@ -166,18 +166,22 @@ namespace EMS.Tests.Integration
             var technician = await NewTechnicianAsync(place.DepartmentId);
             var org = await NewOrganizationAsync();
             var tag = Guid.NewGuid().ToString("N")[..8];
-            var id = await NewEquipmentAsync(new { technicianUserId = technician, currentOrganizationId = org.Id, yaasCode = $"XC-{tag}" });
+            var id = await NewEquipmentAsync(new { currentOrganizationId = org.Id, yaasCode = $"XC-{tag}" });
 
+            await NewEquipmentAsync(new { technicianUserId = technician, yaasCode = $"XC-{tag}-technician" });
             var response = await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/export?search=XC-{tag}");
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             using var workbook = new XLWorkbook(new MemoryStream(await response.Content.ReadAsByteArrayAsync()));
             var sheet = workbook.Worksheets.First();
             var headers = Enumerable.Range(1, sheet.LastColumnUsed()!.ColumnNumber()).Select(i => sheet.Cell(1, i).GetString()).ToList();
-            string Cell(string header) => sheet.Cell(2, headers.IndexOf(header) + 1).GetString();
+            string Cell(string header, int row = 2) => sheet.Cell(row, headers.IndexOf(header) + 1).GetString();
 
-            Assert.Equal(place.DepartmentTitle, Cell("دپارتمان تکنسین"));
-            Assert.Equal(place.CityTitle, Cell("شهر تکنسین"));
-            Assert.Equal(place.ProvinceTitle, Cell("استان تکنسین"));
+            Assert.Equal("", Cell("دپارتمان تکنسین"));
+            Assert.Equal("", Cell("شهر تکنسین"));
+            Assert.Equal("", Cell("استان تکنسین"));
+            Assert.Equal(place.DepartmentTitle, Cell("دپارتمان تکنسین", 3));
+            Assert.Equal(place.CityTitle, Cell("شهر تکنسین", 3));
+            Assert.Equal(place.ProvinceTitle, Cell("استان تکنسین", 3));
             Assert.Equal(org.ZoneTitle, Cell("ناحیه"));
             Assert.Equal(org.ManagementTitle, Cell("مدیریت شعب"));
             Assert.Equal(org.FieldTitle, Cell("حوزه"));

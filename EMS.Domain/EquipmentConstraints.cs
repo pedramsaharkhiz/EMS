@@ -3,6 +3,8 @@ namespace EMS.Domain
     /// <summary>Column lengths of <c>Equipment</c>, shared by the EF configuration and the validators.</summary>
     public static class EquipmentConstraints
     {
+        public const string TechnicianCheckName = "CK_Equipments_Technician_RequiresDepartment";
+
         public const string OwnerCheckName = "CK_Equipments_Owner";
 
         /// <summary>An equipment is with a branch OR with a supporting department (ستاد), never both and never neither. The history keeps the same rule.</summary>

@@ -38,6 +38,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
             // With a branch or with a supporting department: exactly one of the two columns is filled.
             builder.ToTable(t => t.HasCheckConstraint(EquipmentConstraints.LocationCheckName,
                 "([CurrentOrganizationId] IS NOT NULL AND [CurrentSupportingDepartmentId] IS NULL) OR ([CurrentOrganizationId] IS NULL AND [CurrentSupportingDepartmentId] IS NOT NULL)"));
+            builder.ToTable(t => t.HasCheckConstraint(EquipmentConstraints.TechnicianCheckName,
+                "[TechnicianUserId] IS NULL OR [CurrentSupportingDepartmentId] IS NOT NULL"));
             builder.ToTable(t => t.HasCheckConstraint("CK_Equipments_TypeOrModel_ExactlyOne", "([EquipmentTypeId] IS NOT NULL AND [EquipmentModelId] IS NULL) OR ([EquipmentTypeId] IS NULL AND [EquipmentModelId] IS NOT NULL)"));
         }
     }

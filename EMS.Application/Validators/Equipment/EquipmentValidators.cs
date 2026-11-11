@@ -45,6 +45,8 @@ namespace EMS.Application.Validators.Equipment
                 .WithName("currentOrganizationId")
                 .WithMessage(EquipmentLocation.HolderMessage);
             RuleFor(x => x.TechnicianUserId).PositiveId("تکنسین");
+            RuleFor(x => x).Must(x => !x.TechnicianUserId.HasValue || x.CurrentSupportingDepartmentId.HasValue)
+                .WithName("technicianUserId").WithMessage(EquipmentLocation.TechnicianMessage);
         }
     }
 

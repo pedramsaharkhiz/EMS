@@ -80,25 +80,30 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
-        public async Task A_branch_takes_all_of_them_from_their_departments_and_the_technician_stays_unless_cleared()
+        public async Task A_branch_refuses_retained_technicians_and_explicit_clearing_moves_every_equipment()
         {
             var technician = await NewUserAsync();
             var a = await NewEquipmentAsync(technician: technician);
             var b = await NewEquipmentAsync(technician: technician);
             var branch = await NewBranchAsync();
 
-            var moved = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk-move", new { equipmentIds = new[] { a, b }, currentOrganizationId = branch }));
+            var refused = await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk-move", new { equipmentIds = new[] { a, b }, currentOrganizationId = branch });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Equal("bulk_items_invalid", ErrorCodeOf(await ReadJsonAsync(refused)));
+            Assert.Equal(technician, Long(await DetailAsync(a), "technicianUserId"));
+            Assert.Equal(technician, Long(await DetailAsync(b), "technicianUserId"));
+            var moved = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk-move", new { equipmentIds = new[] { a, b }, currentOrganizationId = branch, clearTechnician = true }));
             Assert.Equal(2, moved.GetProperty("changed").GetInt32());
             foreach (var id in new[] { a, b })
             {
                 var detail = await DetailAsync(id);
                 Assert.Equal(branch, Long(detail, "currentOrganizationId"));
                 Assert.Null(Long(detail, "currentSupportingDepartmentId"));       // left automatically
-                Assert.Equal(technician, Long(detail, "technicianUserId"));        // not sent: unchanged
+                Assert.Null(Long(detail, "technicianUserId"));
             }
 
             var cleared = await ReadDataAsync(await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk-move", new { equipmentIds = new[] { a, b }, clearTechnician = true }));
-            Assert.Equal(2, cleared.GetProperty("changed").GetInt32());
+            Assert.Equal(0, cleared.GetProperty("changed").GetInt32());
             Assert.Null(Long(await DetailAsync(a), "technicianUserId"));
             Assert.Null(Long(await DetailAsync(b), "technicianUserId"));
         }

@@ -157,7 +157,7 @@ namespace EMS.Tests.Integration
         public async Task Every_check_constraint_has_a_validation_case()
         {
             var names = Equipment().GetCheckConstraints().Select(c => c.Name).OrderBy(n => n).ToArray();
-            Assert.Equal(new[] { "CK_Equipments_Location_ExactlyOne", "CK_Equipments_Owner", "CK_Equipments_TypeOrModel_ExactlyOne" }, names);   // a new check needs a case below
+            Assert.Equal(new[] { "CK_Equipments_Location_ExactlyOne", "CK_Equipments_Owner", "CK_Equipments_Technician_RequiresDepartment", "CK_Equipments_TypeOrModel_ExactlyOne" }, names);   // a new check needs a case below
 
             var f = await NewFixtureAsync();
             var both = Body(f); both["equipmentModelId"] = f.ModelId;
@@ -184,6 +184,13 @@ namespace EMS.Tests.Integration
                 Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
                 AssertPersianValidation(await ReadJsonAsync(response), "currentOrganizationId");
             }
+            var withBranchAndTechnician = Body(f);
+            withBranchAndTechnician["currentSupportingDepartmentId"] = null;
+            withBranchAndTechnician["currentOrganizationId"] = 1;
+            withBranchAndTechnician["technicianUserId"] = 1;
+            var invalidTechnician = await SendAdminAsync(HttpMethod.Post, "/api/Equipment", withBranchAndTechnician);
+            Assert.Equal(HttpStatusCode.BadRequest, invalidTechnician.StatusCode);
+            AssertPersianValidation(await ReadJsonAsync(invalidTechnician), "technicianUserId");
             var movable = await CreatedIdAsync(Body(f));
             // a move names at most one of them (and at least one thing to change: see EquipmentMoveTests)
             var bothMove = await SendAdminAsync(HttpMethod.Post, $"/api/Equipment/{movable}/move", new { currentOrganizationId = 1, currentSupportingDepartmentId = f.DepartmentId });
