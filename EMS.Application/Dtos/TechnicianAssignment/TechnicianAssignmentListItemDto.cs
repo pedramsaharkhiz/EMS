@@ -29,6 +29,15 @@ namespace EMS.Application.Dtos.TechnicianAssignment
         public long? TechnicianProvinceId { get; set; }
         public string? TechnicianProvinceTitle { get; set; }
 
+        /// <summary>A short title; <see cref="Description"/> is the full explanation.</summary>
+        public string Title { get; set; } = string.Empty;
+        /// <summary>1 (کم) to 5 (فوری).</summary>
+        public int PriorityId { get; set; }
+        public string PriorityTitle { get; set; } = string.Empty;
+        /// <summary>When the technician first saw the assignment; null = not seen yet.</summary>
+        public DateTime? ViewedDateTime { get; set; }
+        public bool IsSeen { get; set; }
+
         public long AssignedByUserId { get; set; }
         public string? AssignedByName { get; set; }
         public string? AssignedByPersonnelCode { get; set; }

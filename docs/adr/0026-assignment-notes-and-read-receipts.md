@@ -1,4 +1,4 @@
-# ADR-0025: یادداشت‌های ارجاع با موضوع و رسید مشاهدهٔ تکنسین
+# ADR-0026: یادداشت‌های ارجاع با موضوع و رسید مشاهدهٔ تکنسین
 
 - **وضعیت:** پذیرفته‌شده
 - **ثبت‌شده در:** ۲۰۲۶-۱۱-۱۱
@@ -28,4 +28,4 @@
 
 ## ارجاع
 
-`docs/ASSIGNMENT-NOTES.md`، `docs/BUSINESS-DECISIONS.md` بخش ۳.۱۹، `AssignmentNoteService` و `ParticipantAssignmentNoteAccessPolicy`.
+`docs/ASSIGNMENT-NOTES.md`، `docs/BUSINESS-DECISIONS.md` بخش ۳.۲۱، `AssignmentNoteService` و `ParticipantAssignmentNoteAccessPolicy`.

@@ -2,6 +2,7 @@
 
 - **وضعیت:** پذیرفته‌شده
 - **ثبت‌شده در:** ۲۰۲۶-۱۱-۰۸
+- **به‌روزرسانی:** قاعدهٔ «یک ارجاع باز برای هر گزارش» با [ADR-0024](0024-several-open-assignments-per-report-and-bulk-assign.md) عوض شد (یک ارجاع باز برای هر **تکنسین** در هر گزارش). بقیهٔ این ADR معتبر است.
 - **مرتبط:** [ADR-0006](0006-permission-based-authorization-with-live-revalidation.md) (مجوزها)، [ADR-0008](0008-optimistic-concurrency-with-derived-row-version.md) (`rowVersion`)، [ADR-0017](0017-retire-technician-post.md) (هر کاربر موجود می‌تواند تکنسین باشد)
 
 ## زمینه

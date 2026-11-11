@@ -1,6 +1,6 @@
 # یادداشت‌های ارجاع به تکنسین
 
-تصمیم کسب‌وکاری: بخش ۳.۱۹ `BUSINESS-DECISIONS.md`. تصمیم فنی: [ADR-0025](adr/0025-assignment-notes-and-read-receipts.md).
+تصمیم کسب‌وکاری: بخش ۳.۲۱ `BUSINESS-DECISIONS.md`. تصمیم فنی: [ADR-0026](adr/0026-assignment-notes-and-read-receipts.md).
 
 ## موضوعات یادداشت
 

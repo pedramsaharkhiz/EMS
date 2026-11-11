@@ -37,9 +37,11 @@ namespace EMS.Infrastructure.Repositories
                 })
                 .ToListAsync(cancellationToken);
 
-        public async Task<bool> HasOpenForReportAsync(long failureReportId, CancellationToken cancellationToken = default) =>
-            await _dbSet.IncludingInactive().AnyAsync(x => x.FailureReportId == failureReportId
-                && TechnicianAssignmentCatalog.OpenIds.Contains(x.TechnicianAssignmentStatusId), cancellationToken);
+        public async Task<HashSet<long>> GetOpenTechnicianIdsOfReportAsync(long failureReportId, CancellationToken cancellationToken = default) =>
+            (await _dbSet.IncludingInactive()
+                .Where(x => x.FailureReportId == failureReportId && TechnicianAssignmentCatalog.OpenIds.Contains(x.TechnicianAssignmentStatusId))
+                .Select(x => x.TechnicianUserId)
+                .ToListAsync(cancellationToken)).ToHashSet();
 
         private static IQueryable<TechnicianAssignmentRow> ToRows(IQueryable<TechnicianAssignment> source) =>
             source.Select(a => new TechnicianAssignmentRow
@@ -54,6 +56,9 @@ namespace EMS.Infrastructure.Repositories
                 StatusTitle = a.TechnicianAssignmentStatus.Title,
                 TechnicianUserId = a.TechnicianUserId,
                 AssignedByUserId = a.AssignedByUserId,
+                Title = a.Title,
+                PriorityId = a.PriorityId,
+                ViewedDateTime = a.ViewedDateTime,
                 AssignedDateTime = a.AssignedDateTime,
                 DeadlineDateTime = a.DeadlineDateTime,
                 CompletedDateTime = a.CompletedDateTime,

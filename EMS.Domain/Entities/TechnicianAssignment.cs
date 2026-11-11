@@ -9,6 +9,12 @@ namespace EMS.Domain.Entities
         public long TechnicianAssignmentStatusId { get; set; }
         public long TechnicianUserId { get; set; }
         public long AssignedByUserId { get; set; }
+        /// <summary>A short title (what the list shows, e.g. "تعمیر برق"); <see cref="Description"/> is the full explanation.</summary>
+        public string Title { get; set; } = null!;
+        /// <summary>1 (کم) to 5 (فوری): the same scale as a failure report; independent of the report's own priority.</summary>
+        public int PriorityId { get; set; }
+        /// <summary>When the technician first saw the assignment (null = not yet). Set once, by the technician himself, and never changed.</summary>
+        public DateTime? ViewedDateTime { get; set; }
         public DateTime AssignedDateTime { get; set; }
         public DateTime? DeadlineDateTime { get; set; }
         public DateTime? CompletedDateTime { get; set; }

@@ -13,6 +13,11 @@ namespace EMS.Domain.ReadModels
         public string? StatusTitle { get; set; }
         public long TechnicianUserId { get; set; }
         public long AssignedByUserId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int PriorityId { get; set; }
+        /// <summary>The Persian title of <see cref="PriorityId"/> (computed, not stored).</summary>
+        public string PriorityTitle => FailureReportPriorities.TitleOf(PriorityId);
+        public DateTime? ViewedDateTime { get; set; }
         public DateTime AssignedDateTime { get; set; }
         public DateTime? DeadlineDateTime { get; set; }
         public DateTime? CompletedDateTime { get; set; }

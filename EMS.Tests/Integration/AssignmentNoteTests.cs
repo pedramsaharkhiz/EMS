@@ -64,6 +64,7 @@ public class AssignmentNoteTests : ApiTestBase
         };
         var assignment = new TechnicianAssignment
         {
+            Title = "ارجاع آزمایشی یادداشت", PriorityId = 1,
             FailureReport = report, AssignedByUserId = sender, TechnicianUserId = technician.Id,
             TechnicianAssignmentStatusId = statusId, AssignedDateTime = DateTime.UtcNow
         };
