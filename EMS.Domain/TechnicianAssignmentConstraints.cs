@@ -3,6 +3,8 @@ namespace EMS.Domain
     /// <summary>Column lengths and constraint names of the technician assignment tables, shared by the EF configuration and the validators.</summary>
     public static class TechnicianAssignmentConstraints
     {
+        /// <summary>The short title of an assignment (what the list shows).</summary>
+        public const int TitleMaxLength = 200;
         public const int DescriptionMaxLength = 500;
         public const int NoteMaxLength = 500;
         /// <summary>A technician has at most one open assignment per report (a report may have several open ones, one per technician).</summary>

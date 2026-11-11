@@ -62,6 +62,8 @@
 | `overdueCount` | بازِ دارای مهلتِ گذشته (همان تعریف `isOverdue` و فیلتر `overdue=true`) |
 | `byStatus[]` | شش وضعیت ارجاع |
 | `total` | همهٔ ارجاع‌ها |
+| `unseenCount` | ارجاع‌های **باز** که تکنسین هنوز ندیده (`viewedDateTime` خالی). کلیک: `GET /api/TechnicianAssignment?statusId=<باز‌ها>&isSeen=false` |
+| `openByPriority[]` | ارجاع‌های باز به تفکیک اولویت ۱ تا ۵ (همهٔ پنج، حتی با صفر). کلیک: `...&priorityId=<n>` |
 
 کلیک: `GET /api/TechnicianAssignment?overdue=true` و `?statusId=...`.
 

@@ -91,6 +91,16 @@ namespace EMS.Presentation.Controllers
         public async Task<ActionResult<ApiResponse<TechnicianAssignmentDetailDto>>> Cancel(long id, [FromBody] TechnicianAssignmentReasonDto request, CancellationToken cancellationToken) =>
             Updated(await _service.CancelAsync(id, request, cancellationToken));
 
+        /// <summary>
+        /// The technician saw the assignment (call it when he actually opens it). Only the FIRST time is recorded in <c>viewedDateTime</c>; calling again changes
+        /// nothing. Only the assigned technician (403 for anyone else, even the one who assigned it). Accepting, rejecting, starting, completing or recording an
+        /// action also records it if it was still empty.
+        /// </summary>
+        [Permission(Permissions.TechnicianAssignments.Work)]
+        [HttpPost("{id:long}/seen")]
+        public async Task<ActionResult<ApiResponse<TechnicianAssignmentDetailDto>>> MarkSeen(long id, CancellationToken cancellationToken) =>
+            Updated(await _service.MarkSeenAsync(id, cancellationToken));
+
         [Permission(Permissions.TechnicianAssignments.Work)]
         [HttpPost("{id:long}/accept")]
         public async Task<ActionResult<ApiResponse<TechnicianAssignmentDetailDto>>> Accept(long id, [FromBody] TechnicianAssignmentTransitionDto request, CancellationToken cancellationToken) =>

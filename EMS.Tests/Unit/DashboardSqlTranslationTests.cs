@@ -79,6 +79,8 @@ namespace EMS.Tests.Unit
             var open = TechnicianAssignmentCatalog.OpenIds;
 
             AssertLean(rows.GroupBy(r => r.StatusId).Select(g => new { Id = g.Key, Count = g.Count() }).ToQueryString(), "assignments by status");
+            AssertLean(rows.Where(r => open.Contains(r.StatusId)).GroupBy(r => r.PriorityId).Select(g => new { Id = g.Key, Count = g.Count() }).ToQueryString(), "open assignments by priority");
+            Assert.Contains("[ViewedDateTime]", rows.Where(r => r.ViewedDateTime == null && open.Contains(r.StatusId)).Select(r => r.Id).ToQueryString());
             var overdue = rows.Where(r => r.DeadlineDateTime != null && r.DeadlineDateTime < now && open.Contains(r.StatusId)).Select(r => r.Id).ToQueryString();
             Assert.Contains("[DeadlineDateTime]", overdue);
         }

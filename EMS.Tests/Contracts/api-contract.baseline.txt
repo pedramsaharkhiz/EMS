@@ -429,6 +429,8 @@ GET api/Dashboard/assignments
       Total : Int32
       OpenCount : Int32
       OverdueCount : Int32
+      UnseenCount : Int32
+      OpenByPriority : List<DashboardPriorityCountDto>
       ByStatus : List<AssignmentStatusCountDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -2014,6 +2016,7 @@ GET api/FailureReport/{failureReportId}/assignments
   Path: failureReportId : Int64 (required)
   Query: AssignedFrom : DateTime?
   Query: AssignedTo : DateTime?
+  Query: IsSeen : Boolean?
   Query: Overdue : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -2022,6 +2025,7 @@ GET api/FailureReport/{failureReportId}/assignments
   Query: SortDirection : String
   Query: assignedByUserId : Int64[]
   Query: failureReportId : Int64[]
+  Query: priorityId : Int32[]
   Query: statusId : Int64[]
   Query: technicianUserId : Int64[]
   response 200: ApiResponse<IReadOnlyList<TechnicianAssignmentListItemDto>>
@@ -2047,6 +2051,11 @@ GET api/FailureReport/{failureReportId}/assignments
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -2079,6 +2088,8 @@ POST api/FailureReport/{failureReportId}/assignments
   authorization: Permission:TechnicianAssignments.Assign
   body: TechnicianAssignmentCreateDto
     TechnicianUserId : Int64
+    Title : String
+    PriorityId : Int32
     DeadlineDateTime : DateTime?
     Description : String
   Path: failureReportId : Int64 (required)
@@ -2108,6 +2119,11 @@ POST api/FailureReport/{failureReportId}/assignments
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -2167,6 +2183,11 @@ POST api/FailureReport/{failureReportId}/assignments/bulk
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -3659,6 +3680,7 @@ GET api/TechnicianAssignment
   authorization: Permission:TechnicianAssignments.View
   Query: AssignedFrom : DateTime?
   Query: AssignedTo : DateTime?
+  Query: IsSeen : Boolean?
   Query: Overdue : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -3667,6 +3689,7 @@ GET api/TechnicianAssignment
   Query: SortDirection : String
   Query: assignedByUserId : Int64[]
   Query: failureReportId : Int64[]
+  Query: priorityId : Int32[]
   Query: statusId : Int64[]
   Query: technicianUserId : Int64[]
   response 200: ApiResponse<IReadOnlyList<TechnicianAssignmentListItemDto>>
@@ -3692,6 +3715,11 @@ GET api/TechnicianAssignment
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -3766,6 +3794,11 @@ GET api/TechnicianAssignment/{id}
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -3826,6 +3859,11 @@ POST api/TechnicianAssignment/{id}/accept
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -3937,6 +3975,11 @@ POST api/TechnicianAssignment/{id}/cancel
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -3997,6 +4040,11 @@ POST api/TechnicianAssignment/{id}/complete
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -4057,6 +4105,73 @@ POST api/TechnicianAssignment/{id}/reject
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
+      AssignedByUserId : Int64
+      AssignedByName : String
+      AssignedByPersonnelCode : String
+      AssignedByIsActive : Boolean?
+      AssignedByPostId : Int64?
+      AssignedByPostTitle : String
+      AssignedBySupportingDepartmentId : Int64?
+      AssignedBySupportingDepartmentTitle : String
+      AssignedByCityId : Int64?
+      AssignedByCityTitle : String
+      AssignedByProvinceId : Int64?
+      AssignedByProvinceTitle : String
+      AssignedDateTime : DateTime
+      DeadlineDateTime : DateTime?
+      CompletedDateTime : DateTime?
+      IsOverdue : Boolean
+      Description : String
+      ResultNote : String
+      ActionCount : Int32
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+POST api/TechnicianAssignment/{id}/seen
+  authorization: Permission:TechnicianAssignments.Work
+  Path: id : Int64 (required)
+  response 200: ApiResponse<TechnicianAssignmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Actions : List<TechnicianAssignmentActionItemDto>
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      FailureReportId : Int64
+      FailureReportReferenceNumber : String
+      EquipmentId : Int64
+      EquipmentYaasCode : String
+      StatusId : Int64
+      StatusCode : String
+      StatusTitle : String
+      TechnicianUserId : Int64
+      TechnicianName : String
+      TechnicianPersonnelCode : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -4117,6 +4232,11 @@ POST api/TechnicianAssignment/{id}/start
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
@@ -4410,6 +4530,7 @@ GET api/Users/{userId}/assignments
   Path: userId : Int64 (required)
   Query: AssignedFrom : DateTime?
   Query: AssignedTo : DateTime?
+  Query: IsSeen : Boolean?
   Query: Overdue : Boolean?
   Query: PageNumber : Int32
   Query: PageSize : Int32
@@ -4418,6 +4539,7 @@ GET api/Users/{userId}/assignments
   Query: SortDirection : String
   Query: assignedByUserId : Int64[]
   Query: failureReportId : Int64[]
+  Query: priorityId : Int32[]
   Query: statusId : Int64[]
   Query: technicianUserId : Int64[]
   response 200: ApiResponse<IReadOnlyList<TechnicianAssignmentListItemDto>>
@@ -4443,6 +4565,11 @@ GET api/Users/{userId}/assignments
       TechnicianCityTitle : String
       TechnicianProvinceId : Int64?
       TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
       AssignedByUserId : Int64
       AssignedByName : String
       AssignedByPersonnelCode : String
