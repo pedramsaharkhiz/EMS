@@ -265,6 +265,35 @@ namespace EMS.Application.Services.TechnicianAssignment
             Description = Normalize(description),
         };
 
+        public async Task<TechnicianAssignmentDetailDto> UpdateAsync(long id, TechnicianAssignmentUpdateDto request, CancellationToken cancellationToken = default)
+        {
+            RequireCurrentUser();
+            var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
+
+            // A finished assignment (rejected, completed, cancelled) is history and is not edited.
+            if (!TechnicianAssignmentCatalog.IsOpen(entity.TechnicianAssignmentStatusId))
+                throw new ConflictException("ارجاعِ پایان‌یافته (ردشده، تکمیل‌شده یا لغوشده) قابل ویرایش نیست.", ErrorCodes.AssignmentNotEditable);
+
+            // Only a CHANGED deadline has to be in the future: the title of an assignment that is already late can still be corrected.
+            var deadline = request.DeadlineDateTime.HasValue ? ToUtc(request.DeadlineDateTime.Value) : (DateTime?)null;
+            if (deadline.HasValue && deadline != entity.DeadlineDateTime && deadline.Value <= DateTime.UtcNow)
+                throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("deadlineDateTime", "مهلت انجام کار باید در آینده باشد.") });
+
+            // The technician, the status, the time of sight and the result note are NOT touched: seeing it before does not reset by editing.
+            entity.Title = Normalize(request.Title)!;
+            entity.PriorityId = request.PriorityId;
+            entity.Description = Normalize(request.Description);
+            entity.DeadlineDateTime = deadline;
+
+            if (RowVersionToken.TryParse(request.RowVersion, out var expected))
+                _repository.SetExpectedModifiedDateTime(entity, expected);
+            _repository.Update(entity);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _audit.Updated("TechnicianAssignment", id);
+            return await DetailAsync(id, cancellationToken);
+        }
+
         public async Task<TechnicianAssignmentDetailDto> MarkSeenAsync(long id, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();

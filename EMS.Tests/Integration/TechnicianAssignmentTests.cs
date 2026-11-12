@@ -532,6 +532,135 @@ namespace EMS.Tests.Integration
             Assert.Equal(JsonValueKind.Null, created.GetProperty("viewedDateTime").ValueKind);
         }
 
+        // ------------------------------------------------------------------------------------------ edit
+
+        private Task<HttpResponseMessage> EditAsync(long id, object body, string? token = null) =>
+            token is null ? AsAdminAsync(HttpMethod.Put, $"/api/TechnicianAssignment/{id}", body) : SendAsync(HttpMethod.Put, $"/api/TechnicianAssignment/{id}", body, bearer: token);
+
+        [Fact]
+        public async Task An_open_assignment_is_edited_by_replacing_title_priority_description_and_deadline_and_nothing_else_changes()
+        {
+            var report = await NewReportAsync();
+            var (technician, token) = await NewTechnicianAsync();
+            var created = await AssignAsync(report.Id, technician, new { deadlineDateTime = DateTime.UtcNow.AddDays(2) });
+            var id = Id(created);
+            await PostAsync(token, id, "seen");                                   // the technician has seen it
+            var seen = (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{id}"))).GetProperty("viewedDateTime").GetString();
+
+            var newDeadline = DateTime.UtcNow.AddDays(5);
+            var response = await EditAsync(id, new { title = "  تعمیر درب یخچال  ", priorityId = 5, description = "لولا شکسته است", deadlineDateTime = newDeadline });
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var edited = await ReadDataAsync(response);
+
+            Assert.Equal("تعمیر درب یخچال", edited.GetProperty("title").GetString());                  // trimmed
+            Assert.Equal(5, edited.GetProperty("priorityId").GetInt32());
+            Assert.Equal("فوری", edited.GetProperty("priorityTitle").GetString());
+            Assert.Equal("لولا شکسته است", edited.GetProperty("description").GetString());
+            Assert.Equal(newDeadline, DateTime.Parse(edited.GetProperty("deadlineDateTime").GetString()!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal), TimeSpan.FromSeconds(1));
+            // untouched: the technician, the status, the time he saw it, the assigner
+            Assert.Equal(technician, edited.GetProperty("technicianUserId").GetInt64());
+            Assert.Equal("Assigned", edited.GetProperty("statusCode").GetString());
+            Assert.Equal(seen, edited.GetProperty("viewedDateTime").GetString());
+            Assert.Equal(created.GetProperty("assignedByUserId").GetInt64(), edited.GetProperty("assignedByUserId").GetInt64());
+            Assert.NotEqual(created.GetProperty("rowVersion").GetString(), edited.GetProperty("rowVersion").GetString());
+
+            // what is not sent is cleared (a replacement, like every other edit)
+            var cleared = await ReadDataAsync(await EditAsync(id, new { title = "تعمیر", priorityId = 2 }));
+            Assert.Equal(JsonValueKind.Null, cleared.GetProperty("description").ValueKind);
+            Assert.Equal(JsonValueKind.Null, cleared.GetProperty("deadlineDateTime").ValueKind);
+            Assert.False(cleared.GetProperty("isOverdue").GetBoolean());
+
+            // the list shows the new title and priority
+            var listed = (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/TechnicianAssignment?failureReportId={report.Id}"))).EnumerateArray().Single();
+            Assert.Equal("تعمیر", listed.GetProperty("title").GetString());
+            Assert.Equal(2, listed.GetProperty("priorityId").GetInt32());
+        }
+
+        [Fact]
+        public async Task An_accepted_or_started_assignment_can_be_edited_but_a_finished_one_cannot()
+        {
+            var (technician, token) = await NewTechnicianAsync();
+            async Task<long> NewAsync() => Id(await AssignAsync((await NewReportAsync()).Id, technician));
+            var body = new { title = "عنوان تازه", priorityId = 4 };
+
+            var accepted = await NewAsync();
+            await PostAsync(token, accepted, "accept");
+            Assert.Equal(HttpStatusCode.OK, (await EditAsync(accepted, body)).StatusCode);
+            await PostAsync(token, accepted, "start");
+            Assert.Equal(HttpStatusCode.OK, (await EditAsync(accepted, body)).StatusCode);
+
+            // completed, rejected and cancelled are history
+            await PostAsync(token, accepted, "complete");
+            var rejected = await NewAsync();
+            await PostAsync(token, rejected, "reject", new { note = "نمی‌توانم" });
+            var cancelled = await NewAsync();
+            await AsAdminAsync(HttpMethod.Post, $"/api/TechnicianAssignment/{cancelled}/cancel", new { note = "اشتباه" });
+
+            foreach (var id in new[] { accepted, rejected, cancelled })
+            {
+                var response = await EditAsync(id, body);
+                Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+                Assert.Equal("assignment_not_editable", ErrorCodeOf(await ReadJsonAsync(response)));
+            }
+            Assert.Equal("Completed", (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{accepted}"))).GetProperty("statusCode").GetString());
+        }
+
+        [Fact]
+        public async Task Only_a_changed_deadline_has_to_be_in_the_future_and_title_and_priority_are_validated()
+        {
+            var report = await NewReportAsync();
+            var (technician, _) = await NewTechnicianAsync();
+            var id = Id(await AssignAsync(report.Id, technician, new { deadlineDateTime = DateTime.UtcNow.AddDays(1) }));
+
+            async Task<List<string>> FieldsAsync(object body)
+            {
+                var response = await EditAsync(id, body);
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                return ErrorFieldsOf(await ReadJsonAsync(response));
+            }
+
+            Assert.Contains("title", await FieldsAsync(new { priorityId = 3 }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("title", await FieldsAsync(new { title = "  ", priorityId = 3 }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("title", await FieldsAsync(new { title = new string('ع', 201), priorityId = 3 }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("priorityId", await FieldsAsync(new { title = "تعمیر" }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("priorityId", await FieldsAsync(new { title = "تعمیر", priorityId = 6 }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("deadlineDateTime", await FieldsAsync(new { title = "تعمیر", priorityId = 3, deadlineDateTime = DateTime.UtcNow.AddDays(-1) }), StringComparer.OrdinalIgnoreCase);
+            Assert.Contains("description", await FieldsAsync(new { title = "تعمیر", priorityId = 3, description = new string('ع', 501) }), StringComparer.OrdinalIgnoreCase);
+
+            // an assignment that is already late can still be corrected while its deadline stays as it was
+            var late = Id(await AssignAsync((await NewReportAsync()).Id, technician, new { deadlineDateTime = DateTime.UtcNow.AddDays(1) }));
+            await SetDeadlineAsync(late, DateTime.UtcNow.AddHours(-3));
+            var current = (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{late}"))).GetProperty("deadlineDateTime").GetString();
+            Assert.Equal(HttpStatusCode.OK, (await EditAsync(late, new { title = "عنوان اصلاح‌شده", priorityId = 3, deadlineDateTime = current })).StatusCode);
+            // ... but moving the deadline into the past is refused
+            Assert.Equal(HttpStatusCode.BadRequest, (await EditAsync(late, new { title = "x", priorityId = 3, deadlineDateTime = DateTime.UtcNow.AddHours(-1) })).StatusCode);
+        }
+
+        [Fact]
+        public async Task An_edit_needs_the_assign_permission_a_known_assignment_and_detects_a_concurrent_change()
+        {
+            var report = await NewReportAsync();
+            var (technician, workerToken) = await NewTechnicianAsync();
+            var created = await AssignAsync(report.Id, technician);
+            var id = Id(created);
+            var body = new { title = "عنوان تازه", priorityId = 3 };
+
+            // the technician (Work/View only), a viewer and an anonymous caller cannot edit
+            Assert.Equal(HttpStatusCode.Forbidden, (await EditAsync(id, body, workerToken)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await EditAsync(id, body, (await NewUserAsync("TechnicianAssignments.View")).Token)).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(HttpMethod.Put, $"/api/TechnicianAssignment/{id}", body)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await EditAsync(id, body, (await NewUserAsync("TechnicianAssignments.Assign")).Token)).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await EditAsync(999999999, body)).StatusCode);
+
+            // a stale rowVersion is a 409; the fresh one works
+            var stale = created.GetProperty("rowVersion").GetString();
+            var conflict = await EditAsync(id, new { title = "ثالث", priorityId = 3, rowVersion = stale });
+            Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
+            Assert.Equal("concurrency_conflict", ErrorCodeOf(await ReadJsonAsync(conflict)));
+            var fresh = (await ReadDataAsync(await AsAdminAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{id}"))).GetProperty("rowVersion").GetString();
+            Assert.Equal(HttpStatusCode.OK, (await EditAsync(id, new { title = "ثالث", priorityId = 3, rowVersion = fresh })).StatusCode);
+        }
+
         // ------------------------------------------------------------------------------------------ seen
 
         [Fact]

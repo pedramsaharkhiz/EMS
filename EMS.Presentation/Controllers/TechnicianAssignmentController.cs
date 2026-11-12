@@ -85,6 +85,15 @@ namespace EMS.Presentation.Controllers
             return CreatedAt(nameof(GetAllList), new { failureReportId }, result);
         }
 
+        /// <summary>
+        /// Edits an OPEN assignment: replaces title, priority, description and deadline (the technician and the status are not edited: cancel and assign again, or use the
+        /// transitions). The time the technician saw it is kept. 409 <c>assignment_not_editable</c> for a finished one.
+        /// </summary>
+        [Permission(Permissions.TechnicianAssignments.Assign)]
+        [HttpPut("{id:long}")]
+        public async Task<ActionResult<ApiResponse<TechnicianAssignmentDetailDto>>> Update(long id, [FromBody] TechnicianAssignmentUpdateDto request, CancellationToken cancellationToken) =>
+            Updated(await _service.UpdateAsync(id, request, cancellationToken));
+
         /// <summary>Cancels an open assignment (the reason is required).</summary>
         [Permission(Permissions.TechnicianAssignments.Assign)]
         [HttpPost("{id:long}/cancel")]

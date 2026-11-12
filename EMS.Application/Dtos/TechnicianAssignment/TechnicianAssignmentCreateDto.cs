@@ -35,3 +35,21 @@ namespace EMS.Application.Dtos.TechnicianAssignment
         public List<TechnicianAssignmentBulkItemDto> Items { get; set; } = new();
     }
 }
+
+namespace EMS.Application.Dtos.TechnicianAssignment
+{
+    /// <summary>
+    /// Edits an OPEN assignment (<c>PUT /api/TechnicianAssignment/{id}</c>): it REPLACES title, priority, description and deadline, like every other edit of the project
+    /// (<see cref="Title"/> and <see cref="PriorityId"/> are required; a <see cref="Description"/> or <see cref="DeadlineDateTime"/> that is not sent is cleared).
+    /// The technician and the status are not edited here (cancel and assign again; use the transitions). A deadline must be in the future when it CHANGES.
+    /// </summary>
+    public class TechnicianAssignmentUpdateDto
+    {
+        public string? Title { get; set; }
+        public int PriorityId { get; set; }
+        public DateTime? DeadlineDateTime { get; set; }
+        public string? Description { get; set; }
+        /// <summary>Optional: send back the value read; a stale one fails with 409.</summary>
+        public string? RowVersion { get; set; }
+    }
+}
