@@ -72,7 +72,7 @@ namespace EMS.Tests.Unit
         {
             await using var context = NewContext();
             var exporter = new CapturingExporter();
-            var service = new UserManagementService(userManager: null!, context, new NoAudit(), exporter);
+            var service = new UserManagementService(userManager: null!, context, new NoAudit(), exporter, new EMS.Tests.Support.PassThroughRowAccess());
 
             await service.ExportAsync(request);
 

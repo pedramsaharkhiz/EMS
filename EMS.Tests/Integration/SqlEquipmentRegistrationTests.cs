@@ -69,7 +69,7 @@ namespace EMS.Tests.Integration
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
                 new SupportingDepartmentRepository(context), new Repository<Organization>(context),
-                new DepartmentTechnicianLocationRule(), exporter: null!, new FakeCurrentUser(), unitOfWork, audit, attachments, new UserReferenceRepository(context));
+                new DepartmentTechnicianLocationRule(), exporter: null!, currentUser: new FakeCurrentUser(), unitOfWork, audit, attachments, new UserReferenceRepository(context), new EMS.Tests.Support.PassThroughRowAccess());
             return (service, audit);
         }
 

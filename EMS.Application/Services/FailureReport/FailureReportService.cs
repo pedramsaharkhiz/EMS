@@ -1,4 +1,5 @@
 using EMS.Application.Common.Catalog;
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Export;
 using EMS.Application.Common.Filtering;
@@ -71,6 +72,7 @@ namespace EMS.Application.Services.FailureReport
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
         private readonly IExcelExporter _exporter;
+        private readonly IRowAccess _access;
 
         public FailureReportService(
             IFailureReportRepository repository,
@@ -83,7 +85,8 @@ namespace EMS.Application.Services.FailureReport
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IExcelExporter exporter)
+            IExcelExporter exporter,
+            IRowAccess access)
         {
             _repository = repository;
             _equipment = equipment;
@@ -96,6 +99,7 @@ namespace EMS.Application.Services.FailureReport
             _unitOfWork = unitOfWork;
             _audit = audit;
             _exporter = exporter;
+            _access = access;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -159,7 +163,7 @@ namespace EMS.Application.Services.FailureReport
         /// <summary>
         /// THE source of failure report rows for the list, the Excel export AND the dashboard counts (a future row-level security rule goes here, once).
         /// </summary>
-        private IQueryable<FailureReportRow> VisibleRows(bool active) => _repository.QueryRows(active);
+        private IQueryable<FailureReportRow> VisibleRows(bool active) => _access.Apply(_repository.QueryRows(active));
 
         private IQueryable<FailureReportRow> Query(FailureReportListRequestDto request)
         {

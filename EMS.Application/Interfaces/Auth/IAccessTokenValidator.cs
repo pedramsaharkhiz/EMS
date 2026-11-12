@@ -21,5 +21,11 @@ namespace EMS.Application.Interfaces.Auth
     public interface IAccessTokenValidator
     {
         Task<AccessTokenValidationResult> ValidateAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// The same check, plus the user's current supporting department, read in the SAME lookup. Token validation already reads the user on every request;
+        /// the data scope (row-level security) rides on it so it costs no extra query.
+        /// </summary>
+        Task<(AccessTokenValidationResult Result, long? SupportingDepartmentId)> ValidateWithScopeAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default);
     }
 }

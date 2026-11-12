@@ -1,0 +1,38 @@
+namespace EMS.Application.Common.DataAccess
+{
+    /// <summary>What the signed-in user needs to be judged by a row policy: who he is and where he works.</summary>
+    public sealed record DataScopeInput(
+        long UserId,
+        long? SupportingDepartmentId,
+        IReadOnlyCollection<string> Roles,
+        IReadOnlyCollection<string> Permissions);
+
+    /// <summary>
+    /// How much of the data the current caller may see (row-level security). It is decided ONCE per request by <see cref="IDataScopeResolver"/> and read by the row
+    /// policies. <see cref="Reason"/> says why, in words, so an administrator (and the log) can answer "why does this user see only this?".
+    /// </summary>
+    public sealed record DataScope(long? UserId, bool IsUnrestricted, long? SupportingDepartmentId, string Reason)
+    {
+        /// <summary>No request user: start-up work and background jobs (they act for the system, not for a person).</summary>
+        public static DataScope System { get; } = new(null, true, null, "کار سیستمی (بدون کاربر درخواست‌کننده)");
+
+        public static DataScope Unrestricted(long userId, long? supportingDepartmentId, string reason) => new(userId, true, supportingDepartmentId, reason);
+
+        public static DataScope Restricted(long userId, long? supportingDepartmentId, string reason) => new(userId, false, supportingDepartmentId, reason);
+    }
+
+    /// <summary>
+    /// THE place that decides the scope of a user (which department's data he sees, or everything). A new rule of the business
+    /// ("the central department sees all", "a role with this permission sees all") is written here and nowhere else.
+    /// </summary>
+    public interface IDataScopeResolver
+    {
+        DataScope Resolve(DataScopeInput input);
+    }
+
+    /// <summary>The scope of the current request (resolved once, then cached for the request).</summary>
+    public interface IDataScopeAccessor
+    {
+        DataScope Current { get; }
+    }
+}

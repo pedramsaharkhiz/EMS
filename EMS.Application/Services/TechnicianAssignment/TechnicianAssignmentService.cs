@@ -1,4 +1,5 @@
 using EMS.Application.Common.Catalog;
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
@@ -82,6 +83,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         private readonly ICurrentUserService _currentUser;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
+        private readonly IRowAccess _access;
 
         public TechnicianAssignmentService(
             ITechnicianAssignmentRepository repository,
@@ -93,7 +95,8 @@ namespace EMS.Application.Services.TechnicianAssignment
             IUserReferenceRepository people,
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
-            IAuditEventLogger audit)
+            IAuditEventLogger audit,
+            IRowAccess access)
         {
             _repository = repository;
             _actions = actions;
@@ -105,6 +108,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             _currentUser = currentUser;
             _unitOfWork = unitOfWork;
             _audit = audit;
+            _access = access;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -387,7 +391,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         /// THE source of assignment rows for the lists AND the dashboard counts (a future row-level security rule goes here, once;
         /// an assignment is visible when its failure report is).
         /// </summary>
-        private IQueryable<TechnicianAssignmentRow> VisibleRows() => _repository.QueryRows();
+        private IQueryable<TechnicianAssignmentRow> VisibleRows() => _access.Apply(_repository.QueryRows());
 
         private async Task<PagedResult<TechnicianAssignmentListItemDto>> PageAsync(TechnicianAssignmentListRequestDto request, CancellationToken cancellationToken)
         {

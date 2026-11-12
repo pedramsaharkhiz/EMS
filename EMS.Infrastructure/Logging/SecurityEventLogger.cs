@@ -65,6 +65,14 @@ namespace EMS.Infrastructure.Logging
                 _httpContextAccessor.HttpContext?.Request.Path.Value,
                 ClientIp);
 
+        public void RowAccessDenied(string entityType, object? entityId, string scopeReason) =>
+            _logger.LogWarning(
+                "Row access denied: user {UserId} ({UserName}) asked for {EntityType} {EntityId} outside his data scope ({ScopeReason}) for {Method} {Path} from {ClientIp}",
+                _currentUser.UserId, LogSanitizer.Sanitize(_currentUser.UserName), entityType, entityId, LogSanitizer.Sanitize(scopeReason, 200),
+                _httpContextAccessor.HttpContext?.Request.Method,
+                _httpContextAccessor.HttpContext?.Request.Path.Value,
+                ClientIp);
+
         public void AuthenticationFailed(string reason) =>
             _logger.LogWarning(
                 "Authentication failed ({Reason}) for {Method} {Path} from {ClientIp} [{UserAgent}]",

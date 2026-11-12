@@ -14,23 +14,27 @@ namespace EMS.Infrastructure.Security
             _dbContext = dbContext;
         }
 
-        public async Task<AccessTokenValidationResult> ValidateAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default)
+        public async Task<AccessTokenValidationResult> ValidateAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default) =>
+            (await ValidateWithScopeAsync(userId, tokenSecurityStamp, cancellationToken)).Result;
+
+        public async Task<(AccessTokenValidationResult Result, long? SupportingDepartmentId)> ValidateWithScopeAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(tokenSecurityStamp))
-                return AccessTokenValidationResult.MissingStamp;
+                return (AccessTokenValidationResult.MissingStamp, null);
 
             // One indexed primary-key lookup, no tracking.
             var user = await _dbContext.Users.AsNoTracking()
                 .Where(u => u.Id == userId)
-                .Select(u => new { u.IsActive, u.SecurityStamp })
+                .Select(u => new { u.IsActive, u.SecurityStamp, u.SupportingDepartmentId })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (user is null || !user.IsActive)
-                return AccessTokenValidationResult.UserNotFoundOrInactive;
+                return (AccessTokenValidationResult.UserNotFoundOrInactive, null);
 
-            return string.Equals(user.SecurityStamp, tokenSecurityStamp, StringComparison.Ordinal)
+            var result = string.Equals(user.SecurityStamp, tokenSecurityStamp, StringComparison.Ordinal)
                 ? AccessTokenValidationResult.Valid
                 : AccessTokenValidationResult.StampMismatch;
+            return (result, user.SupportingDepartmentId);
         }
     }
 }

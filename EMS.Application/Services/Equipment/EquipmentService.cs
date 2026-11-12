@@ -1,4 +1,5 @@
 using EMS.Application.Common.Catalog;
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Export;
 using EMS.Application.Common.Filtering;
@@ -83,6 +84,7 @@ namespace EMS.Application.Services.Equipment
 
         private readonly IEquipmentRepository _repository;
         private readonly IEquipmentStatusRepository _statuses;
+        private readonly IRowAccess _access;
         private readonly IEquipmentTypeRepository _types;
         private readonly IEquipmentModelRepository _models;
         private readonly ISupportingDepartmentRepository _departments;
@@ -108,10 +110,12 @@ namespace EMS.Application.Services.Equipment
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
             IAttachmentService attachments,
-            IUserReferenceRepository people)
+            IUserReferenceRepository people,
+            IRowAccess access)
         {
             _repository = repository;
             _statuses = statuses;
+            _access = access;
             _types = types;
             _models = models;
             _departments = departments;
@@ -683,7 +687,7 @@ namespace EMS.Application.Services.Equipment
         /// THE source of equipment rows for the list, the Excel export AND the dashboard counts. Whatever decides which equipment a caller may see
         /// (a future row-level security rule) belongs here, once. Do not query <see cref="IEquipmentRepository.QueryRows"/> from anywhere else in this service.
         /// </summary>
-        private IQueryable<EquipmentRow> VisibleRows(bool active) => _repository.QueryRows(active);
+        private IQueryable<EquipmentRow> VisibleRows(bool active) => _access.Apply(_repository.QueryRows(active));
 
         private IQueryable<EquipmentRow> Query(EquipmentListRequestDto request)
         {

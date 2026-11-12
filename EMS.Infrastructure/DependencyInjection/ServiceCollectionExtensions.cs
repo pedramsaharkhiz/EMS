@@ -163,9 +163,14 @@ public static class ServiceCollectionExtensions
                     }
 
                     var validator = context.HttpContext.RequestServices.GetRequiredService<IAccessTokenValidator>();
-                    var result = await validator.ValidateAsync(userId, stamp, context.HttpContext.RequestAborted);
+                    var (result, department) = await validator.ValidateWithScopeAsync(userId, stamp, context.HttpContext.RequestAborted);
                     if (result == AccessTokenValidationResult.Valid)
+                    {
+                        // the data scope (row-level security) needs the user's department: it rides on this lookup
+                        if (department is { } departmentId)
+                            context.HttpContext.Items[EMS.Infrastructure.Security.RowSecurity.DataScopeKeys.SupportingDepartmentId] = departmentId;
                         return;
+                    }
 
                     var reason = result switch
                     {
@@ -209,6 +214,10 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        // Row-level security: who is "unrestricted" is decided by the resolver; the accessor caches it for the request.
+        services.AddSingleton<EMS.Application.Common.DataAccess.IDataScopeResolver, EMS.Infrastructure.Security.RowSecurity.OpenDataScopeResolver>();
+        services.AddScoped<EMS.Application.Common.DataAccess.IDataScopeAccessor, EMS.Infrastructure.Security.RowSecurity.DataScopeAccessor>();
+        EMS.Application.Extensions.ServiceCollectionExtensions.AddRowPolicies(services, typeof(EMS.Infrastructure.Security.RowSecurity.UserRowPolicy).Assembly);
         services.AddScoped<IAccessTokenValidator, AccessTokenValidator>();
         services.AddScoped<ISecurityStampInvalidator, SecurityStampInvalidator>();
 

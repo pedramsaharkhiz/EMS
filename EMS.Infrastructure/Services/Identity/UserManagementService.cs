@@ -1,4 +1,5 @@
-﻿using EMS.Application.Common.Exceptions;
+﻿using EMS.Application.Common.DataAccess;
+using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Export;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
@@ -20,17 +21,20 @@ public sealed partial class UserManagementService : IUserManagementService
     private readonly EMSDbContext _dbContext;
     private readonly IAuditEventLogger _audit;
     private readonly IExcelExporter _exporter;
+    private readonly IRowAccess _access;
 
     public UserManagementService(
         UserManager<ApplicationUser> userManager,
         EMSDbContext dbContext,
         IAuditEventLogger audit,
-        IExcelExporter exporter)
+        IExcelExporter exporter,
+        IRowAccess access)
     {
         _userManager = userManager;
         _dbContext = dbContext;
         _audit = audit;
         _exporter = exporter;
+        _access = access;
     }
 
     public async Task<PagedResult<UserListItemDto>> GetPagedAsync(

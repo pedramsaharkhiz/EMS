@@ -83,6 +83,17 @@ namespace EMS.Tests.Integration
                 services.RemoveAll<EMS.Application.Interfaces.Attachment.IAttachmentBlobStore>();
                 services.AddSingleton<EMS.Application.Interfaces.Attachment.IAttachmentBlobStore, EMS.Tests.Support.InMemoryAttachmentBlobStore>();
 
+                // Row-level security: the scope is "unrestricted" like in production (the rule is not defined yet) until a test flips the switch, and the two test policies
+                // only ever restrict a RESTRICTED scope, so every other test is unaffected. See RowSecurityTestState and RowSecurityPipelineTests.
+                services.RemoveAll<EMS.Application.Common.DataAccess.IDataScopeResolver>();
+                services.AddSingleton<EMS.Application.Common.DataAccess.IDataScopeResolver, EMS.Tests.Support.SwitchableDataScopeResolver>();
+                services.AddScoped<EMS.Tests.Support.TestFailureReportDepartmentPolicy>();
+                services.AddScoped<EMS.Application.Common.DataAccess.IRowPolicy<EMS.Domain.ReadModels.FailureReportRow>>(sp => sp.GetRequiredService<EMS.Tests.Support.TestFailureReportDepartmentPolicy>());
+                services.AddScoped<EMS.Application.Common.DataAccess.IRowPolicyDescriptor>(sp => sp.GetRequiredService<EMS.Tests.Support.TestFailureReportDepartmentPolicy>());
+                services.AddScoped<EMS.Tests.Support.TestEquipmentDepartmentPolicy>();
+                services.AddScoped<EMS.Application.Common.DataAccess.IRowPolicy<EMS.Domain.ReadModels.EquipmentRow>>(sp => sp.GetRequiredService<EMS.Tests.Support.TestEquipmentDepartmentPolicy>());
+                services.AddScoped<EMS.Application.Common.DataAccess.IRowPolicyDescriptor>(sp => sp.GetRequiredService<EMS.Tests.Support.TestEquipmentDepartmentPolicy>());
+
                 services.RemoveAll<DbContextOptions<EMSDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<EMSDbContext>>();
                 services.AddDbContext<EMSDbContext>((sp, options) =>
