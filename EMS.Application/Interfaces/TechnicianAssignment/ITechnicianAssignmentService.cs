@@ -23,6 +23,9 @@ namespace EMS.Application.Interfaces.TechnicianAssignment
         /// <summary>Assigns the report to several technicians at once, each with his own task. All or nothing (400 <c>bulk_items_invalid</c> lists every refused item).</summary>
         Task<IReadOnlyList<TechnicianAssignmentDetailDto>> AssignBulkAsync(long failureReportId, TechnicianAssignmentBulkCreateDto request, CancellationToken cancellationToken = default);
 
+        /// <summary>Edits title, priority, description and deadline of an OPEN assignment (409 <c>assignment_not_editable</c> once it is final).</summary>
+        Task<TechnicianAssignmentDetailDto> UpdateAsync(long id, TechnicianAssignmentUpdateDto request, CancellationToken cancellationToken = default);
+
         /// <summary>Records that the technician saw the assignment (only the first time counts; only the technician himself; idempotent).</summary>
         Task<TechnicianAssignmentDetailDto> MarkSeenAsync(long id, CancellationToken cancellationToken = default);
 

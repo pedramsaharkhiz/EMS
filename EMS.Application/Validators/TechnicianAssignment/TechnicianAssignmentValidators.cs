@@ -40,6 +40,17 @@ namespace EMS.Application.Validators.TechnicianAssignment
         }
     }
 
+    public sealed class TechnicianAssignmentUpdateDtoValidator : AbstractValidator<TechnicianAssignmentUpdateDto>
+    {
+        public TechnicianAssignmentUpdateDtoValidator()
+        {
+            AssignmentRules.TitleAndPriority(this, x => x.Title, x => x.PriorityId);
+            // the deadline is judged in the service: only a CHANGED deadline has to be in the future
+            RuleFor(x => x.Description).MaximumLength(TechnicianAssignmentConstraints.DescriptionMaxLength)
+                .WithMessage($"توضیحات ارجاع نمی‌تواند بیشتر از {TechnicianAssignmentConstraints.DescriptionMaxLength} کاراکتر باشد.");
+        }
+    }
+
     public sealed class TechnicianAssignmentBulkItemDtoValidator : AbstractValidator<TechnicianAssignmentBulkItemDto>
     {
         public TechnicianAssignmentBulkItemDtoValidator()

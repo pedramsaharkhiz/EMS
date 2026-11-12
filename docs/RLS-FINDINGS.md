@@ -65,3 +65,9 @@
 ## ارجاع
 
 [ADR-0006](adr/0006-permission-based-authorization-with-live-revalidation.md) (محدودیت فعلی مدل)، [ADR-0021](adr/0021-list-and-export-share-one-row-source.md)، [ADR-0022](adr/0022-dashboard-cards-from-module-services.md)، [DASHBOARD-DESIGN.md](DASHBOARD-DESIGN.md)، [PERMISSIONS.md](PERMISSIONS.md)
+
+## یادآوری برای هنگام ادغام شاخهٔ RLS (`feature/row-security-rules`)
+
+۱. **ویرایش ارجاع** (`PUT /api/TechnicianAssignment/{id}`، [ADR-0027](adr/0027-assignment-edit.md)) بعد از آن شاخه به `main` آمد و در آن نیست. در `TechnicianAssignmentService.UpdateAsync` پیش از `GetForUpdateAsync` باید `await EnsureVisibleAsync(id, cancellationToken)` اضافه شود (مثل `MarkSeenAsync`)، با تست «ارجاعِ ستاد دیگر `404` می‌دهد و تغییر نمی‌کند»؛ تست ساختاری `RowAccessStructureTests` هم این را بی‌توجه رد می‌کند.
+۲. **شماره‌ی ADRها:** شاخهٔ RLS ADR-0026 و ۰۰۲۷ را برداشته، ولی روی `main` این شماره‌ها الان به ADR یادداشت‌های ارجاع (۰۰۲۶) و ویرایش ارجاع (۰۰۲۷) رسیده‌اند. هنگام ادغام ADRهای RLS را به شماره‌های بعدی ببر و ارجاع‌های داخل مستندات (`ROW-SECURITY.md`، `BUSINESS-DECISIONS.md` ۳.۱۸ و ۳.۲۱، `PERMISSIONS.md`، `RLS-FINDINGS.md`) را اصلاح کن.
+۳. بخش `۳.۲۱` و `۳.۲۲` در `BUSINESS-DECISIONS.md` هم شماره‌ی تکراری می‌گیرند (`۳.۲۲` اینجا ویرایش ارجاع است)؛ هنگام ادغام یکی را جابه‌جا کن.

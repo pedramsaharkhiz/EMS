@@ -53,6 +53,7 @@ namespace EMS.Application.Common.Exceptions
         public const string AssignmentAlreadyOpen = "assignment_already_open";
         public const string AssignmentTransitionNotAllowed = "assignment_transition_not_allowed";
         public const string AssignmentNotInProgress = "assignment_not_in_progress";
+        public const string AssignmentNotEditable = "assignment_not_editable";
         public const string FailureReportClosed = "failure_report_closed";
 
         // exports

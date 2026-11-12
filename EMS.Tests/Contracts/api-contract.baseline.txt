@@ -4132,6 +4132,74 @@ GET api/TechnicianAssignment/{id}
     envelope: success, message, data, meta, error, traceId
   response 500: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
+PUT api/TechnicianAssignment/{id}
+  authorization: Permission:TechnicianAssignments.Assign
+  body: TechnicianAssignmentUpdateDto
+    Title : String
+    PriorityId : Int32
+    DeadlineDateTime : DateTime?
+    Description : String
+    RowVersion : String
+  Path: id : Int64 (required)
+  response 200: ApiResponse<TechnicianAssignmentDetailDto>
+    envelope: success, message, data, meta, error, traceId
+    data:
+      Actions : List<TechnicianAssignmentActionItemDto>
+      ModifiedDateTime : DateTime?
+      RowVersion : String
+      Id : Int64
+      FailureReportId : Int64
+      FailureReportReferenceNumber : String
+      EquipmentId : Int64
+      EquipmentYaasCode : String
+      StatusId : Int64
+      StatusCode : String
+      StatusTitle : String
+      TechnicianUserId : Int64
+      TechnicianName : String
+      TechnicianPersonnelCode : String
+      TechnicianIsActive : Boolean?
+      TechnicianPostId : Int64?
+      TechnicianPostTitle : String
+      TechnicianSupportingDepartmentId : Int64?
+      TechnicianSupportingDepartmentTitle : String
+      TechnicianCityId : Int64?
+      TechnicianCityTitle : String
+      TechnicianProvinceId : Int64?
+      TechnicianProvinceTitle : String
+      Title : String
+      PriorityId : Int32
+      PriorityTitle : String
+      ViewedDateTime : DateTime?
+      IsSeen : Boolean
+      AssignedByUserId : Int64
+      AssignedByName : String
+      AssignedByPersonnelCode : String
+      AssignedByIsActive : Boolean?
+      AssignedByPostId : Int64?
+      AssignedByPostTitle : String
+      AssignedBySupportingDepartmentId : Int64?
+      AssignedBySupportingDepartmentTitle : String
+      AssignedByCityId : Int64?
+      AssignedByCityTitle : String
+      AssignedByProvinceId : Int64?
+      AssignedByProvinceTitle : String
+      AssignedDateTime : DateTime
+      DeadlineDateTime : DateTime?
+      CompletedDateTime : DateTime?
+      IsOverdue : Boolean
+      Description : String
+      ResultNote : String
+      ActionCount : Int32
+      CreatedDateTime : DateTime
+  response 400: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 401: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 403: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
+  response 500: ApiResponse<Object>
+    envelope: success, message, data, meta, error, traceId
 POST api/TechnicianAssignment/{id}/accept
   authorization: Permission:TechnicianAssignments.Work
   body: TechnicianAssignmentTransitionDto
