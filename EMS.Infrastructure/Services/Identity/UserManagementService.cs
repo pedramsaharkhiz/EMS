@@ -212,12 +212,23 @@ public sealed partial class UserManagementService : IUserManagementService
             });
     }
 
+    /// <summary>A user reached by his id must be one the caller may see: 404 otherwise, as for a missing one. Call it BEFORE loading the user.</summary>
+    private Task RequireVisibleUserAsync(long id, CancellationToken cancellationToken) =>
+        _access.RequireVisibleAsync(_dbContext.Users.AsNoTracking(), u => u.Id == id, "User", id, "کاربر موردنظر پیدا نشد.", cancellationToken, ErrorCodes.UserNotFound);
+
+    /// <summary>The department a user is created in or moved to must be one the caller may see (the user policy applied to a user that does not exist yet).</summary>
+    private void RequireDepartmentVisible(long? departmentId)
+    {
+        if (!_access.IsVisible(new ApplicationUser { SupportingDepartmentId = departmentId }))
+            throw new NotFoundException("دپارتمان پشتیبانی یافت نشد.", ErrorCodes.DepartmentNotFound);
+    }
+
     public async Task<UserDetailDto?> GetByIdAsync(
         long id,
         CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.Users
-            .AsNoTracking()
+        // a user the caller may not see looks exactly like one that does not exist (null = 404)
+        var user = await VisibleUsers()
             .FirstOrDefaultAsync(
                 x => x.Id == id,
                 cancellationToken);
@@ -262,6 +273,7 @@ public sealed partial class UserManagementService : IUserManagementService
             cancellationToken);
 
         await EnsurePostAsync(request.PostId, currentPostId: null, cancellationToken);
+        RequireDepartmentVisible(request.SupportingDepartmentId);
 
         var user = new ApplicationUser
         {
@@ -319,6 +331,7 @@ public sealed partial class UserManagementService : IUserManagementService
         await using var transaction =
             await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
+        await RequireVisibleUserAsync(id, cancellationToken);
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
                 x => x.Id == id,
@@ -372,6 +385,8 @@ public sealed partial class UserManagementService : IUserManagementService
         user.NationalCode = NormalizeOptional(request.NationalCode);
         user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
         user.Email = NormalizeOptional(request.Email);
+        if (user.SupportingDepartmentId != request.SupportingDepartmentId)
+            RequireDepartmentVisible(request.SupportingDepartmentId);      // moving a user to a department the caller cannot see is refused
         user.SupportingDepartmentId = request.SupportingDepartmentId;
         user.PostId = request.PostId;
         user.IsActive = request.IsActive;
@@ -424,6 +439,7 @@ public sealed partial class UserManagementService : IUserManagementService
         long id,
         CancellationToken cancellationToken = default)
     {
+        await RequireVisibleUserAsync(id, cancellationToken);
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
                 x => x.Id == id,
@@ -462,6 +478,7 @@ public sealed partial class UserManagementService : IUserManagementService
         string newPassword,
         CancellationToken cancellationToken = default)
     {
+        await RequireVisibleUserAsync(id, cancellationToken);
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
                 x => x.Id == id,
@@ -504,6 +521,7 @@ public sealed partial class UserManagementService : IUserManagementService
     {
         var personnel = personnelCode.Trim();
 
+        // row-access: a uniqueness check must see EVERY user, not only the ones the caller may see (a hidden duplicate is still a duplicate)
         var personnelQuery = _userManager.Users
             .Where(x => x.PersonnelCode == personnel);
 
@@ -524,6 +542,7 @@ public sealed partial class UserManagementService : IUserManagementService
 
         if (national is not null)
         {
+            // row-access: uniqueness over every user (see above)
             var nationalQuery = _userManager.Users
                 .Where(x => x.NationalCode == national);
 

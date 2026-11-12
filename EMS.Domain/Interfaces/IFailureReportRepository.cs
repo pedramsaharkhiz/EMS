@@ -11,6 +11,9 @@ namespace EMS.Domain.Interfaces
         /// <summary>Read-only flattened reports: the active ones, or with false the deactivated ones.</summary>
         IQueryable<FailureReportRow> QueryRows(bool active);
 
+        /// <summary>Every report, active or not (for a record reached by its id).</summary>
+        IQueryable<FailureReportRow> QueryRowsIncludingInactive();
+
         Task<FailureReportRow?> GetRowAsync(long id, CancellationToken cancellationToken = default);
 
         /// <summary>Is the reference number used by another ACTIVE report? (any casing; a deactivated one does not reserve it)</summary>

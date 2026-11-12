@@ -5,7 +5,8 @@ using EMS.Infrastructure.Options;
 using EMS.Infrastructure.Persistence;
 using EMS.Infrastructure.Persistence.Interceptors;
 using EMS.Infrastructure.Repositories;
-using EMS.Tests.Support;
+using EMS.Application.Security.RowPolicies;
+using EMS.Domain.ReadModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,7 +16,7 @@ namespace EMS.Tests.Unit
     /// <summary>
     /// A row policy is an expression over a read model, and the read models are heavy. The in-memory provider cannot tell whether SQL Server can translate the
     /// condition a policy adds, so this asks the real SQL Server provider (without connecting) to translate the very rows the lists read with a policy applied.
-    /// Every policy written in phase 2 should get a line here.
+    /// Every policy should have a line here.
     /// </summary>
     public class RowPolicySqlTranslationTests
     {
@@ -52,8 +53,12 @@ namespace EMS.Tests.Unit
         private static RowAccess NewAccess()
         {
             var services = new ServiceCollection();
-            services.AddSingleton<IRowPolicy<EMS.Domain.ReadModels.FailureReportRow>, TestFailureReportDepartmentPolicy>();
-            services.AddSingleton<IRowPolicy<EMS.Domain.ReadModels.EquipmentRow>, TestEquipmentDepartmentPolicy>();
+            services.AddSingleton<IRowPolicy<FailureReportRow>, FailureReportRowPolicy>();
+            services.AddSingleton<IRowPolicy<EquipmentRow>, EquipmentRowPolicy>();
+            services.AddSingleton<IRowPolicy<TechnicianAssignmentRow>, TechnicianAssignmentRowPolicy>();
+            services.AddSingleton<IRowPolicy<UserDirectoryRow>, UserDirectoryRowPolicy>();
+            services.AddSingleton<IRowPolicy<TechnicianInfo>, TechnicianInfoRowPolicy>();
+            services.AddSingleton<IRowPolicy<EMS.Infrastructure.Persistence.Identity.ApplicationUser>, EMS.Infrastructure.Security.RowSecurity.UserRowPolicy>();
             return new RowAccess(new FixedScope(), services.BuildServiceProvider(), new NoSecurityLog(), NullLogger<RowAccess>.Instance);
         }
 
@@ -77,6 +82,25 @@ namespace EMS.Tests.Unit
 
             Assert.Contains(" OR ", sql);
             Assert.Contains("[SupportingDepartmentId]", sql);
+        }
+
+        [Fact]
+        public void The_assignment_and_user_policies_translate_to_sql_too()
+        {
+            using var context = NewContext();
+            var access = NewAccess();
+
+            var assignments = access.Apply(new EMS.Infrastructure.Repositories.TechnicianAssignmentRepository(context).QueryRows()).OrderBy(r => r.Id).ToQueryString();
+            Assert.Contains(" OR ", assignments);
+
+            var directory = access.Apply(new EMS.Infrastructure.Repositories.UserReferenceRepository(context).QueryDirectory()).ToQueryString();
+            Assert.Contains("[SupportingDepartmentId]", directory);
+
+            var technicians = access.Apply(new EquipmentRepository(context).QueryTechnicians()).ToQueryString();
+            Assert.Contains("[SupportingDepartmentId]", technicians);
+
+            var users = access.Apply(context.Users.AsNoTracking()).ToQueryString();
+            Assert.Contains("[SupportingDepartmentId]", users);
         }
 
         [Fact]

@@ -65,7 +65,8 @@ namespace EMS.Tests.Integration
             var unitOfWork = new UnitOfWork(context);
             var attachments = new AttachmentService(
                 new EntityAttachmentRepository(context), new Repository<AttachmentContent>(context), new AttachmentTargetCatalog(context),
-                new SqlAttachmentBlobStore(context), unitOfWork, audit, new UserReferenceRepository(context));
+                new SqlAttachmentBlobStore(context), unitOfWork, audit, new UserReferenceRepository(context),
+                Array.Empty<EMS.Application.Interfaces.Attachment.IAttachmentOwnerGuard>(), new EMS.Tests.Support.PassThroughRowAccess());
             var service = new EquipmentService(
                 new EquipmentRepository(context), new EquipmentStatusRepository(context), new EquipmentTypeRepository(context), new EquipmentModelRepository(context),
                 new SupportingDepartmentRepository(context), new Repository<Organization>(context),

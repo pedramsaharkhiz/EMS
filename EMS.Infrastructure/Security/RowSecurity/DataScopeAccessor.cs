@@ -1,5 +1,6 @@
 using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Interfaces;
+using EMS.Application.Common.Security;
 using Microsoft.AspNetCore.Http;
 
 namespace EMS.Infrastructure.Security.RowSecurity
@@ -42,12 +43,20 @@ namespace EMS.Infrastructure.Security.RowSecurity
     }
 
     /// <summary>
-    /// Until the business decides who sees what, everybody is unrestricted: the whole row-security machinery is in place and costs nothing, and behaviour is unchanged.
-    /// The real rule replaces this class (or the resolver registration); policies and services do not change.
+    /// The rule (BUSINESS-DECISIONS 3.21): whoever holds <see cref="Permissions.DataScope.ViewAll"/> (the central department's role, and the Admin role, which holds every
+    /// permission) is unrestricted; everybody else is restricted to his own supporting department. A user without a department is restricted too (the policies then
+    /// show him only the work he was given).
     /// </summary>
-    public sealed class OpenDataScopeResolver : IDataScopeResolver
+    public sealed class PermissionDataScopeResolver : IDataScopeResolver
     {
-        public DataScope Resolve(DataScopeInput input) =>
-            DataScope.Unrestricted(input.UserId, input.SupportingDepartmentId, "قاعده‌ی دسترسی سطح ردیف هنوز تعریف نشده است؛ همه چیز دیده می‌شود");
+        public DataScope Resolve(DataScopeInput input)
+        {
+            if (input.Permissions.Contains(Permissions.DataScope.ViewAll))
+                return DataScope.Unrestricted(input.UserId, input.SupportingDepartmentId, "دارای دسترسی «مشاهده داده‌های همه‌ی ستادها»");
+
+            return DataScope.Restricted(input.UserId, input.SupportingDepartmentId, input.SupportingDepartmentId is { } department
+                ? $"فقط داده‌های ستاد شما (شناسه {department}) و کارهایی که به شما ارجاع داده شده"
+                : "ستاد ندارید؛ فقط کارهایی که به شما ارجاع داده شده");
+        }
     }
 }

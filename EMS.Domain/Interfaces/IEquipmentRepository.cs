@@ -24,6 +24,9 @@ namespace EMS.Domain.Interfaces
         /// <summary>Read-only flattened equipment: the active ones, or with false the deactivated ones.</summary>
         IQueryable<EquipmentRow> QueryRows(bool active);
 
+        /// <summary>Every equipment, active or not (for a record reached by its id: a deactivated one can still be read, edited and restored).</summary>
+        IQueryable<EquipmentRow> QueryRowsIncludingInactive();
+
         Task<EquipmentRow?> GetRowAsync(long id, CancellationToken cancellationToken = default);
 
         /// <summary>Does another equipment (active or not) already have this serial number? (any casing; the equipment <paramref name="exceptId"/> is not counted)</summary>

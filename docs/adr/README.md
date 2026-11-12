@@ -65,6 +65,7 @@
 | 0024 | [چند ارجاع باز برای هر گزارش (یکی برای هر تکنسین) و ارجاع گروهی](0024-several-open-assignments-per-report-and-bulk-assign.md) |
 | 0025 | [عنوان، اولویت و زمان مشاهدهٔ ارجاع (مشاهده با درخواست صریح، نه با GET)](0025-assignment-title-priority-and-seen.md) |
 | 0026 | [دسترسی سطح ردیف: در مرکزی، سیاست برای هر نوع ردیف، و scope کاربر](0026-row-security-central-door-and-policies.md) |
+| 0027 | [قاعدهٔ دید داده (ستاد کاربر) و پوشش کامل خواندن و نوشتن](0027-row-security-rule-and-coverage.md) |
 | 0024 | [تکنسین تجهیز فقط نزد ستاد مجاز است](0024-equipment-technician-requires-department.md) |
 | 0026 | [یادداشت‌های ارجاع با موضوع و رسید مشاهدهٔ تکنسین](0026-assignment-notes-and-read-receipts.md) |
 

@@ -176,8 +176,11 @@ namespace EMS.Application.Services.FailureReport
             return descending ? rows.OrderByDescending(x => x.Id) : rows.OrderBy(x => x.Id);
         }
 
-        public Task<FailureReportDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
-            DetailAsync(id, cancellationToken);
+        public async Task<FailureReportDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+        {
+            await EnsureVisibleAsync(id, cancellationToken);
+            return await DetailAsync(id, cancellationToken);
+        }
 
         // ------------------------------------------------------------------------------------------------ write
 
@@ -215,6 +218,7 @@ namespace EMS.Application.Services.FailureReport
 
         public async Task<FailureReportDetailDto> UpdateAsync(long id, FailureReportUpdateDto request, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
             var reactivating = !entity.IsActive && request.IsActive;
@@ -255,6 +259,7 @@ namespace EMS.Application.Services.FailureReport
 
         public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
             entity.IsActive = false;
@@ -268,7 +273,7 @@ namespace EMS.Application.Services.FailureReport
 
         private async Task<FailureReportDetailDto> DetailAsync(long id, CancellationToken cancellationToken)
         {
-            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();
+            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var detail = Fill(new FailureReportDetailDto(), row);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
@@ -351,7 +356,28 @@ namespace EMS.Application.Services.FailureReport
             await ParentGuard.RequireAsync(_organizations, organizationId, x => x.OrganizationId, "شعبه", Active(current is null || current.OrganizationId != organizationId), cancellationToken);
             if (employeeId is { } employee)
                 await ParentGuard.RequireAsync(_employees, employee, x => x.EmployeeId, "کارمند", Active(current is null || current.EmployeeId != employeeId), cancellationToken);
+
+            // The branch of a new or changed report, and its equipment, must be ones the caller may see (the answer for a hidden one is the same as for a missing one).
+            if (current is null || current.OrganizationId != organizationId)
+                await RequireBranchVisibleAsync(organizationId, cancellationToken);
+            if (current is null || current.EquipmentId != equipmentId)
+                await _access.RequireVisibleAsync(_equipment.QueryRowsIncludingInactive(), r => r.Id == equipmentId, "Equipment", equipmentId, "تجهیز یافت نشد.", cancellationToken, ErrorCodes.ParentNotFound);
         }
+
+        /// <summary>A report is filed for a branch under the caller's department: the report policy applied to a row that does not exist yet (404 <c>parent_not_found</c> otherwise).</summary>
+        private async Task RequireBranchVisibleAsync(long organizationId, CancellationToken cancellationToken)
+        {
+            if (_access.Scope.IsUnrestricted)
+                return;
+
+            var department = (await _organizations.FindAsync(o => o.OrganizationId == organizationId, asNoTracking: true, cancellationToken: cancellationToken)).FirstOrDefault()?.SupportingDepartmentId;
+            if (!_access.IsVisible(new FailureReportRow { SupportingDepartmentId = department }))
+                throw new NotFoundException("شعبه یافت نشد.", ErrorCodes.ParentNotFound);
+        }
+
+        /// <summary>A record reached by its id must be one the caller may see (404 otherwise, as for a missing one). Call it BEFORE loading the record.</summary>
+        private Task EnsureVisibleAsync(long id, CancellationToken cancellationToken) =>
+            _access.RequireVisibleAsync(_repository.QueryRowsIncludingInactive(), r => r.Id == id, "FailureReport", id, NotFound().Message, cancellationToken);
 
         private async Task EnsureReferenceNumberIsFreeAsync(string referenceNumber, long? exceptId, CancellationToken cancellationToken)
         {

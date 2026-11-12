@@ -1,3 +1,4 @@
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
@@ -27,6 +28,8 @@ namespace EMS.Application.Services.Attachment
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
         private readonly IUserReferenceRepository _people;
+        private readonly IEnumerable<IAttachmentOwnerGuard> _guards;
+        private readonly IRowAccess _access;
 
         public AttachmentService(
             IEntityAttachmentRepository attachments,
@@ -35,8 +38,12 @@ namespace EMS.Application.Services.Attachment
             IAttachmentBlobStore blobs,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IUserReferenceRepository people)
+            IUserReferenceRepository people,
+            IEnumerable<IAttachmentOwnerGuard> guards,
+            IRowAccess access)
         {
+            _guards = guards;
+            _access = access;
             _attachments = attachments;
             _contents = contents;
             _targets = targets;
@@ -44,6 +51,21 @@ namespace EMS.Application.Services.Attachment
             _unitOfWork = unitOfWork;
             _audit = audit;
             _people = people;
+        }
+
+        /// <summary>
+        /// A file is visible exactly when the record it belongs to is (the row-security rule of that record's table). A restricted caller cannot touch the files of a
+        /// table that has no guard. The answer for a hidden one is the same 404 as for a missing one. Listing the files of a record the caller already read
+        /// (<see cref="ListActiveAsync"/>) is internal and is guarded by that read.
+        /// </summary>
+        private async Task RequireOwnerVisibleAsync(string tableName, long entityId, CancellationToken cancellationToken, NotFoundException? notFound = null)
+        {
+            if (_access.Scope.IsUnrestricted)
+                return;
+
+            var guard = _guards.FirstOrDefault(g => string.Equals(g.TableName, tableName, StringComparison.Ordinal));
+            if (guard is null || !await guard.IsVisibleAsync(entityId, cancellationToken))
+                throw notFound ?? TargetNotFound();
         }
 
         private static NotFoundException TargetNotFound() =>
@@ -72,6 +94,7 @@ namespace EMS.Application.Services.Attachment
         {
             if (!await _targets.EntityExistsAsync(target, entityId, cancellationToken))
                 throw TargetNotFound();
+            await RequireOwnerVisibleAsync(target.TableName, entityId, cancellationToken);
 
             var active = request.IsActive ?? true;
             var tableName = target.TableName;
@@ -172,6 +195,7 @@ namespace EMS.Application.Services.Attachment
         {
             if (!await _targets.EntityExistsAsync(target, entityId, cancellationToken))
                 throw TargetNotFound();
+            await RequireOwnerVisibleAsync(target.TableName, entityId, cancellationToken);
 
             var description = string.IsNullOrWhiteSpace(upload.Description) ? null : upload.Description.Trim();
             if (description is { Length: > AttachmentRules.MaxDescriptionLength })
@@ -246,6 +270,7 @@ namespace EMS.Application.Services.Attachment
             var row = await _attachments.QueryRows().FirstOrDefaultAsync(x => x.Id == attachmentId && x.IsActive, cancellationToken)
                 ?? throw AttachmentNotFound();
             var target = await _targets.FindAsync(row.TableId, cancellationToken) ?? throw AttachmentNotFound();
+            await RequireOwnerVisibleAsync(target.TableName, row.EntityId, cancellationToken, AttachmentNotFound());
             var file = await _blobs.OpenReadAsync(row.StreamId, cancellationToken) ?? throw AttachmentNotFound();
 
             return (new AttachmentItemDto
@@ -266,6 +291,8 @@ namespace EMS.Application.Services.Attachment
         public async Task DeleteAsync(long attachmentId, CancellationToken cancellationToken = default)
         {
             var attachment = await _attachments.GetAsync(attachmentId, cancellationToken) ?? throw AttachmentNotFound();
+            var owner = await _targets.FindAsync(attachment.TableId, cancellationToken) ?? throw AttachmentNotFound();
+            await RequireOwnerVisibleAsync(owner.TableName, attachment.EntityId, cancellationToken, AttachmentNotFound());
             if (!attachment.IsActive)
                 return;
 

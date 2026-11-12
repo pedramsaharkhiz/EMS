@@ -116,13 +116,15 @@ namespace EMS.Application.Services.TechnicianAssignment
         public Task<PagedResult<TechnicianAssignmentListItemDto>> GetPagedAsync(TechnicianAssignmentListRequestDto request, CancellationToken cancellationToken = default) =>
             PageAsync(request, cancellationToken);
 
-        public Task<TechnicianAssignmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default) =>
-            DetailAsync(id, cancellationToken);
+        public async Task<TechnicianAssignmentDetailDto> GetByIdAsync(long id, CancellationToken cancellationToken = default)
+        {
+            await EnsureVisibleAsync(id, cancellationToken);
+            return await DetailAsync(id, cancellationToken);
+        }
 
         public async Task<PagedResult<TechnicianAssignmentListItemDto>> GetOfReportAsync(long failureReportId, TechnicianAssignmentListRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!await _reports.ExistsIncludingInactiveAsync(x => x.FailureReportId == failureReportId, cancellationToken))
-                throw ReportNotFound();
+            await EnsureReportVisibleAsync(failureReportId, cancellationToken);
 
             request.FailureReportIds = new[] { failureReportId };
             return await PageAsync(request, cancellationToken);
@@ -138,8 +140,7 @@ namespace EMS.Application.Services.TechnicianAssignment
 
         public async Task<IReadOnlyList<TechnicianAssignmentActionItemDto>> GetActionsAsync(long id, CancellationToken cancellationToken = default)
         {
-            if (!await _repository.ExistsIncludingInactiveAsync(x => x.TechnicianAssignmentId == id, cancellationToken))
-                throw NotFound();
+            await EnsureVisibleAsync(id, cancellationToken);
 
             return (await _repository.GetActionRowsAsync(id, cancellationToken)).Select(ToActionDto).ToList();
         }
@@ -194,6 +195,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         public async Task<TechnicianAssignmentDetailDto> AssignAsync(long failureReportId, TechnicianAssignmentCreateDto request, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();
+            await EnsureReportVisibleAsync(failureReportId, cancellationToken);
             await RequireAssignableReportAsync(failureReportId, cancellationToken);
             await RequireUserAsync(request.TechnicianUserId, cancellationToken);
 
@@ -211,16 +213,18 @@ namespace EMS.Application.Services.TechnicianAssignment
         public async Task<IReadOnlyList<TechnicianAssignmentDetailDto>> AssignBulkAsync(long failureReportId, TechnicianAssignmentBulkCreateDto request, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();
+            await EnsureReportVisibleAsync(failureReportId, cancellationToken);
             await RequireAssignableReportAsync(failureReportId, cancellationToken);
 
             // Every problem of every item is collected first: all or nothing, and the caller sees all of them at once.
-            var people = await _people.GetPeopleAsync(request.Items.Select(i => (long?)i.TechnicianUserId), cancellationToken);
+            var technicianIds = request.Items.Select(i => i.TechnicianUserId).Distinct().ToList();
+            var visibleTechnicians = await FindVisibleUserIdsAsync(technicianIds, cancellationToken);      // exist AND the caller may see them
             var alreadyOpen = await _repository.GetOpenTechnicianIdsOfReportAsync(failureReportId, cancellationToken);
             var problems = new List<ApiErrorDetail>();
             for (var i = 0; i < request.Items.Count; i++)
             {
                 var technician = request.Items[i].TechnicianUserId;
-                if (!people.ContainsKey(technician))
+                if (!visibleTechnicians.Contains(technician))
                     problems.Add(new ApiErrorDetail { Field = $"items[{i}].technicianUserId", Message = "کاربر موردنظر پیدا نشد." });
                 else if (alreadyOpen.Contains(technician))
                     problems.Add(new ApiErrorDetail { Field = $"items[{i}].technicianUserId", Message = AlreadyOpenMessage });
@@ -248,7 +252,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         /// <summary>The report must exist, be active and not closed; it may already have open assignments of OTHER technicians.</summary>
         private async Task RequireAssignableReportAsync(long failureReportId, CancellationToken cancellationToken)
         {
-            var report = await _reports.GetForUpdateAsync(failureReportId, cancellationToken) ?? throw ReportNotFound();
+            var report = await _reports.GetForUpdateAsync(failureReportId, cancellationToken) ?? throw ReportNotFound();      // row-access: both callers ask EnsureReportVisibleAsync first
 
             if (!report.IsActive)
                 throw new BadRequestException("گزارش خرابی غیرفعال است و ارجاع ندارد.", ErrorCodes.ParentInactive);
@@ -272,6 +276,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         public async Task<TechnicianAssignmentDetailDto> MarkSeenAsync(long id, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
             RequireTechnician(entity, userId);
 
@@ -305,6 +310,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         public async Task<TechnicianAssignmentActionItemDto> AddActionAsync(long id, TechnicianAssignmentActionCreateDto request, CancellationToken cancellationToken = default)
         {
             var userId = RequireCurrentUser();
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
             RequireTechnician(entity, userId);
 
@@ -346,6 +352,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             long id, TechnicianAssignmentStatusCode target, TechnicianAssignmentTransitionDto request, bool technicianOnly, CancellationToken cancellationToken)
         {
             var userId = RequireCurrentUser();
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
             if (technicianOnly)
                 RequireTechnician(entity, userId);
@@ -416,7 +423,7 @@ namespace EMS.Application.Services.TechnicianAssignment
 
         private async Task<TechnicianAssignmentDetailDto> DetailAsync(long id, CancellationToken cancellationToken)
         {
-            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();
+            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var people = await _people.GetPeopleAsync(new long?[] { row.TechnicianUserId, row.AssignedByUserId }, cancellationToken);
             var detail = Fill(new TechnicianAssignmentDetailDto(), row, people);
             detail.Actions = (await _repository.GetActionRowsAsync(id, cancellationToken)).Select(ToActionDto).ToList();
@@ -479,10 +486,26 @@ namespace EMS.Application.Services.TechnicianAssignment
 
         private async Task RequireUserAsync(long userId, CancellationToken cancellationToken)
         {
-            // active or not, the user only has to exist (like the technician of an equipment)
-            if (!(await _people.GetPeopleAsync(new long?[] { userId }, cancellationToken)).ContainsKey(userId))
+            // active or not, the user has to exist AND be one the caller may see (a hidden user looks exactly like a missing one)
+            if (!(await FindVisibleUserIdsAsync(new[] { userId }, cancellationToken)).Contains(userId))
                 throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
         }
+
+        private async Task<HashSet<long>> FindVisibleUserIdsAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken)
+        {
+            var ids = userIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return new HashSet<long>();
+            return (await _access.Apply(_people.QueryDirectory()).Where(u => ids.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken)).ToHashSet();
+        }
+
+        /// <summary>A record reached by its id must be one the caller may see (404 otherwise, as for a missing one). Call it BEFORE loading the record.</summary>
+        private Task EnsureVisibleAsync(long id, CancellationToken cancellationToken) =>
+            _access.RequireVisibleAsync(_repository.QueryRows(), r => r.Id == id, "TechnicianAssignment", id, NotFound().Message, cancellationToken);
+
+        /// <summary>The report must be one the caller may see (a report under his department, or one he was assigned).</summary>
+        private Task EnsureReportVisibleAsync(long failureReportId, CancellationToken cancellationToken) =>
+            _access.RequireVisibleAsync(_reports.QueryRowsIncludingInactive(), r => r.Id == failureReportId, "FailureReport", failureReportId, ReportNotFound().Message, cancellationToken);
 
         private static DateTime ToUtc(DateTime value) => value.Kind switch
         {

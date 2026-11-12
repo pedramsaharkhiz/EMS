@@ -45,6 +45,10 @@ namespace EMS.Application.Extensions
             // Row-level security: the single door to protected rows, and the policies (one class per protected read model) found in this assembly.
             services.AddScoped<IRowAccess, RowAccess>();
             services.AddRowPolicies(typeof(ServiceCollectionExtensions).Assembly);
+            // The files of a record are visible exactly when the record is: one guard per attachable table (found in this assembly).
+            foreach (var guard in typeof(ServiceCollectionExtensions).Assembly.GetTypes()
+                         .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(EMS.Application.Interfaces.Attachment.IAttachmentOwnerGuard).IsAssignableFrom(t)))
+                services.AddScoped(typeof(EMS.Application.Interfaces.Attachment.IAttachmentOwnerGuard), guard);
             // Messages of validators without an explicit WithMessage (FluentValidation ships Persian translations).
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("fa");
             return services;

@@ -215,7 +215,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
         // Row-level security: who is "unrestricted" is decided by the resolver; the accessor caches it for the request.
-        services.AddSingleton<EMS.Application.Common.DataAccess.IDataScopeResolver, EMS.Infrastructure.Security.RowSecurity.OpenDataScopeResolver>();
+        services.AddSingleton<EMS.Application.Common.DataAccess.IDataScopeResolver, EMS.Infrastructure.Security.RowSecurity.PermissionDataScopeResolver>();
         services.AddScoped<EMS.Application.Common.DataAccess.IDataScopeAccessor, EMS.Infrastructure.Security.RowSecurity.DataScopeAccessor>();
         EMS.Application.Extensions.ServiceCollectionExtensions.AddRowPolicies(services, typeof(EMS.Infrastructure.Security.RowSecurity.UserRowPolicy).Assembly);
         services.AddScoped<IAccessTokenValidator, AccessTokenValidator>();

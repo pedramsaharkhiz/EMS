@@ -67,10 +67,20 @@ namespace EMS.Application.Common.DataAccess
         /// For a record reached by its id (detail, update, delete, move, attachments): throws <c>404 not_found</c> unless the record exists AND is visible.
         /// A record that exists but is hidden is refused with the very same 404 (its existence must not leak) and the refusal is written to the security log.
         /// </summary>
-        Task RequireVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, string entityType, object? entityId, string notFoundMessage, CancellationToken cancellationToken = default);
+        Task RequireVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, string entityType, object? entityId, string notFoundMessage, CancellationToken cancellationToken = default, string? errorCode = null);
+
+        /// <summary>
+        /// Would <paramref name="candidate"/> be visible to the current scope? The SAME policy expressions, evaluated in memory on a row that does not exist yet
+        /// (a destination: the branch or department an equipment is about to be moved to, the branch a report is about to be filed for). Only the properties the
+        /// policy reads need to be filled in. An unrestricted scope sees everything; a restricted scope with no policy sees nothing.
+        /// </summary>
+        bool IsVisible<TRow>(TRow candidate);
 
         /// <summary>The same question without the exception.</summary>
         Task<bool> IsVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, CancellationToken cancellationToken = default);
+
+        /// <summary>The scope of the current request (to skip work that only matters for a restricted user).</summary>
+        DataScope Scope { get; }
 
         /// <summary>Every registered policy with its explanation for the current scope.</summary>
         IReadOnlyList<RowPolicyInfo> Describe();

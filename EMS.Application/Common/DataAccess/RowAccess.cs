@@ -52,10 +52,25 @@ namespace EMS.Application.Common.DataAccess
             return rows.Where(combined);
         }
 
+        public DataScope Scope => _scope.Current;
+
+        public bool IsVisible<TRow>(TRow candidate)
+        {
+            var scope = _scope.Current;
+            if (scope.IsUnrestricted)
+                return true;
+
+            var policies = _services.GetServices<IRowPolicy<TRow>>().ToList();
+            if (policies.Count == 0)
+                return false;
+
+            return policies.Select(p => p.Filter(scope)).Where(f => f is not null).All(f => f!.Compile()(candidate));
+        }
+
         public async Task<bool> IsVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, CancellationToken cancellationToken = default) =>
             await Apply(allRows).AnyAsync(isTheRecord, cancellationToken);
 
-        public async Task RequireVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, string entityType, object? entityId, string notFoundMessage, CancellationToken cancellationToken = default)
+        public async Task RequireVisibleAsync<TRow>(IQueryable<TRow> allRows, Expression<Func<TRow, bool>> isTheRecord, string entityType, object? entityId, string notFoundMessage, CancellationToken cancellationToken = default, string? errorCode = null)
         {
             if (await IsVisibleAsync(allRows, isTheRecord, cancellationToken))
                 return;
@@ -64,7 +79,7 @@ namespace EMS.Application.Common.DataAccess
             if (_scope.Current.IsUnrestricted == false && await allRows.AnyAsync(isTheRecord, cancellationToken))
                 _security.RowAccessDenied(entityType, entityId, _scope.Current.Reason);
 
-            throw new NotFoundException(notFoundMessage, ErrorCodes.NotFound);
+            throw new NotFoundException(notFoundMessage, errorCode ?? ErrorCodes.NotFound);
         }
 
         public IReadOnlyList<RowPolicyInfo> Describe()
