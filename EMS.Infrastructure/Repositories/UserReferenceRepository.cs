@@ -11,6 +11,9 @@ namespace EMS.Infrastructure.Repositories
 
         public UserReferenceRepository(EMSDbContext context) => _context = context;
 
+        public IQueryable<UserDirectoryRow> QueryDirectory() =>
+            _context.Users.AsNoTracking().Select(u => new UserDirectoryRow { Id = u.Id, SupportingDepartmentId = u.SupportingDepartmentId });
+
         public async Task<Dictionary<long, PersonReference>> GetPeopleAsync(IEnumerable<long?> userIds, CancellationToken cancellationToken = default)
         {
             var ids = userIds.Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();

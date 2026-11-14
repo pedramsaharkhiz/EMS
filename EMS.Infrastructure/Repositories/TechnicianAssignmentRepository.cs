@@ -9,7 +9,13 @@ namespace EMS.Infrastructure.Repositories
 {
     public class TechnicianAssignmentRepository : Repository<TechnicianAssignment>, ITechnicianAssignmentRepository
     {
-        public TechnicianAssignmentRepository(EMSDbContext context) : base(context) { }
+        private readonly long _currentUserId;
+
+        /// <param name="currentUser">Rows are per caller (see <c>HasAssignmentOfCurrentUser</c>); null (hand-built in a test) means nobody.</param>
+        public TechnicianAssignmentRepository(EMSDbContext context, EMS.Application.Common.Interfaces.ICurrentUserService? currentUser = null) : base(context)
+        {
+            _currentUserId = currentUser?.UserId ?? 0;
+        }
 
         public async Task<TechnicianAssignment?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default) =>
             await _dbSet.IncludingInactive().FirstOrDefaultAsync(x => x.TechnicianAssignmentId == id, cancellationToken);
@@ -43,12 +49,14 @@ namespace EMS.Infrastructure.Repositories
                 .Select(x => x.TechnicianUserId)
                 .ToListAsync(cancellationToken)).ToHashSet();
 
-        private static IQueryable<TechnicianAssignmentRow> ToRows(IQueryable<TechnicianAssignment> source) =>
+        private IQueryable<TechnicianAssignmentRow> ToRows(IQueryable<TechnicianAssignment> source) =>
             source.Select(a => new TechnicianAssignmentRow
             {
                 Id = a.TechnicianAssignmentId,
                 FailureReportId = a.FailureReportId,
                 FailureReportReferenceNumber = a.FailureReport.ReferenceNumber,
+                FailureReportSupportingDepartmentId = a.FailureReport.Organization.SupportingDepartmentId,
+                IsOfCurrentUser = a.TechnicianUserId == _currentUserId,
                 EquipmentId = a.FailureReport.EquipmentId,
                 EquipmentYaasCode = a.FailureReport.Equipment.YaasCode,
                 StatusId = a.TechnicianAssignmentStatusId,

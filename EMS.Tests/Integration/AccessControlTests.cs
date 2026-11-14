@@ -24,6 +24,9 @@ namespace EMS.Tests.Integration
     {
         public AccessControlTests(EmsApiFactory factory) : base(factory) { }
 
+        // these tests are about the exact permissions of a role
+        protected override bool RolesSeeEveryDepartment => false;
+
         private const string Password = "Passw0rd!x";
 
         /// <summary>Creates a user holding a role with the given permissions; returns everything needed to act on it.</summary>

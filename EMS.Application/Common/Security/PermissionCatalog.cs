@@ -25,6 +25,7 @@ namespace EMS.Application.Common.Security
             [nameof(Permissions.Equipments)] = "تجهیزات",
             [nameof(Permissions.FailureReports)] = "گزارش‌های خرابی",
             [nameof(Permissions.TechnicianAssignments)] = "ارجاع به تکنسین",
+            [nameof(Permissions.DataScope)] = "دامنه‌ی دید داده",
             [nameof(Permissions.Users)] = "کاربران",
             [nameof(Permissions.Roles)] = "نقش‌ها",
             [nameof(Permissions.Brands)] = "برندها",
@@ -71,6 +72,8 @@ namespace EMS.Application.Common.Security
             [Permissions.TechnicianAssignments.View] = ("مشاهده ارجاع‌ها", "فهرست و جزئیات ارجاع‌ها، اقدام‌های ثبت‌شده و کارت ارجاع‌ها در داشبورد."),
             [Permissions.TechnicianAssignments.Assign] = ("ارجاع گزارش خرابی به تکنسین", "ارجاع گزارش خرابی به یک تکنسین و لغو ارجاع باز."),
             [Permissions.TechnicianAssignments.Work] = ("انجام کار ارجاع", "پذیرش، رد، شروع و تکمیل ارجاع، ثبت اقدام و ثبت «دیدم»؛ فقط برای ارجاع‌هایی که به خود کاربر داده شده است."),
+
+            [Permissions.DataScope.ViewAll] = ("مشاهده داده‌های همه‌ی ستادها", "دیدن داده‌های همه‌ی ستادهای پشتیبانی (تجهیز، گزارش خرابی، ارجاع، کاربران)، نه فقط ستاد خود؛ مخصوص ستاد مرکزی و مدیریت. کاربر بدون این دسترسی فقط داده‌های ستاد خودش و ارجاع‌های خودش را می‌بیند."),
 
             [Permissions.Users.View] = (null, "فهرست و جزئیات کاربران، نقش هر کاربر و خروجی اکسل."),
             [Permissions.Users.Update] = (null, "ویرایش مشخصات کاربر و تغییر کلمه عبور او."),

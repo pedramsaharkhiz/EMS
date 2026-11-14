@@ -96,9 +96,18 @@ namespace EMS.Tests.Integration
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
         }
 
-        /// <summary>Creates a role holding exactly the given permissions and returns its id.</summary>
+        /// <summary>
+        /// Most tests are about WHAT a permission allows, not about WHICH department's data a user sees (row-level security has its own tests, which turn this off), so by
+        /// default the roles they create also see every department's data. A test that needs a role with exactly the permissions it names overrides this with false.
+        /// </summary>
+        protected virtual bool RolesSeeEveryDepartment => true;
+
+        /// <summary>Creates a role holding the given permissions (plus <c>DataScope.ViewAll</c> unless <see cref="RolesSeeEveryDepartment"/> is false) and returns its id.</summary>
         protected async Task<long> CreateRoleAsync(string adminToken, string roleName, params string[] permissions)
         {
+            if (RolesSeeEveryDepartment && !permissions.Contains("DataScope.ViewAll"))
+                permissions = permissions.Append("DataScope.ViewAll").ToArray();
+
             var response = await SendAsync(HttpMethod.Post, "/api/Role", new { name = roleName }, bearer: adminToken);
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
             var roleId = (await ReadDataAsync(response)).GetProperty("id").GetInt64();

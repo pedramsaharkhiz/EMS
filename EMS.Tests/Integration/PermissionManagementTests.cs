@@ -9,6 +9,9 @@ namespace EMS.Tests.Integration
     {
         public PermissionManagementTests(EmsApiFactory factory) : base(factory) { }
 
+        // these tests are about the exact permissions of a role
+        protected override bool RolesSeeEveryDepartment => false;
+
         private string? _admin;
         private async Task<string> AdminAsync() => _admin ??= (await LoginAdminAsync()).AccessToken;
         private async Task<HttpResponseMessage> AsAdminAsync(HttpMethod method, string url, object? body = null) => await SendAsync(method, url, body, bearer: await AdminAsync());

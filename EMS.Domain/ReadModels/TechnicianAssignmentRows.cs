@@ -6,6 +6,10 @@ namespace EMS.Domain.ReadModels
         public long Id { get; set; }
         public long FailureReportId { get; set; }
         public string? FailureReportReferenceNumber { get; set; }
+        /// <summary>The supporting department that serves the report's branch (what the visibility rule reads).</summary>
+        public long? FailureReportSupportingDepartmentId { get; set; }
+        /// <summary>Is the CALLER the technician of this assignment? (Rows are per caller.)</summary>
+        public bool IsOfCurrentUser { get; set; }
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
         public long StatusId { get; set; }

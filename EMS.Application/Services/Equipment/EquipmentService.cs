@@ -1,4 +1,5 @@
 using EMS.Application.Common.Catalog;
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Export;
 using EMS.Application.Common.Filtering;
@@ -83,6 +84,7 @@ namespace EMS.Application.Services.Equipment
 
         private readonly IEquipmentRepository _repository;
         private readonly IEquipmentStatusRepository _statuses;
+        private readonly IRowAccess _access;
         private readonly IEquipmentTypeRepository _types;
         private readonly IEquipmentModelRepository _models;
         private readonly ISupportingDepartmentRepository _departments;
@@ -108,10 +110,12 @@ namespace EMS.Application.Services.Equipment
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
             IAttachmentService attachments,
-            IUserReferenceRepository people)
+            IUserReferenceRepository people,
+            IRowAccess access)
         {
             _repository = repository;
             _statuses = statuses;
+            _access = access;
             _types = types;
             _models = models;
             _departments = departments;
@@ -130,7 +134,7 @@ namespace EMS.Application.Services.Equipment
         public async Task<PagedResult<EquipmentListItemDto>> GetOfUserAsync(long userId, EquipmentListRequestDto request, CancellationToken cancellationToken = default)
         {
             // an unknown user is an error, not an empty list (a user who holds nothing is an empty list); active or not, he exists
-            if (!(await _repository.FindExistingUserIdsAsync(new[] { userId }, cancellationToken)).Contains(userId))
+            if (!(await FindVisibleUserIdsAsync(new[] { userId }, cancellationToken)).Contains(userId))
                 throw new NotFoundException("کاربر موردنظر پیدا نشد.", ErrorCodes.UserNotFound);
 
             // the user of the route decides: a technicianUserId sent in the query is replaced, every other list filter works as in the list
@@ -159,6 +163,7 @@ namespace EMS.Application.Services.Equipment
 
         public async Task<EquipmentDetailWithAttachmentsDto> GetByIdAsync(long id, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var detail = await DetailAsync(id, cancellationToken);
             var result = new EquipmentDetailWithAttachmentsDto();
             CopyDetail(detail, result);
@@ -212,8 +217,7 @@ namespace EMS.Application.Services.Equipment
 
         public async Task<PagedResult<EquipmentLocationHistoryItemDto>> GetLocationHistoryAsync(long id, EquipmentLocationHistoryRequestDto request, CancellationToken cancellationToken = default)
         {
-            if (!await _repository.ExistsIncludingInactiveAsync(x => x.EquipmentId == id, cancellationToken))
-                throw NotFound();
+            await EnsureVisibleAsync(id, cancellationToken);      // the whole history of a visible equipment is shown, including rows from when it was elsewhere
 
             var page = await _repository.QueryLocationHistory(id).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
 
@@ -256,8 +260,7 @@ namespace EMS.Application.Services.Equipment
         public async Task<EquipmentTechnicianDto?> GetTechnicianAsync(long equipmentId, CancellationToken cancellationToken = default)
         {
             // an equipment that was deactivated still shows who had it
-            if (!await _repository.ExistsIncludingInactiveAsync(x => x.EquipmentId == equipmentId, cancellationToken))
-                throw NotFound();
+            await EnsureVisibleAsync(equipmentId, cancellationToken);
 
             var row = await _repository.GetTechnicianOfEquipmentAsync(equipmentId, cancellationToken);
             return row is null ? null : new EquipmentTechnicianDto
@@ -279,7 +282,7 @@ namespace EMS.Application.Services.Equipment
 
         public async Task<PagedResult<TechnicianItemDto>> GetTechniciansAsync(TechnicianListRequestDto request, CancellationToken cancellationToken = default)
         {
-            var query = _repository.QueryTechnicians();
+            var query = _access.Apply(_repository.QueryTechnicians());
             if (!string.IsNullOrWhiteSpace(request.Search))
             {
                 var term = request.Search.Trim();
@@ -405,7 +408,8 @@ namespace EMS.Application.Services.Equipment
             var models = await ResolveAsync(_models, items.Where(i => i.EquipmentModelId.HasValue).Select(i => i.EquipmentModelId!.Value), x => x.EquipmentModelId, "مدل تجهیز", cancellationToken);
             var organizations = await ResolveAsync(_organizations, items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), x => x.OrganizationId, "شعبه", cancellationToken);
             var departments = await ResolveAsync(_departments, items.Where(i => i.CurrentSupportingDepartmentId.HasValue).Select(i => i.CurrentSupportingDepartmentId!.Value), x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", cancellationToken);
-            var existingTechnicians = await _repository.FindExistingUserIdsAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
+            var existingTechnicians = await FindVisibleUserIdsAsync(items.Where(i => i.TechnicianUserId.HasValue).Select(i => i.TechnicianUserId!.Value).ToList(), cancellationToken);
+            var organizationDepartments = await DepartmentsOfOrganizationsAsync(items.Where(i => i.CurrentOrganizationId.HasValue).Select(i => i.CurrentOrganizationId!.Value), cancellationToken);
             var takenSerials = await _repository.FindExistingSerialNumbersAsync(items.Select(i => Normalize(i.SerialNumber)).OfType<string>().ToList(), cancellationToken);
             var takenAssets = await _repository.FindExistingAssetNumbersAsync(items.Select(i => Normalize(i.AssetNumber)).OfType<string>().ToList(), cancellationToken);
 
@@ -418,6 +422,13 @@ namespace EMS.Application.Services.Equipment
                 if (!ToLocation(item).HasExactlyOneHolder) Fail(i, "currentOrganizationId", EquipmentLocation.HolderMessage);
                 if (item.CurrentOrganizationId is { } organization && organizations[organization] is { } organizationError) Fail(i, "currentOrganizationId", organizationError);
                 if (item.CurrentSupportingDepartmentId is { } department && departments[department] is { } departmentError) Fail(i, "currentSupportingDepartmentId", departmentError);
+                // the destination must be one the caller may see (the same rule as a single create)
+                if (!_access.IsVisible(new EquipmentRow
+                    {
+                        OrganizationSupportingDepartmentId = item.CurrentOrganizationId is { } o ? organizationDepartments.GetValueOrDefault(o) : null,
+                        SupportingDepartmentId = item.CurrentSupportingDepartmentId,
+                    }))
+                    Fail(i, item.CurrentOrganizationId.HasValue ? "currentOrganizationId" : "currentSupportingDepartmentId", item.CurrentOrganizationId.HasValue ? "شعبه یافت نشد." : "دپارتمان پشتیبانی یافت نشد.");
 
                 // a technician is any user: only that he exists is checked (neither his post nor whether he is active)
                 if (item.TechnicianUserId is { } technician && !existingTechnicians.Contains(technician))
@@ -484,6 +495,7 @@ namespace EMS.Application.Services.Equipment
 
         public async Task<EquipmentDetailDto> UpdateAsync(long id, EquipmentUpdateDto request, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
             await _locationRule.ValidateAsync(new EquipmentLocation(entity.CurrentOrganizationId, entity.CurrentSupportingDepartmentId, entity.TechnicianUserId), cancellationToken);
@@ -531,6 +543,7 @@ namespace EMS.Application.Services.Equipment
 
         public async Task DeleteAsync(long id, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
             entity.IsActive = false;
@@ -548,6 +561,7 @@ namespace EMS.Application.Services.Equipment
         /// </summary>
         public async Task<EquipmentDetailDto> MoveAsync(long id, EquipmentMoveDto request, CancellationToken cancellationToken = default)
         {
+            await EnsureVisibleAsync(id, cancellationToken);
             var entity = await _repository.GetForUpdateAsync(id, cancellationToken) ?? throw NotFound();
 
             var location = TargetOf(entity, request.CurrentOrganizationId, request.CurrentSupportingDepartmentId, request.TechnicianUserId, request.ClearTechnician);
@@ -593,7 +607,9 @@ namespace EMS.Application.Services.Equipment
         public async Task<EquipmentBulkMoveResultDto> BulkMoveAsync(EquipmentBulkMoveDto request, CancellationToken cancellationToken = default)
         {
             var ids = request.EquipmentIds ?? new List<long>();
-            var entities = (await _repository.GetManyForUpdateAsync(ids, cancellationToken)).ToDictionary(e => e.EquipmentId);
+            // an equipment the caller may not see is "not found", exactly like one that does not exist (nothing is moved, and the answer reveals nothing)
+            var visibleIds = (await _access.Apply(_repository.QueryRowsIncludingInactive()).Where(r => ids.Contains(r.Id)).Select(r => r.Id).ToListAsync(cancellationToken)).ToHashSet();
+            var entities = (await _repository.GetManyForUpdateAsync(ids.Where(visibleIds.Contains).ToList(), cancellationToken)).ToDictionary(e => e.EquipmentId);
 
             var problems = new List<ApiErrorDetail>();
             var failedIds = new HashSet<long>();
@@ -672,9 +688,11 @@ namespace EMS.Application.Services.Equipment
                 await ParentGuard.RequireAsync(_departments, department, x => x.SupportingDepartmentId, "دپارتمان پشتیبانی", mustBeActive: false, cancellationToken);
             if (technicianId is { } technician)
             {
-                if (!(await _repository.FindExistingUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
+                if (!(await FindVisibleUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
                     throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
             }
+
+            await RequireDestinationVisibleAsync(organizationId, departmentId, cancellationToken);
         }
 
         // ------------------------------------------------------------------------------------------------ helpers
@@ -683,7 +701,7 @@ namespace EMS.Application.Services.Equipment
         /// THE source of equipment rows for the list, the Excel export AND the dashboard counts. Whatever decides which equipment a caller may see
         /// (a future row-level security rule) belongs here, once. Do not query <see cref="IEquipmentRepository.QueryRows"/> from anywhere else in this service.
         /// </summary>
-        private IQueryable<EquipmentRow> VisibleRows(bool active) => _repository.QueryRows(active);
+        private IQueryable<EquipmentRow> VisibleRows(bool active) => _access.Apply(_repository.QueryRows(active));
 
         private IQueryable<EquipmentRow> Query(EquipmentListRequestDto request)
         {
@@ -698,7 +716,7 @@ namespace EMS.Application.Services.Equipment
 
         private async Task<EquipmentDetailDto> DetailAsync(long id, CancellationToken cancellationToken)
         {
-            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();
+            var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var detail = Fill(new EquipmentDetailDto(), row);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
@@ -783,8 +801,10 @@ namespace EMS.Application.Services.Equipment
 
             // a technician is any user: only that he exists is checked (neither his post nor whether he is active), as in a move
             if (location.TechnicianUserId is { } technician
-                && !(await _repository.FindExistingUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
+                && !(await FindVisibleUserIdsAsync(new[] { technician }, cancellationToken)).Contains(technician))
                 throw new NotFoundException("تکنسین یافت نشد.", ErrorCodes.ParentNotFound);
+
+            await RequireDestinationVisibleAsync(location.OrganizationId, location.SupportingDepartmentId, cancellationToken);
 
             if (validateRule)
                 await _locationRule.ValidateAsync(location, cancellationToken);
@@ -861,6 +881,47 @@ namespace EMS.Application.Services.Equipment
         private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         private static NotFoundException NotFound() => new("تجهیز موردنظر پیدا نشد.", ErrorCodes.NotFound);
+
+        /// <summary>
+        /// A record reached by its id must be one the caller may see: 404 otherwise, the same as for one that does not exist (active or not: a deactivated
+        /// equipment can still be read, edited and restored). Call it BEFORE reading or loading the record.
+        /// </summary>
+        private Task EnsureVisibleAsync(long id, CancellationToken cancellationToken) =>
+            _access.RequireVisibleAsync(_repository.QueryRowsIncludingInactive(), r => r.Id == id, "Equipment", id, NotFound().Message, cancellationToken);
+
+        /// <summary>The users that exist AND the caller may see: the technician of an equipment must be one of them.</summary>
+        private async Task<HashSet<long>> FindVisibleUserIdsAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken)
+        {
+            var ids = userIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return new HashSet<long>();
+            return (await _access.Apply(_people.QueryDirectory()).Where(u => ids.Contains(u.Id)).Select(u => u.Id).ToListAsync(cancellationToken)).ToHashSet();
+        }
+
+        private async Task<Dictionary<long, long?>> DepartmentsOfOrganizationsAsync(IEnumerable<long> organizationIds, CancellationToken cancellationToken)
+        {
+            var ids = organizationIds.Distinct().ToList();
+            if (ids.Count == 0)
+                return new Dictionary<long, long?>();
+            return (await _organizations.FindAsync(o => ids.Contains(o.OrganizationId), asNoTracking: true, cancellationToken: cancellationToken))
+                .ToDictionary(o => o.OrganizationId, o => o.SupportingDepartmentId);
+        }
+
+        /// <summary>
+        /// The branch or department an equipment is placed at (created, moved) must be one the caller may see: the equipment policy applied to a row that does not
+        /// exist yet. 404 <c>parent_not_found</c> otherwise (the same answer as for a missing one).
+        /// </summary>
+        private async Task RequireDestinationVisibleAsync(long? organizationId, long? departmentId, CancellationToken cancellationToken)
+        {
+            if (_access.Scope.IsUnrestricted)
+                return;
+
+            var organizationDepartment = organizationId is { } organization
+                ? (await DepartmentsOfOrganizationsAsync(new[] { organization }, cancellationToken)).GetValueOrDefault(organization)
+                : null;
+            if (!_access.IsVisible(new EquipmentRow { OrganizationSupportingDepartmentId = organizationDepartment, SupportingDepartmentId = departmentId }))
+                throw new NotFoundException(organizationId.HasValue ? "شعبه یافت نشد." : "دپارتمان پشتیبانی یافت نشد.", ErrorCodes.ParentNotFound);
+        }
 
         /// <summary>Returns active equipment currently located at the requested organization using the shared equipment filters and paging.</summary>
         public async Task<PagedResult<OrganizationEquipmentListItemDto>> GetOfOrganizationAsync(OrganizationEquipmentListRequestDto request, CancellationToken cancellationToken = default)

@@ -1,3 +1,4 @@
+using EMS.Application.Common.DataAccess;
 ﻿using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
@@ -21,13 +22,16 @@ public sealed class UserRoleAssignmentService
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly EMSDbContext _dbContext;
     private readonly IAuditEventLogger _audit;
+    private readonly IRowAccess _access;
 
     public UserRoleAssignmentService(
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         EMSDbContext dbContext,
-        IAuditEventLogger audit)
+        IAuditEventLogger audit,
+        IRowAccess access)
     {
+        _access = access;
         _userManager = userManager;
         _roleManager = roleManager;
         _dbContext = dbContext;
@@ -231,7 +235,7 @@ public sealed class UserRoleAssignmentService
 
         var query =
             from relation in _dbContext.UserRoles.AsNoTracking()
-            join user in _userManager.Users.AsNoTracking()
+            join user in _access.Apply(_userManager.Users.AsNoTracking())      // only the users the caller may see
                 on relation.UserId equals user.Id
             where relation.RoleId == roleId
                   && relation.IsActive
@@ -320,7 +324,7 @@ public sealed class UserRoleAssignmentService
 
         var requestedUserIds = userIds.Distinct().ToHashSet();
 
-        var validUserIds = await _userManager.Users
+        var validUserIds = await _access.Apply(_userManager.Users)
             .Where(user =>
                 requestedUserIds.Contains(user.Id) &&
                 user.IsActive)
@@ -342,9 +346,13 @@ public sealed class UserRoleAssignmentService
                 ErrorCodes.UserAlreadyHasRole);
         }
 
-        var existingRelations = await _dbContext.UserRoles
+        // The caller replaces the list of the users he can SEE: the members he cannot see stay as they are (he cannot remove who he does not see).
+        var visibleUserIds = (await _access.Apply(_userManager.Users.AsNoTracking()).Select(u => u.Id).ToListAsync(cancellationToken)).ToHashSet();
+        var existingRelations = (await _dbContext.UserRoles
             .Where(relation => relation.RoleId == roleId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken))
+            .Where(relation => _access.Scope.IsUnrestricted || visibleUserIds.Contains(relation.UserId))
+            .ToList();
 
         await using var transaction =
             await _dbContext.Database.BeginTransactionAsync(
@@ -426,6 +434,9 @@ public sealed class UserRoleAssignmentService
         long userId,
         CancellationToken cancellationToken)
     {
+        // a user the caller may not see looks exactly like one that does not exist
+        await _access.RequireVisibleAsync(_dbContext.Users.AsNoTracking(), u => u.Id == userId, "User", userId, "کاربر یافت نشد.", cancellationToken, ErrorCodes.UserNotFound);
+
         var user = await _userManager.Users
             .FirstOrDefaultAsync(
                 x => x.Id == userId,
