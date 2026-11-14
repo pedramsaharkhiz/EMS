@@ -8,6 +8,8 @@ namespace EMS.Application.Dtos.FailureType
         public string Title { get; set; } = string.Empty;
         public string? Code { get; set; }
         public bool IsActive { get; set; }
+        /// <summary>The equipment types it applies to; empty = it applies to every equipment type.</summary>
+        public List<FailureTypeEquipmentTypeDto> EquipmentTypes { get; set; } = new();
 
         /// <summary>Send this value back in the update request to detect concurrent modifications (409).</summary>
         public string RowVersion { get; set; } = "0";

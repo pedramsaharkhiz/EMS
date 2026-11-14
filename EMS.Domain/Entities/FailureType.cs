@@ -12,6 +12,8 @@ namespace EMS.Domain.Entities
         public string Title { get; set; } = null!;
         public string? Code { get; set; }
         public FailureCategory FailureCategory { get; set; } = null!;
+        /// <summary>The equipment types this failure type applies to. Empty = it applies to every equipment type.</summary>
+        public ICollection<FailureTypeEquipmentType> EquipmentTypes { get; set; } = new List<FailureTypeEquipmentType>();
         public ICollection<FailureReport> FailureReports { get; set; } = new List<FailureReport>();
     }
 }

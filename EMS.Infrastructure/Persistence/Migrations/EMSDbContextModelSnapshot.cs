@@ -1181,6 +1181,22 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("FailureTypes", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.FailureTypeEquipmentType", b =>
+                {
+                    b.Property<long>("FailureTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("EquipmentTypeId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("FailureTypeId", "EquipmentTypeId");
+
+                    b.HasIndex("EquipmentTypeId")
+                        .HasDatabaseName("IX_FailureTypeEquipmentTypes_EquipmentTypeId");
+
+                    b.ToTable("FailureTypeEquipmentTypes", (string)null);
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.Field", b =>
                 {
                     b.Property<long>("FieldId")
@@ -2871,6 +2887,23 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("FailureCategory");
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.FailureTypeEquipmentType", b =>
+                {
+                    b.HasOne("EMS.Domain.Entities.EquipmentType", "EquipmentType")
+                        .WithMany()
+                        .HasForeignKey("EquipmentTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("EMS.Domain.Entities.FailureType", null)
+                        .WithMany("EquipmentTypes")
+                        .HasForeignKey("FailureTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("EquipmentType");
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.Field", b =>
                 {
                     b.HasOne("EMS.Domain.Entities.OrganizationManagement", "OrganizationManagement")
@@ -3176,6 +3209,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Domain.Entities.FailureType", b =>
                 {
+                    b.Navigation("EquipmentTypes");
+
                     b.Navigation("FailureReports");
                 });
 
