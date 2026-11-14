@@ -500,6 +500,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Property<long?>("EquipmentTypeId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("HasConflict")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
