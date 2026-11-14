@@ -193,6 +193,35 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task A_retired_permission_still_stored_on_a_role_is_neither_sent_to_the_client_nor_put_in_the_token()
+        {
+            var a = await ArrangeAsync("retiredclaim", "Skills.View");
+
+            // an older role still carries the claim: written straight to the store, as it was before the permission was retired
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<EMS.Infrastructure.Persistence.Identity.ApplicationRole>>();
+                var role = (await roleManager.FindByIdAsync(a.RoleId.ToString()))!;
+                await roleManager.AddClaimAsync(role, new Claim("permission", "Brands.View"));
+            }
+
+            static string[] PermissionsOf(System.Text.Json.JsonElement data) => data.GetProperty("permissions").EnumerateArray().Select(p => p.GetString()!).ToArray();
+            static string[] ClaimsOf(string token) => new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(token).Claims
+                .Where(c => c.Type == "permission").Select(c => c.Value).ToArray();
+
+            var login = await ReadDataAsync(await SendAsync(HttpMethod.Post, "/api/Identity/Login", new { userName = "ac_retiredclaim", password = Password }));
+            Assert.Equal(new[] { "Skills.View" }, PermissionsOf(login));
+            Assert.Equal(new[] { "Skills.View" }, ClaimsOf(login.GetProperty("accessToken").GetString()!));
+
+            var refreshed = await ReadDataAsync(await SendAsync(HttpMethod.Post, "/api/Identity/RefreshToken", new { refreshToken = login.GetProperty("refreshToken").GetString() }));
+            Assert.Equal(new[] { "Skills.View" }, PermissionsOf(refreshed));
+            Assert.Equal(new[] { "Skills.View" }, ClaimsOf(refreshed.GetProperty("accessToken").GetString()!));
+
+            var me = await ReadDataAsync(await SendAsync(HttpMethod.Get, "/api/Identity/me", bearer: refreshed.GetProperty("accessToken").GetString()));
+            Assert.Equal(new[] { "Skills.View" }, PermissionsOf(me));
+        }
+
+        [Fact]
         public async Task The_seeder_removes_retired_permissions_from_the_administrator_role()
         {
             using (var scope = _factory.Services.CreateScope())
