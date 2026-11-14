@@ -33,6 +33,12 @@ namespace EMS.Application.Common.Security
             public const string Work = "TechnicianAssignments.Work";
         }
 
+        public static class DataScope
+        {
+            /// <summary>See the data of every supporting department, not only one's own (row-level security: ADR-0028, BUSINESS-DECISIONS 3.23).</summary>
+            public const string ViewAll = "DataScope.ViewAll";
+        }
+
         public static class Users
         {
             public const string View = "Users.View";

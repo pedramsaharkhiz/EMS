@@ -8,6 +8,9 @@ namespace EMS.Tests.Integration
     {
         public SingleRoleTests(EmsApiFactory factory) : base(factory) { }
 
+        // these tests are about the exact permissions of a role
+        protected override bool RolesSeeEveryDepartment => false;
+
         private async Task<List<string>> RolesOfAsync(string admin, long userId) =>
             (await ReadDataAsync(await SendAsync(HttpMethod.Get, $"/api/Users/{userId}/roles", bearer: admin)))
                 .EnumerateArray().Select(r => r.GetProperty("name").GetString()!).ToList();

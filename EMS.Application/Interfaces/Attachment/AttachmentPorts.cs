@@ -50,4 +50,16 @@ namespace EMS.Application.Interfaces.Attachment
     }
 
     public sealed record AttachmentUpload(string FileName, Stream Content, string? Description);
+
+    /// <summary>
+    /// Says whether the record an attachment belongs to (an equipment) is one the caller may see: a file is visible exactly when its record is. One guard per
+    /// attachable table. A restricted caller cannot touch the files of a table that has no guard (fail closed).
+    /// </summary>
+    public interface IAttachmentOwnerGuard
+    {
+        /// <summary>The table whose records own the attachments, e.g. <c>Equipments</c>.</summary>
+        string TableName { get; }
+
+        Task<bool> IsVisibleAsync(long entityId, CancellationToken cancellationToken = default);
+    }
 }

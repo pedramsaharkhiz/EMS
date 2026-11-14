@@ -10,8 +10,12 @@ namespace EMS.Infrastructure.Repositories
 {
     public class EquipmentRepository : Repository<Equipment>, IEquipmentRepository
     {
-        public EquipmentRepository(EMSDbContext context) : base(context)
+        private readonly long _currentUserId;
+
+        /// <param name="currentUser">Rows are per caller (see <c>HasAssignmentOfCurrentUser</c>); null (hand-built in a test) means nobody.</param>
+        public EquipmentRepository(EMSDbContext context, EMS.Application.Common.Interfaces.ICurrentUserService? currentUser = null) : base(context)
         {
+            _currentUserId = currentUser?.UserId ?? 0;
         }
 
         public async Task<Equipment?> GetDetailsAsync(long id, CancellationToken cancellationToken = default)
@@ -81,6 +85,8 @@ namespace EMS.Infrastructure.Repositories
             return ToRows(source);
         }
 
+        public IQueryable<EquipmentRow> QueryRowsIncludingInactive() => ToRows(_dbSet.AsNoTracking().IncludingInactive());
+
         public async Task<EquipmentRow?> GetRowAsync(long id, CancellationToken cancellationToken = default) =>
             await ToRows(_dbSet.AsNoTracking().IncludingInactive().Where(x => x.EquipmentId == id)).FirstOrDefaultAsync(cancellationToken);
 
@@ -88,6 +94,7 @@ namespace EMS.Infrastructure.Repositories
             source.Select(e => new EquipmentRow
             {
                 Id = e.EquipmentId,
+                HasAssignmentOfCurrentUser = e.FailureReports.Any(f => f.TechnicianAssignments.Any(a => a.TechnicianUserId == _currentUserId)),
                 Owner = e.Owner,
                 OwnerTitle = e.Owner == EquipmentOwner.Company ? EquipmentOwnerTitles.Company : e.Owner == EquipmentOwner.Bank ? EquipmentOwnerTitles.Bank : EquipmentOwnerTitles.Unknown,
                 YaasCode = e.YaasCode,

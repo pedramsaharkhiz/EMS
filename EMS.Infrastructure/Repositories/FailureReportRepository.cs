@@ -10,8 +10,12 @@ namespace EMS.Infrastructure.Repositories
 {
     public class FailureReportRepository : Repository<FailureReport>, IFailureReportRepository
     {
-        public FailureReportRepository(EMSDbContext context) : base(context)
+        private readonly long _currentUserId;
+
+        /// <param name="currentUser">Rows are per caller (see <c>HasAssignmentOfCurrentUser</c>); null (hand-built in a test) means nobody.</param>
+        public FailureReportRepository(EMSDbContext context, EMS.Application.Common.Interfaces.ICurrentUserService? currentUser = null) : base(context)
         {
+            _currentUserId = currentUser?.UserId ?? 0;
         }
 
         public async Task<FailureReport?> GetForUpdateAsync(long id, CancellationToken cancellationToken = default) =>
@@ -26,6 +30,8 @@ namespace EMS.Infrastructure.Repositories
                 : _dbSet.AsNoTracking().IncludingInactive().Where(x => !x.IsActive);
             return ToRows(source);
         }
+
+        public IQueryable<FailureReportRow> QueryRowsIncludingInactive() => ToRows(_dbSet.AsNoTracking().IncludingInactive());
 
         public async Task<FailureReportRow?> GetRowAsync(long id, CancellationToken cancellationToken = default) =>
             await ToRows(_dbSet.AsNoTracking().IncludingInactive().Where(x => x.FailureReportId == id)).FirstOrDefaultAsync(cancellationToken);
@@ -67,6 +73,7 @@ namespace EMS.Infrastructure.Repositories
                 EmployeeId = r.EmployeeId,
                 EmployeeName = r.Employee != null ? r.Employee.FirstName + " " + r.Employee.LastName : null,
                 EmployeePersonnelCode = r.Employee != null ? r.Employee.PersonnelCode : null,
+                HasAssignmentOfCurrentUser = r.TechnicianAssignments.Any(a => a.TechnicianUserId == _currentUserId),
                 HasOpenAssignment = r.TechnicianAssignments.Any(a => TechnicianAssignmentCatalog.OpenIds.Contains(a.TechnicianAssignmentStatusId)),
                 ReportedByUserId = r.ReportedByUserId,
                 ReportedByName = _context.Users.Where(u => u.Id == r.ReportedByUserId).Select(u => u.FirstName + " " + u.LastName).FirstOrDefault(),

@@ -40,6 +40,9 @@ namespace EMS.Application.Common.Logging
         void RefreshTokenRevoked(long? userId);
         void UserRegistered(long userId, string userName);
         void AccessDenied(string requiredPermission);
+
+        /// <summary>A record that exists was hidden from the user by a row policy (he got 404). Only identifiers and the scope reason are logged.</summary>
+        void RowAccessDenied(string entityType, object? entityId, string scopeReason);
         void AuthenticationFailed(string reason);
     }
 }

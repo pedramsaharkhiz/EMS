@@ -240,7 +240,7 @@ public sealed partial class UserManagementService
     /// THE source of user rows for the list AND the Excel export (they both start from <see cref="BuildUserQuery"/>). Whatever decides which users
     /// a caller may see (a future row-level security rule) belongs here, once. The detail (<c>GetByIdAsync</c>) reads users by id and must follow the same rule.
     /// </summary>
-    private IQueryable<ApplicationUser> VisibleUsers() => _dbContext.Users.AsNoTracking();
+    private IQueryable<ApplicationUser> VisibleUsers() => _access.Apply(_dbContext.Users.AsNoTracking());
 
     private IQueryable<ApplicationUser> BuildUserQuery(
         UserListRequestDto request)

@@ -48,6 +48,8 @@ namespace EMS.Domain.ReadModels
 
         /// <summary>Does the report have an open assignment (assigned, accepted or in progress)?</summary>
         public bool HasOpenAssignment { get; set; }
+        /// <summary>Does the CALLER hold an assignment (any status) on this report? Rows are per caller: the row-security policy lets a technician see the reports of his work.</summary>
+        public bool HasAssignmentOfCurrentUser { get; set; }
 
         public long ReportedByUserId { get; set; }
         // the user who registered the report, with the same person set as every other screen (list, detail and Excel read these, not a second lookup)

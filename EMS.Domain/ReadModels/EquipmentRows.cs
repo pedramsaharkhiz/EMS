@@ -10,6 +10,11 @@ namespace EMS.Domain.ReadModels
     public sealed class EquipmentRow
     {
         public long Id { get; set; }
+        /// <summary>
+        /// Does the CALLER hold an assignment (any status) on a failure report of this equipment? Rows are per caller: the row-security policy uses it so a technician
+        /// keeps seeing the equipment of the work he was given, whatever department it is in.
+        /// </summary>
+        public bool HasAssignmentOfCurrentUser { get; set; }
         public EquipmentOwner Owner { get; set; }
         /// <summary>The Persian title of <see cref="Owner"/> (the Excel export reads it; a column must read a property of the row).</summary>
         public string OwnerTitle { get; set; } = string.Empty;
@@ -111,6 +116,13 @@ namespace EMS.Domain.ReadModels
         public string? CityTitle { get; set; }
         public long? ProvinceId { get; set; }
         public string? ProvinceTitle { get; set; }
+    }
+
+    /// <summary>A user as a technician choice / assignment target, with only what the visibility rule reads (his supporting department).</summary>
+    public sealed class UserDirectoryRow
+    {
+        public long Id { get; set; }
+        public long? SupportingDepartmentId { get; set; }
     }
 
     public sealed class TechnicianInfo
