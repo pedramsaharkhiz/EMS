@@ -59,7 +59,9 @@ namespace EMS.Tests.Unit
             var service = new FailureReportService(
                 new FailureReportRepository(context), new EquipmentRepository(context), new FailureTypeRepository(context), new ReportTypeRepository(context),
                 new FailureReportStatusRepository(context), new Repository<EMS.Domain.Entities.Organization>(context), new Repository<EMS.Domain.Entities.Employee>(context),
-                new NoUser(), new UnitOfWork(context), new NoAudit(), exporter, new EMS.Tests.Support.PassThroughRowAccess(), new UserReferenceRepository(context));
+                new NoUser(), new UnitOfWork(context), new NoAudit(), exporter, new EMS.Tests.Support.PassThroughRowAccess(), new UserReferenceRepository(context),
+                new EMS.Application.Services.EmployeePhoneNumber.EmployeePhoneNumberService(new EmployeePhoneNumberRepository(context),
+                    new Repository<EMS.Domain.Entities.Employee>(context), new EMS.Tests.Support.PassThroughRowAccess(), new NoUser(), new UnitOfWork(context), new NoAudit()));
             return (service, exporter, context);
         }
 

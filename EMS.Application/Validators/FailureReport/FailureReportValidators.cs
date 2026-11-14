@@ -47,9 +47,15 @@ namespace EMS.Application.Validators.FailureReport
 
     public sealed class CreateFailureReportDtoValidator : AbstractValidator<FailureReportCreateDto>
     {
-        public CreateFailureReportDtoValidator() =>
+        public CreateFailureReportDtoValidator()
+        {
             FailureReportRules.Common(this, x => x.EquipmentId, x => x.FailureTypeId, x => x.ReportTypeId, x => x.OrganizationId,
                 x => x.EmployeeId, x => x.ReferenceNumber, x => x.PriorityId, x => x.ReportedDateTime, x => x.Description);
+            RuleFor(x => x).Custom((x, context) =>
+            {
+                foreach (var error in EMS.Application.Validators.EmployeePhoneNumber.EmployeePhoneInputRules.Errors(x.EmployeeId, x.EmployeePhoneNumbers)) context.AddFailure(error);
+            });
+        }
     }
 
     public sealed class UpdateFailureReportDtoValidator : AbstractValidator<FailureReportUpdateDto>
@@ -58,6 +64,10 @@ namespace EMS.Application.Validators.FailureReport
         {
             FailureReportRules.Common(this, x => x.EquipmentId, x => x.FailureTypeId, x => x.ReportTypeId, x => x.OrganizationId,
                 x => x.EmployeeId, x => x.ReferenceNumber, x => x.PriorityId, x => x.ReportedDateTime, x => x.Description);
+            RuleFor(x => x).Custom((x, context) =>
+            {
+                foreach (var error in EMS.Application.Validators.EmployeePhoneNumber.EmployeePhoneInputRules.Errors(x.EmployeeId, x.EmployeePhoneNumbers)) context.AddFailure(error);
+            });
             RuleFor(x => x.FailureReportStatusId).GreaterThan(0).WithMessage("شناسه وضعیت گزارش خرابی باید بزرگتر از صفر باشد.");
         }
     }

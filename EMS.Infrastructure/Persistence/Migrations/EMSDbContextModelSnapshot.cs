@@ -410,6 +410,57 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("Employees", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.EmployeePhoneNumber", b =>
+                {
+                    b.Property<long>("EmployeePhoneNumberId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("EmployeePhoneNumberId"));
+
+                    b.Property<long>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long>("EmployeeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<long?>("ModifiedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedDateTime")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(11)");
+
+                    b.HasKey("EmployeePhoneNumberId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_EmployeePhoneNumbers_PhoneNumber");
+
+                    b.ToTable("EmployeePhoneNumbers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_EmployeePhoneNumbers_Mobile", "LEN([PhoneNumber]) = 11 AND [PhoneNumber] LIKE '09%' AND [PhoneNumber] COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^0-9]%'");
+                        });
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.EntityAttachment", b =>
                 {
                     b.Property<long>("EntityAttachmentId")
@@ -2702,6 +2753,17 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.Navigation("OrganizationStructure");
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.EmployeePhoneNumber", b =>
+                {
+                    b.HasOne("EMS.Domain.Entities.Employee", "Employee")
+                        .WithMany("PhoneNumbers")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.EntityAttachment", b =>
                 {
                     b.HasOne("EMS.Domain.Entities.AttachmentContent", "Content")
@@ -3165,6 +3227,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("EMS.Domain.Entities.Employee", b =>
                 {
                     b.Navigation("FailureReports");
+
+                    b.Navigation("PhoneNumbers");
                 });
 
             modelBuilder.Entity("EMS.Domain.Entities.Equipment", b =>

@@ -86,3 +86,7 @@
 به‌ترتیب `docs/sql/FailureCatalogs.sql` و `docs/sql/FailureReportModel.sql` (یا `dotnet ef database update`). قبل از اجرا روی دیتابیسی که داده دارد، بررسی‌های بالای هر اسکریپت را بزن. گزارش‌های موجود (که API نداشتند) «باز» می‌شوند و به کاربری که ردیف را ساخته نسبت داده می‌شوند.
 
 **ارجاع‌ها:** `GET /api/FailureReport/{id}/assignments` تاریخچهٔ ارجاع‌های گزارش و `POST` همان مسیر ارجاع تازه است؛ جزئیات در [TECHNICIAN-ASSIGNMENTS.md](TECHNICIAN-ASSIGNMENTS.md). برای استقرار، اسکریپت‌های `DropFailureReportActions.sql` و `TechnicianAssignments.sql` را هم به ترتیب اجرا کن.
+
+## شماره‌های موبایل کارمند گزارش‌دهنده
+
+POST و PUT گزارش، لیست اختیاری `employeePhoneNumbers` را همراه `employeeId` می‌پذیرند. هر ردیف `{ phoneNumber }` شماره اضافه می‌کند و `{ id, phoneNumber, rowVersion? }` شمارهٔ متعلق به همان کارمند را ویرایش می‌کند. ثبت گزارش و شماره‌ها در یک تراکنش انجام می‌شود. عدم ارسال، null یا لیست خالی بی‌اثر است؛ نبودن یک شماره در لیست به معنی حذف نیست. حذف فقط با API اختصاصی شماره‌ها، به‌صورت فیزیکی تکی/گروهی، انجام می‌شود. تطابق شعبه یا فعال‌بودن کارمند شرط ثبت نیست. جزئیات گزارش شماره‌های فعال فعلی را تنها با مجوز مشاهدهٔ تماس و دامنهٔ مناسب برمی‌گرداند. قواعد کامل، مجوزها و نمونه‌ها: [EMPLOYEE-PHONE-NUMBERS.md](EMPLOYEE-PHONE-NUMBERS.md).

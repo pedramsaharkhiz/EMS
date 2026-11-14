@@ -13,6 +13,7 @@ namespace EMS.Infrastructure.Persistence
     {
         public static readonly IReadOnlyDictionary<string, (string Message, string Code)> ByIndex = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
+            [EmployeePhoneRules.UniqueIndex] = (EmployeePhoneRules.TakenMessage, EmployeePhoneRules.TakenCode),
             [UserIdentityRules.PersonnelIndex] = (UserIdentityRules.PersonnelTaken, ErrorCodes.PersonnelCodeTaken),
             [UserIdentityRules.NationalIndex] = (UserIdentityRules.NationalTaken, ErrorCodes.NationalCodeTaken),
             [EquipmentConstraints.SerialNumberIndexName] = (EquipmentMessages.SerialTaken, ErrorCodes.DuplicateSerialNumber),

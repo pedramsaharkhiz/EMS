@@ -39,6 +39,14 @@ namespace EMS.Application.Common.Security
             public const string ViewAll = "DataScope.ViewAll";
         }
 
+        public static class EmployeePhoneNumbers
+        {
+            public const string View = "EmployeePhoneNumbers.View";
+            public const string Create = "EmployeePhoneNumbers.Create";
+            public const string Update = "EmployeePhoneNumbers.Update";
+            public const string Delete = "EmployeePhoneNumbers.Delete";
+        }
+
         public static class Users
         {
             public const string View = "Users.View";

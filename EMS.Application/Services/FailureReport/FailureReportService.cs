@@ -1,3 +1,4 @@
+using EMS.Application.Interfaces.EmployeePhoneNumber;
 using EMS.Application.Common.Catalog;
 using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
@@ -75,6 +76,7 @@ namespace EMS.Application.Services.FailureReport
         private readonly IExcelExporter _exporter;
         private readonly IRowAccess _access;
         private readonly IUserReferenceRepository _people;
+        private readonly IEmployeePhoneNumberService _employeePhones;
 
         public FailureReportService(
             IFailureReportRepository repository,
@@ -89,7 +91,8 @@ namespace EMS.Application.Services.FailureReport
             IAuditEventLogger audit,
             IExcelExporter exporter,
             IRowAccess access,
-            IUserReferenceRepository people)
+            IUserReferenceRepository people,
+            IEmployeePhoneNumberService employeePhones)
         {
             _repository = repository;
             _equipment = equipment;
@@ -104,6 +107,7 @@ namespace EMS.Application.Services.FailureReport
             _exporter = exporter;
             _access = access;
             _people = people;
+            _employeePhones = employeePhones;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -201,6 +205,9 @@ namespace EMS.Application.Services.FailureReport
             if (referenceNumber is not null)
                 await EnsureReferenceNumberIsFreeAsync(referenceNumber, exceptId: null, cancellationToken);
 
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await _employeePhones.ApplyForReportAsync(request.EmployeeId, request.EmployeePhoneNumbers, cancellationToken);
+
             var entity = new FailureReportEntity
             {
                 EquipmentId = request.EquipmentId,
@@ -218,6 +225,10 @@ namespace EMS.Application.Services.FailureReport
 
             await _repository.AddAsync(entity, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            if (request.EmployeePhoneNumbers is { Count: > 0 })
+                _audit.Operation("PhoneNumbersSaved", "Employee", request.EmployeeId);
 
             _audit.Created("FailureReport", entity.FailureReportId);
             return await DetailAsync(entity.FailureReportId, cancellationToken);
@@ -243,6 +254,9 @@ namespace EMS.Application.Services.FailureReport
                 && (reactivating || !string.Equals(entity.ReferenceNumber, referenceNumber, StringComparison.OrdinalIgnoreCase)))
                 await EnsureReferenceNumberIsFreeAsync(referenceNumber, id, cancellationToken);
 
+            await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            await _employeePhones.ApplyForReportAsync(request.EmployeeId, request.EmployeePhoneNumbers, cancellationToken);
+
             entity.EquipmentId = request.EquipmentId;
             entity.FailureTypeId = request.FailureTypeId;
             entity.ReportTypeId = request.ReportTypeId;
@@ -259,6 +273,10 @@ namespace EMS.Application.Services.FailureReport
             entity.IsActive = request.IsActive;
             _repository.Update(entity);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            if (request.EmployeePhoneNumbers is { Count: > 0 })
+                _audit.Operation("PhoneNumbersSaved", "Employee", request.EmployeeId);
 
             _audit.Updated("FailureReport", id);
             return await DetailAsync(id, cancellationToken);
@@ -283,6 +301,7 @@ namespace EMS.Application.Services.FailureReport
             var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var detail = Fill(new FailureReportDetailDto(), row);
             await FillReporterDepartmentsAsync(new[] { detail }, cancellationToken);
+            detail.EmployeePhoneNumbers = await _employeePhones.GetForReportAsync(row.EmployeeId, cancellationToken);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             return detail;
@@ -370,7 +389,7 @@ namespace EMS.Application.Services.FailureReport
             await ParentGuard.RequireAsync(_statuses, statusId, x => x.FailureReportStatusId, "وضعیت گزارش خرابی", Active(current is null || current.FailureReportStatusId != statusId), cancellationToken);
             await ParentGuard.RequireAsync(_organizations, organizationId, x => x.OrganizationId, "شعبه", Active(current is null || current.OrganizationId != organizationId), cancellationToken);
             if (employeeId is { } employee)
-                await ParentGuard.RequireAsync(_employees, employee, x => x.EmployeeId, "کارمند", Active(current is null || current.EmployeeId != employeeId), cancellationToken);
+                await ParentGuard.RequireAsync(_employees, employee, x => x.EmployeeId, "کارمند", mustBeActive: false, cancellationToken);
 
             // The branch of a new or changed report, and its equipment, must be ones the caller may see (the answer for a hidden one is the same as for a missing one).
             if (current is null || current.OrganizationId != organizationId)

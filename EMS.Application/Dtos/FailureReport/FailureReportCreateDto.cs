@@ -12,6 +12,8 @@ namespace EMS.Application.Dtos.FailureReport
         public long ReportTypeId { get; set; }
         public long OrganizationId { get; set; }
         public long? EmployeeId { get; set; }
+        /// <summary>Optional add/edit list for the selected employee; omission never removes stored numbers.</summary>
+        public List<EMS.Application.Dtos.EmployeePhoneNumber.EmployeePhoneNumberInputDto>? EmployeePhoneNumbers { get; set; }
         public string? ReferenceNumber { get; set; }
         public int PriorityId { get; set; }
         public DateTime? ReportedDateTime { get; set; }

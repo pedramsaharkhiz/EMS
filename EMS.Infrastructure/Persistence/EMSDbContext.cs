@@ -33,6 +33,7 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<OrganizationType> OrganizationTypes => Set<OrganizationType>();
         public DbSet<Organization> Organizations => Set<Organization>();
         public DbSet<OrganizationStructure> OrganizationStructures => Set<OrganizationStructure>();
+        public DbSet<EmployeePhoneNumber> EmployeePhoneNumbers => Set<EmployeePhoneNumber>();
         public DbSet<Employee> Employees => Set<Employee>();
 
         public DbSet<EquipmentCategory> EquipmentCategories => Set<EquipmentCategory>();

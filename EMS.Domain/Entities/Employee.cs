@@ -1,4 +1,4 @@
-﻿using EMS.Domain.Interfaces;
+using EMS.Domain.Interfaces;
 
 namespace EMS.Domain.Entities
 {
@@ -16,6 +16,7 @@ namespace EMS.Domain.Entities
 
         public Organization Organization { get; set; } = null!;
         public OrganizationStructure OrganizationStructure { get; set; } = null!;
+        public ICollection<EmployeePhoneNumber> PhoneNumbers { get; set; } = new List<EmployeePhoneNumber>();
         public ICollection<FailureReport> FailureReports { get; set; } = new List<FailureReport>();
     }
 }

@@ -115,6 +115,122 @@ namespace EMS.Tests.Integration
             ["rowVersion"] = report.GetProperty("rowVersion").GetString(),
         };
 
+        [Fact]
+        public async Task Employee_phones_are_added_and_edited_by_reports_without_removing_omitted_numbers()
+        {
+            var f = await NewFixtureAsync(); var employee = await NewEmployeeAsync(await NewOrganizationAsync());
+            // The selected employee is not required to be active or belong to the report branch.
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+                (await db.Employees.FindAsync(employee))!.IsActive = false; await db.SaveChangesAsync();
+            }
+            var first = EmployeePhoneNumberTests.Number(); var second = EmployeePhoneNumberTests.Number();
+            var body = Body(f); body["employeeId"] = employee;
+            body["employeePhoneNumbers"] = new[] { new { phoneNumber = first }, new { phoneNumber = "+98" + first[1..] }, new { phoneNumber = "0098" + second[1..] } };
+            var report = await CreateAsync(body);
+            var phones = report.GetProperty("employeePhoneNumbers").EnumerateArray().ToList(); Assert.Equal(2, phones.Count);
+            var one = phones.Single(p => p.GetProperty("phoneNumber").GetString() == first);
+            var replacement = EmployeePhoneNumberTests.Number(); var added = EmployeePhoneNumberTests.Number();
+            var edit = UpdateBodyFrom(report);
+            edit["employeePhoneNumbers"] = new object[] { new { id = Id(one), phoneNumber = replacement, rowVersion = one.GetProperty("rowVersion").GetString() }, new { phoneNumber = added } };
+            var response = await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", edit);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode); report = await ReadDataAsync(response);
+            var values = report.GetProperty("employeePhoneNumbers").EnumerateArray().Select(p => p.GetProperty("phoneNumber").GetString()).ToList();
+            Assert.Equal(3, values.Count); Assert.Contains(second, values); Assert.Contains(replacement, values); Assert.Contains(added, values); Assert.DoesNotContain(first, values);
+            foreach (var list in new object?[] { null, Array.Empty<object>() })
+            {
+                edit = UpdateBodyFrom(report); edit["employeePhoneNumbers"] = list;
+                response = await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", edit);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode); report = await ReadDataAsync(response);
+                Assert.Equal(3, report.GetProperty("employeePhoneNumbers").GetArrayLength());
+            }
+            // A later report adds to the same employee's shared contacts.
+            body["employeePhoneNumbers"] = new[] { new { phoneNumber = EmployeePhoneNumberTests.Number() } };
+            var later = await CreateAsync(body); Assert.Equal(4, later.GetProperty("employeePhoneNumbers").GetArrayLength());
+            var refreshed = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport/{Id(report)}"));
+            Assert.Equal(4, refreshed.GetProperty("employeePhoneNumbers").GetArrayLength());
+        }
+
+        [Fact]
+        public async Task Report_phone_edits_honor_versions_and_reactivate_existing_own_numbers()
+        {
+            var f = await NewFixtureAsync(); var employee = await NewEmployeeAsync(f.OrganizationId); var number = EmployeePhoneNumberTests.Number();
+            var body = Body(f); body["employeeId"] = employee; body["employeePhoneNumbers"] = new[] { new { phoneNumber = number } };
+            var report = await CreateAsync(body); var phone = report.GetProperty("employeePhoneNumbers")[0];
+            var edited = await SendAdminAsync(HttpMethod.Put, $"/api/EmployeePhoneNumber/{Id(phone)}", new { phoneNumber = number, isActive = false });
+            Assert.Equal(HttpStatusCode.OK, edited.StatusCode);
+            var update = UpdateBodyFrom(report);
+            update["employeePhoneNumbers"] = new[] { new { id = Id(phone), phoneNumber = EmployeePhoneNumberTests.Number(), rowVersion = phone.GetProperty("rowVersion").GetString() } };
+            var stale = await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", update);
+            Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+            Assert.Contains("employeePhoneNumbers[0].rowVersion", ErrorFieldsOf(await ReadJsonAsync(stale)));
+            update["employeePhoneNumbers"] = new[] { new { phoneNumber = number } };
+            var reactivated = await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", update);
+            Assert.Equal(HttpStatusCode.OK, reactivated.StatusCode);
+            var restored = Assert.Single((await ReadDataAsync(reactivated)).GetProperty("employeePhoneNumbers").EnumerateArray());
+            Assert.Equal(Id(phone), Id(restored)); Assert.Equal(number, restored.GetProperty("phoneNumber").GetString());
+        }
+
+        [Fact]
+        public async Task Invalid_or_foreign_phone_batches_leave_report_and_contacts_unchanged()
+        {
+            var f = await NewFixtureAsync(); var employee = await NewEmployeeAsync(f.OrganizationId); var other = await NewEmployeeAsync(f.OrganizationId);
+            var number = EmployeePhoneNumberTests.Number();
+            var registered = await SendAdminAsync(HttpMethod.Post, "/api/EmployeePhoneNumber", new { employeeId = other, phoneNumber = number });
+            Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
+            var body = Body(f, Uniq("phoneatomic")); body["employeeId"] = employee;
+            var fresh = EmployeePhoneNumberTests.Number();
+            body["employeePhoneNumbers"] = new[] { new { phoneNumber = fresh }, new { phoneNumber = number } };
+            var response = await SendAdminAsync(HttpMethod.Post, "/api/FailureReport", body);
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+                Assert.False(db.FailureReports.Any(r => r.ReferenceNumber == (string)body["referenceNumber"]!));
+                Assert.False(db.EmployeePhoneNumbers.Any(p => p.PhoneNumber == fresh));
+            }
+            body.Remove("employeePhoneNumbers"); var report = await CreateAsync(body);
+            var edit = UpdateBodyFrom(report); edit["description"] = "نباید ذخیره شود";
+            edit["employeePhoneNumbers"] = new[] { new { phoneNumber = fresh }, new { phoneNumber = number } };
+            Assert.Equal(HttpStatusCode.Conflict, (await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", edit)).StatusCode);
+            var current = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport/{Id(report)}"));
+            Assert.Equal(report.GetProperty("description").GetString(), current.GetProperty("description").GetString());
+            Assert.Empty(current.GetProperty("employeePhoneNumbers").EnumerateArray());
+            // An id from a different employee cannot be edited through this report.
+            var foreign = await ReadDataAsync(registered);
+            edit["employeePhoneNumbers"] = new[] { new { id = Id(foreign), phoneNumber = fresh } };
+            Assert.Equal(HttpStatusCode.NotFound, (await SendAdminAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", edit)).StatusCode);
+            // Missing employee and malformed lists fail with field-level Persian messages.
+            body.Remove("employeeId"); body["employeePhoneNumbers"] = new[] { new { phoneNumber = fresh } };
+            Assert.Equal(HttpStatusCode.BadRequest, (await SendAdminAsync(HttpMethod.Post, "/api/FailureReport", body)).StatusCode);
+            body["employeeId"] = employee; body["employeePhoneNumbers"] = new[] { new { phoneNumber = fresh }, new { phoneNumber = "bad" } };
+            response = await SendAdminAsync(HttpMethod.Post, "/api/FailureReport", body);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("employeePhoneNumbers[1].phoneNumber", ErrorFieldsOf(await ReadJsonAsync(response)));
+        }
+
+        [Fact]
+        public async Task Report_phone_changes_need_their_own_permissions_and_detail_hides_contacts_without_view()
+        {
+            var f = await NewFixtureAsync(); var employee = await NewEmployeeAsync(f.OrganizationId);
+            var name = "rphone_" + Guid.NewGuid().ToString("N")[..10]; var admin = await AdminAsync();
+            var userId = await CreateUserAsync(admin, name, "Passw0rd!x");
+            var role = await CreateRoleAsync(admin, name, "FailureReports.Create", "FailureReports.Update", "FailureReports.View");
+            await AssignRoleAsync(admin, userId, role); var token = (await LoginAsync(name, "Passw0rd!x")).AccessToken;
+            var body = Body(f); body["employeeId"] = employee;
+            body["employeePhoneNumbers"] = new[] { new { phoneNumber = EmployeePhoneNumberTests.Number() } };
+            Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(HttpMethod.Post, "/api/FailureReport", body, bearer: token)).StatusCode);
+            var report = await CreateAsync(body); Assert.Single(report.GetProperty("employeePhoneNumbers").EnumerateArray());
+            var visible = await ReadDataAsync(await SendAsync(HttpMethod.Get, $"/api/FailureReport/{Id(report)}", bearer: token));
+            Assert.Empty(visible.GetProperty("employeePhoneNumbers").EnumerateArray());
+            var phone = report.GetProperty("employeePhoneNumbers")[0]; var edit = UpdateBodyFrom(report);
+            edit["employeePhoneNumbers"] = new[] { new { id = Id(phone), phoneNumber = EmployeePhoneNumberTests.Number() } };
+            Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync(HttpMethod.Put, $"/api/FailureReport/{Id(report)}", edit, bearer: token)).StatusCode);
+            body["employeePhoneNumbers"] = Array.Empty<object>();
+            Assert.Equal(HttpStatusCode.Created, (await SendAsync(HttpMethod.Post, "/api/FailureReport", body, bearer: token)).StatusCode);
+        }
+
         private static long Id(JsonElement e) => e.GetProperty("id").GetInt64();
 
         private async Task<List<long>> ListIdsAsync(string query)
