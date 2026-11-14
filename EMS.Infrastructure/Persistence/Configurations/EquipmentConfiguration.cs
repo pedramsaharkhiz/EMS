@@ -14,6 +14,7 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.ToTable("Equipments");
             builder.HasSoftDeleteFilter();   // deactivated equipment is invisible unless a query asks for it (see SoftDelete)
             builder.HasKey(x => x.EquipmentId);
+            builder.Property(x => x.HasConflict).HasDefaultValue(false).IsRequired();
 
             builder.Property(x => x.SerialNumber).HasMaxLength(EquipmentConstraints.SerialNumberMaxLength).IsRequired(false);
             builder.Property(x => x.AssetNumber).HasMaxLength(EquipmentConstraints.AssetNumberMaxLength).IsRequired(false);

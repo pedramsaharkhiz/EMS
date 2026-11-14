@@ -373,6 +373,7 @@ namespace EMS.Application.Services.Equipment
             var entity = new EquipmentEntity
             {
                 Owner = request.Owner,
+                HasConflict = request.HasConflict,
                 YaasCode = yaasCode,
                 SerialNumber = Normalize(request.SerialNumber),
                 AssetNumber = Normalize(request.AssetNumber),
@@ -459,6 +460,7 @@ namespace EMS.Application.Services.Equipment
                 var entity = new EquipmentEntity
                 {
                     Owner = item.Owner,
+                    HasConflict = item.HasConflict,
                     YaasCode = item.YaasCode.Trim(),
                     SerialNumber = Normalize(item.SerialNumber),
                     AssetNumber = Normalize(item.AssetNumber),
@@ -526,6 +528,7 @@ namespace EMS.Application.Services.Equipment
                 await EnsureAssetNumberIsFreeAsync(asset, id, cancellationToken);
 
             entity.Owner = request.Owner;
+            entity.HasConflict = request.HasConflict;
             entity.YaasCode = yaasCode;
             entity.SerialNumber = Normalize(request.SerialNumber);
             entity.AssetNumber = Normalize(request.AssetNumber);
@@ -745,6 +748,7 @@ namespace EMS.Application.Services.Equipment
             dto.Owner = row.Owner;
             dto.OwnerTitle = row.OwnerTitle;
             dto.YaasCode = row.YaasCode;
+            dto.HasConflict = row.HasConflict;
             dto.SerialNumber = row.SerialNumber;
             dto.AssetNumber = row.AssetNumber;
             dto.EquipmentTypeId = row.EquipmentTypeId;
@@ -955,6 +959,7 @@ namespace EMS.Application.Services.Equipment
             {
                 Id = x.Id,
                 YaasCode = x.YaasCode,
+                HasConflict = x.HasConflict,
                 SerialNumber = x.SerialNumber,
                 AssetNumber = x.AssetNumber
             });

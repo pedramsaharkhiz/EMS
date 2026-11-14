@@ -130,11 +130,14 @@ namespace EMS.Tests.Integration
         [Fact]
         public async Task Every_required_column_is_required_by_the_validation_with_a_persian_message()
         {
-            // the NOT NULL columns of the table, minus the ones the server fills (key, state, audit); a new one must be added here AND validated
+            // Required input columns exclude server-filled fields and the optional conflict flag, which defaults to false.
+            var conflict = Equipment().FindProperty(nameof(EMS.Domain.Entities.Equipment.HasConflict))!;
+            Assert.False(conflict.IsNullable);
+            Assert.Equal(false, conflict.GetDefaultValue());
             var notNull = Equipment().GetProperties()
                 .Where(p => !p.IsNullable && !p.IsPrimaryKey())
                 .Select(p => p.Name)
-                .Except(new[] { "IsActive", "CreatedByUserId", "CreatedDateTime" })
+                .Except(new[] { "IsActive", "CreatedByUserId", "CreatedDateTime", "HasConflict" })
                 .OrderBy(n => n).ToArray();
             Assert.Equal(new[] { "EquipmentStatusId", "Owner", "YaasCode" }, notNull);
 

@@ -14,6 +14,7 @@ namespace EMS.Application.Dtos.Equipment
         /// <summary>How many active attachments (files) this equipment has. The list of them is in <see cref="EquipmentDetailWithAttachmentsDto.Attachments"/> (GET /api/Equipment/{id}).</summary>
         public int AttachmentCount { get; set; }
         public EquipmentOwner Owner { get; set; }
+        public bool HasConflict { get; set; } = false;
         /// <summary>The Persian title of <see cref="Owner"/> (شرکت / بانک), so a client does not have to map the number.</summary>
         public string OwnerTitle { get; set; } = string.Empty;
         public string YaasCode { get; set; } = string.Empty;

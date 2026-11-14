@@ -8,6 +8,7 @@ namespace EMS.Application.Dtos.Equipment
     public class EquipmentCreateDto
     {
         public EquipmentOwner Owner { get; set; }
+        public bool HasConflict { get; set; } = false;
         public string YaasCode { get; set; } = string.Empty;
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }

@@ -98,6 +98,7 @@ namespace EMS.Infrastructure.Repositories
                 Owner = e.Owner,
                 OwnerTitle = e.Owner == EquipmentOwner.Company ? EquipmentOwnerTitles.Company : e.Owner == EquipmentOwner.Bank ? EquipmentOwnerTitles.Bank : EquipmentOwnerTitles.Unknown,
                 YaasCode = e.YaasCode,
+                HasConflict = e.HasConflict,
                 SerialNumber = e.SerialNumber,
                 AssetNumber = e.AssetNumber,
 

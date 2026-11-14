@@ -306,6 +306,7 @@ namespace EMS.Application.Services.FailureReport
             dto.ReferenceNumber = row.ReferenceNumber;
             dto.EquipmentId = row.EquipmentId;
             dto.EquipmentYaasCode = row.EquipmentYaasCode;
+            dto.EquipmentHasConflict = row.EquipmentHasConflict;
             dto.EquipmentSerialNumber = row.EquipmentSerialNumber;
             dto.EquipmentAssetNumber = row.EquipmentAssetNumber;
             dto.EquipmentOwner = row.EquipmentOwner;

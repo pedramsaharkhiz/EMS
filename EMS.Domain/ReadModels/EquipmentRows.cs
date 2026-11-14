@@ -16,6 +16,7 @@ namespace EMS.Domain.ReadModels
         /// </summary>
         public bool HasAssignmentOfCurrentUser { get; set; }
         public EquipmentOwner Owner { get; set; }
+        public bool HasConflict { get; set; } = false;
         /// <summary>The Persian title of <see cref="Owner"/> (the Excel export reads it; a column must read a property of the row).</summary>
         public string OwnerTitle { get; set; } = string.Empty;
         public string YaasCode { get; set; } = string.Empty;

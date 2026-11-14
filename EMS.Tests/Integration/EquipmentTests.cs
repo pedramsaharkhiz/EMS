@@ -114,6 +114,57 @@ namespace EMS.Tests.Integration
             Assert.Equal(code, ErrorCodeOf(await ReadJsonAsync(response)));
         }
 
+        [Fact]
+        public async Task Conflict_is_in_organization_equipment_and_excel_export()
+        {
+            var org = await NewOrganizationAsync();
+            var body = await BodyAsync();
+            body.Remove("currentSupportingDepartmentId");
+            body["currentOrganizationId"] = org.OrganizationId;
+            body["hasConflict"] = true;
+            var id = Id(await CreateAsync(body));
+            var response = await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/by-organization?organizationId={org.OrganizationId}");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.True((await ReadDataAsync(response)).EnumerateArray().Single(x => Id(x) == id).GetProperty("hasConflict").GetBoolean());
+            var export = await SendAdminAsync(HttpMethod.Get, "/api/Equipment/export?search=" + body["yaasCode"]);
+            Assert.Equal(HttpStatusCode.OK, export.StatusCode);
+            using var stream = new MemoryStream(await export.Content.ReadAsByteArrayAsync());
+            using var book = new XLWorkbook(stream);
+            var sheet = book.Worksheet(1);
+            var column = sheet.Row(1).CellsUsed().Single(c => c.GetString() == "دارای مغایرت").Address.ColumnNumber;
+            Assert.Equal("بله", sheet.Cell(2, column).GetString());
+        }
+
+        [Fact]
+        public async Task Conflict_defaults_false_and_round_trips_through_create_bulk_update_and_lists()
+        {
+            var body = await BodyAsync();
+            var created = await CreateAsync(body);
+            Assert.False(created.GetProperty("hasConflict").GetBoolean());
+            var id = Id(created);
+            body["hasConflict"] = true;
+            var updated = await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{id}", body);
+            Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+            Assert.True((await ReadDataAsync(updated)).GetProperty("hasConflict").GetBoolean());
+            var detail = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"));
+            Assert.True(detail.GetProperty("hasConflict").GetBoolean());
+            var list = await ListAsync("search=" + body["yaasCode"]);
+            Assert.True(DataOf(list).EnumerateArray().Single(x => Id(x) == id).GetProperty("hasConflict").GetBoolean());
+            body["hasConflict"] = false;
+            Assert.Equal(HttpStatusCode.OK, (await SendAdminAsync(HttpMethod.Put, $"/api/Equipment/{id}", body)).StatusCode);
+            Assert.False((await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}"))).GetProperty("hasConflict").GetBoolean());
+
+            body["yaasCode"] = Uniq("conflict");
+            body["hasConflict"] = true;
+            Assert.True((await CreateAsync(body)).GetProperty("hasConflict").GetBoolean());
+            var second = await BodyAsync();
+            var bulk = await SendAdminAsync(HttpMethod.Post, "/api/Equipment/bulk", new { items = new[] { body, second } });
+            Assert.Equal(HttpStatusCode.Created, bulk.StatusCode);
+            var rows = (await ReadDataAsync(bulk)).EnumerateArray().ToList();
+            Assert.True(rows[0].GetProperty("hasConflict").GetBoolean());
+            Assert.False(rows[1].GetProperty("hasConflict").GetBoolean());
+        }
+
         // ------------------------------------------------------------------------------------------ create / read
 
         [Fact]

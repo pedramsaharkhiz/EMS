@@ -474,6 +474,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             dto.FailureReportReferenceNumber = row.FailureReportReferenceNumber;
             dto.EquipmentId = row.EquipmentId;
             dto.EquipmentYaasCode = row.EquipmentYaasCode;
+            dto.EquipmentHasConflict = row.EquipmentHasConflict;
             dto.StatusId = row.StatusId;
             dto.StatusCode = row.StatusCode;
             dto.StatusTitle = row.StatusTitle;

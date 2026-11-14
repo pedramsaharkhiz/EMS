@@ -613,6 +613,7 @@ GET api/Equipment
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -669,6 +670,7 @@ POST api/Equipment
   authorization: Permission:Equipments.Create
   body: EquipmentCreateDto
     Owner : EquipmentOwner
+    HasConflict : Boolean
     YaasCode : String
     SerialNumber : String
     AssetNumber : String
@@ -687,6 +689,7 @@ POST api/Equipment
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -751,6 +754,7 @@ POST api/Equipment/bulk
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -840,6 +844,7 @@ GET api/Equipment/by-organization
     data:
       Id : Int64
       YaasCode : String
+      HasConflict : Boolean
       SerialNumber : String
       AssetNumber : String
   response 400: ApiResponse<Object>
@@ -938,6 +943,7 @@ POST api/Equipment/with-attachments
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -1015,6 +1021,7 @@ GET api/Equipment/{id}
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -1071,6 +1078,7 @@ PUT api/Equipment/{id}
   authorization: Permission:Equipments.Update
   body: EquipmentUpdateDto
     Owner : EquipmentOwner
+    HasConflict : Boolean
     YaasCode : String
     SerialNumber : String
     AssetNumber : String
@@ -1089,6 +1097,7 @@ PUT api/Equipment/{id}
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -1204,6 +1213,7 @@ POST api/Equipment/{id}/move
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String
@@ -1878,6 +1888,7 @@ GET api/FailureReport
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       EquipmentSerialNumber : String
       EquipmentAssetNumber : String
       EquipmentOwner : EquipmentOwner
@@ -1950,6 +1961,7 @@ POST api/FailureReport
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       EquipmentSerialNumber : String
       EquipmentAssetNumber : String
       EquipmentOwner : EquipmentOwner
@@ -2074,6 +2086,7 @@ GET api/FailureReport/{failureReportId}/assignments
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -2133,6 +2146,7 @@ POST api/FailureReport/{failureReportId}/assignments
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -2188,6 +2202,7 @@ POST api/FailureReport/{failureReportId}/assignments/bulk
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -2251,6 +2266,7 @@ GET api/FailureReport/{id}
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       EquipmentSerialNumber : String
       EquipmentAssetNumber : String
       EquipmentOwner : EquipmentOwner
@@ -2327,6 +2343,7 @@ PUT api/FailureReport/{id}
       ReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       EquipmentSerialNumber : String
       EquipmentAssetNumber : String
       EquipmentOwner : EquipmentOwner
@@ -3806,6 +3823,7 @@ GET api/TechnicianAssignment
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -3949,6 +3967,7 @@ GET api/TechnicianAssignment/{id}
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4008,6 +4027,7 @@ PUT api/TechnicianAssignment/{id}
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4064,6 +4084,7 @@ POST api/TechnicianAssignment/{id}/accept
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4171,6 +4192,7 @@ POST api/TechnicianAssignment/{id}/cancel
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4227,6 +4249,7 @@ POST api/TechnicianAssignment/{id}/complete
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4283,6 +4306,7 @@ POST api/TechnicianAssignment/{id}/reject
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4336,6 +4360,7 @@ POST api/TechnicianAssignment/{id}/seen
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4392,6 +4417,7 @@ POST api/TechnicianAssignment/{id}/start
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4695,6 +4721,7 @@ GET api/Users/{userId}/assignments
       FailureReportReferenceNumber : String
       EquipmentId : Int64
       EquipmentYaasCode : String
+      EquipmentHasConflict : Boolean
       StatusId : Int64
       StatusCode : String
       StatusTitle : String
@@ -4769,6 +4796,7 @@ GET api/Users/{userId}/equipment
       Id : Int64
       AttachmentCount : Int32
       Owner : EquipmentOwner
+      HasConflict : Boolean
       OwnerTitle : String
       YaasCode : String
       SerialNumber : String

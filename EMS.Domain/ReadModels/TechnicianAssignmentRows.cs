@@ -12,6 +12,7 @@ namespace EMS.Domain.ReadModels
         public bool IsOfCurrentUser { get; set; }
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        public bool EquipmentHasConflict { get; set; }
         public long StatusId { get; set; }
         public string? StatusCode { get; set; }
         public string? StatusTitle { get; set; }

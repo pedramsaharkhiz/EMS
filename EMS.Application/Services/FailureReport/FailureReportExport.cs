@@ -20,6 +20,7 @@ namespace EMS.Application.Services.FailureReport
             .Column(x => x.FailureCategoryTitle, "دسته‌بندی خرابی")
             .Column(x => x.FailureTypeTitle, "نوع خرابی")
             .Column(x => x.EquipmentYaasCode, "یاس کد تجهیز", ExcelCellKind.Text)
+            .Column(x => x.EquipmentHasConflict, "مغایرت تجهیز")
             .Column(x => x.EquipmentSerialNumber, "سریال نامبر", ExcelCellKind.Text)
             .Column(x => x.EquipmentAssetNumber, "شماره دارایی", ExcelCellKind.Text)
             .Column(x => x.EquipmentOwnerTitle, "مالک تجهیز")

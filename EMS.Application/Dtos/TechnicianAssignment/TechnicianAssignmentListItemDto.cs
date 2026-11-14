@@ -12,6 +12,7 @@ namespace EMS.Application.Dtos.TechnicianAssignment
         public string? FailureReportReferenceNumber { get; set; }
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        public bool EquipmentHasConflict { get; set; }
 
         public long StatusId { get; set; }
         public string? StatusCode { get; set; }

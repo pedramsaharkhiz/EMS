@@ -477,3 +477,7 @@
 | ۱ | قاعده‌ی مجاز بودن ترکیب مکان تجهیز | ([بخش ۳](#۳-تجهیز--قاعده‌های-باز)) | بدون محدودیت |
 | ۲ | قاعده‌ی گذار وضعیت گزارش خرابی و اثر آن روی تجهیز | ([بخش ۴](#۴-گزارش-خرابی--اجرا-شده--۲۰۲۶-۱۱-۰۴)) | بدون محدودیت |
 | ۳ | شعبه‌ای که بعد از اختصاص گروهی به آن گروه اضافه می‌شود، خودکار زیر ستاد برود؟ | ([بخش ۵](#۵-محدوده‌ی-شعب-برای-ستاد-پشتیبانی--اجرا-شده--۲۰۲۶-۱۱-۰۴)) | نه، باید دوباره اختصاص داده شود |
+
+### Equipment conflict flag
+
+Equipment has an editable boolean `HasConflict`, initially false. Related failure report and technician assignment responses show its current value. It is independent of equipment status and location.

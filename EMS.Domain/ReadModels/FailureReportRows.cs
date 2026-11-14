@@ -9,6 +9,7 @@ namespace EMS.Domain.ReadModels
 
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        public bool EquipmentHasConflict { get; set; }
         public string? EquipmentSerialNumber { get; set; }
         public string? EquipmentAssetNumber { get; set; }
         public EquipmentOwner EquipmentOwner { get; set; }

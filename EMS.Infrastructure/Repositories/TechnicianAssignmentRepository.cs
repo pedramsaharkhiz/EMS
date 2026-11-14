@@ -59,6 +59,7 @@ namespace EMS.Infrastructure.Repositories
                 IsOfCurrentUser = a.TechnicianUserId == _currentUserId,
                 EquipmentId = a.FailureReport.EquipmentId,
                 EquipmentYaasCode = a.FailureReport.Equipment.YaasCode,
+                EquipmentHasConflict = a.FailureReport.Equipment.HasConflict,
                 StatusId = a.TechnicianAssignmentStatusId,
                 StatusCode = a.TechnicianAssignmentStatus.Code,
                 StatusTitle = a.TechnicianAssignmentStatus.Title,

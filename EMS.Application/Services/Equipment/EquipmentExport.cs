@@ -14,6 +14,7 @@ namespace EMS.Application.Services.Equipment
             .Column(x => x.Id)
             .Column(x => x.OwnerTitle, "مالک")
             .Column(x => x.YaasCode, "یاس کد", ExcelCellKind.Text)
+            .Column(x => x.HasConflict, "دارای مغایرت")
             .Column(x => x.SerialNumber, "سریال نامبر", ExcelCellKind.Text)
             .Column(x => x.AssetNumber, "شماره دارایی", ExcelCellKind.Text)
             .Column(x => x.CategoryTitle, "دسته‌بندی")

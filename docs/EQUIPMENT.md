@@ -203,3 +203,9 @@ Remove-Item Env:EMS_TEST_SQL
 نام سرور و روش احراز هویت را با محیط خود هماهنگ کنید. اطلاعات ورود را در فایل‌های مخزن ذخیره نکنید. این دستور روی دیتابیس عملیاتی اجرا نشود: `SqlMigrationStartupTests` دیتابیس معرفی‌شده در اتصال را حذف و دوباره ایجاد می‌کند؛ نامش باید شامل `test` باشد. تست جدید تجهیزات نیز دیتابیس‌های مستقل موقت ایجاد می‌کند. از دیتابیس دارای اطلاعات واقعی استفاده نکنید.
 
 migration جدید توسط صاحب محصول با شناسهٔ `20261111093443_SetConstraintForOrganizationSupoortingDepartmentTechnecianInEquipment` ثبت شده است؛ تست تطابق مدل باید پس از دریافت این migration پاس شود.
+
+## Conflict flag
+
+`HasConflict` is a stored boolean, default `false` in the entity and SQL model. Equipment create (including bulk and with attachments) and PUT accept `hasConflict`; PUT replaces its value, so omission resets it to `false`. Equipment detail, lists (including user/organization lists), and Excel export return the current flag. Failure report and technician assignment list/detail responses expose the current equipment value as `equipmentHasConflict`; failure report exports also include it. Moves and soft deletion do not change this flag.
+
+Migration generation is deliberately left to the operator. Generate and apply a migration adding the non-null `Equipments.HasConflict` column with default `false` before running against SQL Server. The migration and model snapshot have not been changed; `SchemaDriftTests` will report the pending column until the migration is generated.

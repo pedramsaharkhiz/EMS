@@ -9,6 +9,7 @@ namespace EMS.Application.Dtos.FailureReport
         public string? ReferenceNumber { get; set; }
         public long EquipmentId { get; set; }
         public string? EquipmentYaasCode { get; set; }
+        public bool EquipmentHasConflict { get; set; }
         // the equipment, with the same names as in the equipment list
         public string? EquipmentSerialNumber { get; set; }
         public string? EquipmentAssetNumber { get; set; }

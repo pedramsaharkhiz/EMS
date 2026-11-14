@@ -21,6 +21,35 @@ namespace EMS.Tests.Integration
         private Task<long> PostIdAsync(string url, object body) => CatalogFixtures.PostAsync(this, url, body, "id");
         private static long Id(JsonElement e) => e.GetProperty("id").GetInt64();
 
+        [Fact]
+        public async Task Related_responses_show_the_current_equipment_conflict_flag()
+        {
+            var report = await NewReportAsync();
+            var technician = await NewTechnicianAsync();
+            var assignment = await AssignAsync(report.Id, technician.UserId);
+            Assert.False(assignment.GetProperty("equipmentHasConflict").GetBoolean());
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+                (await db.Equipments.FindAsync(report.EquipmentId))!.HasConflict = true;
+                await db.SaveChangesAsync();
+            }
+            foreach (var path in new[] { $"/api/TechnicianAssignment/{Id(assignment)}", $"/api/FailureReport/{report.Id}" })
+            {
+                var response = await AsAdminAsync(HttpMethod.Get, path);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.True((await ReadDataAsync(response)).GetProperty("equipmentHasConflict").GetBoolean());
+            }
+            foreach (var path in new[] { "/api/TechnicianAssignment", "/api/FailureReport" })
+            {
+                var response = await AsAdminAsync(HttpMethod.Get, path + "?equipmentId=" + report.EquipmentId + "&pageSize=100");
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                var target = path.Contains("Technician") ? Id(assignment) : report.Id;
+                var row = (await ReadDataAsync(response)).EnumerateArray().Single(x => Id(x) == target);
+                Assert.True(row.GetProperty("equipmentHasConflict").GetBoolean());
+            }
+        }
+
         // ------------------------------------------------------------------------------------------ fixtures
 
         private sealed record Report(long Id, long EquipmentId);

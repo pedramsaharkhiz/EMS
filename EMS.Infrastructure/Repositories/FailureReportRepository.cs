@@ -43,6 +43,7 @@ namespace EMS.Infrastructure.Repositories
                 ReferenceNumber = r.ReferenceNumber,
                 EquipmentId = r.EquipmentId,
                 EquipmentYaasCode = r.Equipment.YaasCode,
+                EquipmentHasConflict = r.Equipment.HasConflict,
                 EquipmentSerialNumber = r.Equipment.SerialNumber,
                 EquipmentAssetNumber = r.Equipment.AssetNumber,
                 EquipmentOwner = r.Equipment.Owner,

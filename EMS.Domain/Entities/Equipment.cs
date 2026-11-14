@@ -8,6 +8,7 @@ namespace EMS.Domain.Entities
     {
         public long EquipmentId { get; set; }
         public EquipmentOwner Owner { get; set; }
+        public bool HasConflict { get; set; } = false;
         public string? SerialNumber { get; set; }
         public string? AssetNumber { get; set; }
         public string YaasCode { get; set; } = null!;
