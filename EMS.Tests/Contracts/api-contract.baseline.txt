@@ -2499,6 +2499,7 @@ PUT api/FailureReportStatus/{id}
 GET api/FailureType
   authorization: (authenticated)
   Query: Code : String
+  Query: EquipmentTypeId : Int64?
   Query: FailureCategoryId : Int64?
   Query: IsActive : Boolean?
   Query: PageNumber : Int32
@@ -2515,6 +2516,7 @@ GET api/FailureType
       Title : String
       Code : String
       IsActive : Boolean
+      EquipmentTypes : List<FailureTypeEquipmentTypeDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -2529,6 +2531,7 @@ POST api/FailureType
     FailureCategoryId : Int64
     Title : String
     Code : String
+    EquipmentTypeIds : List<Int64>
   response 201: ApiResponse<FailureTypeDetailDto>
     envelope: success, message, data, meta, error, traceId
     data:
@@ -2538,6 +2541,7 @@ POST api/FailureType
       Title : String
       Code : String
       IsActive : Boolean
+      EquipmentTypes : List<FailureTypeEquipmentTypeDto>
       RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -2572,6 +2576,7 @@ GET api/FailureType/{id}
       Title : String
       Code : String
       IsActive : Boolean
+      EquipmentTypes : List<FailureTypeEquipmentTypeDto>
       RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -2587,6 +2592,7 @@ PUT api/FailureType/{id}
     FailureCategoryId : Int64?
     Title : String
     Code : String
+    EquipmentTypeIds : List<Int64>
     IsActive : Boolean
     RowVersion : String
   Path: id : Int64 (required)
@@ -2599,6 +2605,7 @@ PUT api/FailureType/{id}
       Title : String
       Code : String
       IsActive : Boolean
+      EquipmentTypes : List<FailureTypeEquipmentTypeDto>
       RowVersion : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId

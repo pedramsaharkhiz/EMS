@@ -55,6 +55,16 @@
 
 **فیلتر لیست:** `search` (شماره‌ی ارجاع، توضیح، یاس کد تجهیز)، `referenceNumber`، و چندمقداری `equipmentId`، `failureTypeId`، `failureCategoryId`، `reportTypeId`، `statusId`، `priorityId`، `organizationId`، `employeeId`، `reportedByUserId` (مثل `?statusId=1&statusId=2`)، بازه‌ی `reportedFrom` و `reportedTo`، و `isActive` و `hasOpenAssignment` (`true`: دارای ارجاع باز؛ `false`: کاری که هنوز به کسی داده نشده). هر ردیف فیلد `hasOpenAssignment` هم دارد. مرتب‌سازی با `sortBy`: `referenceNumber`، `equipment`، `failureType`، `failureCategory`، `reportType`، `status`، `organization`، `priority`، `reportedDateTime`، `createdDateTime` (پیش‌فرض بر اساس id).
 
+## نوع خرابی و نوع تجهیز (dropdown)
+
+هر نوع خرابی می‌تواند به **چند نوع تجهیز** وصل شود (جدول `FailureTypeEquipmentTypes`)؛ تصمیم‌ها: [BUSINESS-DECISIONS.md ۳.۲۵](BUSINESS-DECISIONS.md)، [ADR-0031](adr/0031-failure-type-applies-to-equipment-types.md).
+
+- **dropdown گزارش:** `GET /api/FailureType?equipmentTypeId={id}` فقط انواع خرابیِ مربوط را می‌آورد: آن‌هایی که به این نوع تجهیز وصل‌اند **و** آن‌هایی که به **هیچ** نوع تجهیزی وصل نیستند (آن‌ها «برای همهٔ انواع» حساب می‌شوند). `id` همان نوع مؤثر تجهیز انتخاب‌شده است (`effectiveTypeId` در پاسخ تجهیز؛ تجهیز یا نوع مستقیم دارد یا از مدلش می‌گیرد). بدون `equipmentTypeId` لیست مثل قبل است. با `failureCategoryId` و `title` ترکیب می‌شود.
+- **تعریف رابطه:** `POST /api/FailureType` با `equipmentTypeIds[]`؛ `PUT /api/FailureType/{id}` با `equipmentTypeIds[]` که **کل** فهرست است. نفرستادن فیلد (`null`) فهرست فعلی را **نگه می‌دارد** (کلاینتی که فیلد را نمی‌شناسد چیزی پاک نمی‌کند)؛ فهرست خالی همه را پاک می‌کند و نوع خرابی «برای همه» می‌شود. تکراری یک بار حساب می‌شود. نوع تجهیز ناموجود `404 parent_not_found`، غیرفعال (برای افزودن) `400 parent_inactive`، شناسهٔ نامعتبر `400`.
+- **خروجی:** هر آیتم لیست و جزئیات `equipmentTypes[]` دارد (`id`، `title`؛ فقط نوع‌های **فعال**؛ خالی = برای همه).
+- **ثبت گزارش اجباری نمی‌کند:** گزارشی که نوع خرابی‌اش به نوع تجهیزش نمی‌خورد رد **نمی‌شود**؛ فقط dropdown فیلتر می‌شود. تغییر رابطه گزارش‌های ثبت‌شده را دست نمی‌زند.
+- **استقرار:** جدول تازه است و داده‌ی موجود تغییر نمی‌کند؛ همهٔ انواع خرابی فعلی بی‌رابطه‌اند، پس مثل قبل برای همه نمایش داده می‌شوند. اسکریپت: `docs/sql/FailureTypeEquipmentTypes.sql`.
+
 ## داشبورد
 
 سه کارت صفحهٔ اول در [DASHBOARD-DESIGN.md](DASHBOARD-DESIGN.md) تعریف شده‌اند. کارت گزارش خرابی: `GET /api/Dashboard/failure-reports` با مجوز `FailureReports.View`.
