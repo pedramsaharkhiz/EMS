@@ -89,3 +89,7 @@ dotnet test EMS.Tests --filter "FullyQualifiedName~AssignmentNote|FullyQualified
 ```
 
 تست‌های یادداشت روی API واقعی با دیتابیس InMemory، مالکیت، مجوزها، اولین مشاهده، reset پس از تغییر متن/موضوع، درخواست تکراری، تعارض نسخه، حذف منطقی، حالت‌های پایانی ارجاع و فیلترها را می‌سنجند. مدل EF هم روابط، طول ستون، فیلتر حذف منطقی و توکن هم‌زمانی را بررسی می‌کند. این تست‌ها جای اجرای migration روی SQL Server را نمی‌گیرند؛ اجرای تست SQL فعلاً به درخواست صاحب محصول انجام نمی‌شود.
+
+## Assignment detail response
+
+`GET /api/TechnicianAssignment/{id}` includes `assignmentNotes`, an array of active notes for that assignment in ascending note ID order, using the same fields as `AssignmentNoteItemDto`. The array is empty when no active notes exist or the caller lacks `AssignmentNotes.View` or participant access under `IAssignmentNoteAccessPolicy`. Reading the array does not mark notes as seen. Other operations returning the same assignment detail DTO include this field with the same rules.

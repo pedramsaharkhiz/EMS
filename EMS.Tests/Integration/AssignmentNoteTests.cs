@@ -29,7 +29,8 @@ public class AssignmentNoteTests : ApiTestBase
         {
             var role = await CreateRoleAsync(await AdminAsync(), "role_" + name,
                 Permissions.AssignmentNotes.View, Permissions.AssignmentNotes.Create,
-                Permissions.AssignmentNotes.Update, Permissions.AssignmentNotes.Delete, Permissions.AssignmentNotes.MarkSeen);
+                Permissions.AssignmentNotes.Update, Permissions.AssignmentNotes.Delete, Permissions.AssignmentNotes.MarkSeen,
+                Permissions.TechnicianAssignments.View);
             await AssignRoleAsync(await AdminAsync(), id, role);
         }
         return (id, (await LoginAsync(name, "Passw0rd!x")).AccessToken);
@@ -85,6 +86,55 @@ public class AssignmentNoteTests : ApiTestBase
         var response = await SendAsync(HttpMethod.Post, Note(Id(note)) + "/seen", new { rowVersion = Version(note) }, bearer: fixture.TechnicianToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         return await ReadDataAsync(response);
+    }
+
+    [Fact]
+    public async Task Assignment_detail_embeds_only_its_active_notes_without_marking_them_seen()
+    {
+        var f = await FixtureAsync();
+        var other = await FixtureAsync();
+        var note = await CreateAsync(f);
+        var deleted = await CreateAsync(f, "deleted");
+        await CreateAsync(other, "other assignment");
+        Assert.Equal(HttpStatusCode.OK, (await AdminSendAsync(HttpMethod.Delete, Note(Id(deleted)))).StatusCode);
+        var response = await AdminSendAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{f.AssignmentId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var notes = (await ReadDataAsync(response)).GetProperty("assignmentNotes").EnumerateArray().ToList();
+        var embedded = Assert.Single(notes);
+        Assert.Equal(Id(note), Id(embedded));
+        Assert.Equal(note.GetProperty("text").GetString(), embedded.GetProperty("text").GetString());
+        Assert.Equal(JsonValueKind.Null, embedded.GetProperty("seenDateTime").ValueKind);
+        Assert.Equal(1, embedded.GetProperty("createdByUserId").GetInt64());
+
+        var viewRole = await CreateRoleAsync(await AdminAsync(), "assignment_view_" + Unique(), Permissions.TechnicianAssignments.View);
+        // The assigned technician sees notes through the detail endpoint too.
+        var recipient = await ReadDataAsync(await SendAsync(HttpMethod.Get,
+            $"/api/TechnicianAssignment/{f.AssignmentId}", bearer: f.TechnicianToken));
+        Assert.Equal(Id(note), Id(Assert.Single(recipient.GetProperty("assignmentNotes").EnumerateArray())));
+
+        var withoutNotePermission = await UserAsync(permissions: false);
+        await AssignRoleAsync(await AdminAsync(), withoutNotePermission.Id, viewRole);
+        string restrictedName;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<EMSDbContext>();
+            var assignment = await db.TechnicianAssignments.FindAsync(f.AssignmentId);
+            restrictedName = (await db.Users.FindAsync(withoutNotePermission.Id))!.UserName!;
+            assignment!.TechnicianUserId = withoutNotePermission.Id;
+            await db.SaveChangesAsync();
+        }
+        var restrictedToken = (await LoginAsync(restrictedName, "Passw0rd!x")).AccessToken;
+        var restricted = await ReadDataAsync(await SendAsync(HttpMethod.Get,
+            $"/api/TechnicianAssignment/{f.AssignmentId}", bearer: restrictedToken));
+        Assert.Empty(restricted.GetProperty("assignmentNotes").EnumerateArray());
+
+        // Admin can view the assignment but has no participant exception for its notes.
+        var privateAssignment = await FixtureAsync(sender: -1);
+        var created = await SendAsync(HttpMethod.Post, Notes(privateAssignment.AssignmentId),
+            new { noteCategoryId = privateAssignment.CategoryId, text = "private" }, bearer: privateAssignment.TechnicianToken);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var hidden = await ReadDataAsync(await AdminSendAsync(HttpMethod.Get, $"/api/TechnicianAssignment/{privateAssignment.AssignmentId}"));
+        Assert.Empty(hidden.GetProperty("assignmentNotes").EnumerateArray());
     }
 
     [Fact]

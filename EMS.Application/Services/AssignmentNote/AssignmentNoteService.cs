@@ -71,6 +71,20 @@ public sealed class AssignmentNoteService : IAssignmentNoteService
         if (RowVersionToken.TryParse(version, out var expected)) _notes.SetExpectedModifiedDateTime(note, expected);
     }
 
+    // Embedding notes must not expose them to other users who can view the assignment.
+    public async Task<List<AssignmentNoteItemDto>> GetForAssignmentDetailAsync(long assignmentId, CancellationToken cancellationToken)
+    {
+        if (!_user.Permissions.Contains(EMS.Application.Common.Security.Permissions.AssignmentNotes.View))
+            return [];
+        var assignment = await _assignments.Query()
+            .FirstOrDefaultAsync(x => x.TechnicianAssignmentId == assignmentId, cancellationToken);
+        if (assignment is null || !_access.CanRead(assignment, UserId))
+            return [];
+        var notes = await _notes.QueryOfAssignment(assignmentId, true)
+            .OrderBy(x => x.AssignmentNoteId).ToListAsync(cancellationToken);
+        return await ItemsAsync(notes, cancellationToken);
+    }
+
     public async Task<PagedResult<AssignmentNoteItemDto>> GetPagedAsync(long assignmentId, AssignmentNoteListRequestDto request, CancellationToken cancellationToken)
     {
         await AssignmentAsync(assignmentId, cancellationToken);

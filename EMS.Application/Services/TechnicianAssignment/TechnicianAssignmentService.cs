@@ -1,3 +1,4 @@
+using EMS.Application.Interfaces.AssignmentNote;
 using EMS.Application.Common.Catalog;
 using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
@@ -84,6 +85,7 @@ namespace EMS.Application.Services.TechnicianAssignment
         private readonly IUnitOfWork _unitOfWork;
         private readonly IAuditEventLogger _audit;
         private readonly IRowAccess _access;
+        private readonly IAssignmentNoteService _notes;
 
         public TechnicianAssignmentService(
             ITechnicianAssignmentRepository repository,
@@ -96,7 +98,8 @@ namespace EMS.Application.Services.TechnicianAssignment
             ICurrentUserService currentUser,
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
-            IRowAccess access)
+            IRowAccess access,
+            IAssignmentNoteService notes)
         {
             _repository = repository;
             _actions = actions;
@@ -109,6 +112,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             _unitOfWork = unitOfWork;
             _audit = audit;
             _access = access;
+            _notes = notes;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -457,6 +461,7 @@ namespace EMS.Application.Services.TechnicianAssignment
             var people = await _people.GetPeopleAsync(new long?[] { row.TechnicianUserId, row.AssignedByUserId }, cancellationToken);
             var detail = Fill(new TechnicianAssignmentDetailDto(), row, people);
             detail.Actions = (await _repository.GetActionRowsAsync(id, cancellationToken)).Select(ToActionDto).ToList();
+            detail.AssignmentNotes = await _notes.GetForAssignmentDetailAsync(id, cancellationToken);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             return detail;

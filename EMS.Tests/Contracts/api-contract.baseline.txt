@@ -2125,6 +2125,7 @@ POST api/FailureReport/{failureReportId}/assignments
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -2179,6 +2180,7 @@ POST api/FailureReport/{failureReportId}/assignments/bulk
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -3939,6 +3941,7 @@ GET api/TechnicianAssignment/{id}
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -3997,6 +4000,7 @@ PUT api/TechnicianAssignment/{id}
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4052,6 +4056,7 @@ POST api/TechnicianAssignment/{id}/accept
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4158,6 +4163,7 @@ POST api/TechnicianAssignment/{id}/cancel
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4213,6 +4219,7 @@ POST api/TechnicianAssignment/{id}/complete
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4268,6 +4275,7 @@ POST api/TechnicianAssignment/{id}/reject
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4320,6 +4328,7 @@ POST api/TechnicianAssignment/{id}/seen
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64
@@ -4375,6 +4384,7 @@ POST api/TechnicianAssignment/{id}/start
     envelope: success, message, data, meta, error, traceId
     data:
       Actions : List<TechnicianAssignmentActionItemDto>
+      AssignmentNotes : List<AssignmentNoteItemDto>
       ModifiedDateTime : DateTime?
       RowVersion : String
       Id : Int64

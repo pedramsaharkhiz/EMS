@@ -5,6 +5,7 @@ namespace EMS.Application.Interfaces.AssignmentNote;
 
 public interface IAssignmentNoteService
 {
+    Task<List<AssignmentNoteItemDto>> GetForAssignmentDetailAsync(long assignmentId, CancellationToken cancellationToken);
     Task<PagedResult<AssignmentNoteItemDto>> GetPagedAsync(long assignmentId, AssignmentNoteListRequestDto request, CancellationToken cancellationToken);
     Task<AssignmentNoteItemDto> GetByIdAsync(long id, CancellationToken cancellationToken);
     Task<AssignmentNoteItemDto> CreateAsync(long assignmentId, AssignmentNoteCreateDto request, CancellationToken cancellationToken);
