@@ -495,3 +495,7 @@
 ### Equipment conflict flag
 
 Equipment has an editable boolean `HasConflict`, initially false. Related failure report and technician assignment responses show its current value. It is independent of equipment status and location.
+
+### شناسه‌های کاربر: کد پرسنلی و کد ملی
+
+کد پرسنلی اجباری و حداکثر ۳۲ کاراکتر است؛ کد ملی اختیاری و در صورت ارسال باید ۱۰ رقم با رقم کنترل معتبر و غیرتکراری باشد. فاصله‌های ابتدا/انتها حذف، ارقام فارسی و عربی به انگلیسی تبدیل و صفرهای ابتدایی حفظ می‌شوند. هر دو شناسه بین تمام کاربران، حتی غیرفعال، یکتا هستند؛ کد ملی خالی استثناست. در ویرایش خود کاربر از بررسی تکراری مستثنا می‌شود. پیام خطا نباید اطلاعات کاربر دیگری را افشا کند. قواعد API، مایگریشن و خطاها: [USER-IDENTIFIERS.md](USER-IDENTIFIERS.md).

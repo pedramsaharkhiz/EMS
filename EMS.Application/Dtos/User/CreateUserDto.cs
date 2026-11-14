@@ -1,4 +1,4 @@
-﻿namespace EMS.Application.Dtos.User;
+namespace EMS.Application.Dtos.User;
 
 public sealed class CreateUserDto
 {
@@ -14,9 +14,11 @@ public sealed class CreateUserDto
 
     public string LastName { get; set; } = string.Empty;
 
-    public string PersonnelCode { get; set; } = string.Empty;
+    private string _personnelCode = string.Empty;
+    public string PersonnelCode { get => _personnelCode; set => _personnelCode = EMS.Domain.UserIdentityRules.Normalize(value); }
 
-    public string? NationalCode { get; set; }
+    private string? _nationalCode;
+    public string? NationalCode { get => _nationalCode; set => _nationalCode = EMS.Domain.UserIdentityRules.NormalizeOptional(value); }
 
     public string? PhoneNumber { get; set; }
 

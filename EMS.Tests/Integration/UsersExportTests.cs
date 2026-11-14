@@ -20,7 +20,7 @@ namespace EMS.Tests.Integration
             var body = new Dictionary<string, object?>
             {
                 ["userName"] = $"ux_{tag}_{suffix}", ["password"] = "Passw0rd!x", ["firstName"] = "علی", ["lastName"] = $"رضایی{suffix}",
-                ["personnelCode"] = $"00{suffix}{tag}", ["nationalCode"] = "00" + Random.Shared.NextInt64(10000000, 99999999), ["phoneNumber"] = "0912" + Random.Shared.NextInt64(1000000, 9999999), ["email"] = $"u{suffix}.{tag}@example.com",
+                ["personnelCode"] = $"00{suffix}{tag}", ["nationalCode"] = EMS.Tests.Support.NationalCodeFixture.New(), ["phoneNumber"] = "0912" + Random.Shared.NextInt64(1000000, 9999999), ["email"] = $"u{suffix}.{tag}@example.com",
             };
             if (extra is not null)
                 foreach (var p in extra.GetType().GetProperties())

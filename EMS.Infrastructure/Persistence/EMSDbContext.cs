@@ -63,6 +63,40 @@ namespace EMS.Infrastructure.Persistence
 
 
 
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            NormalizeUserIdentifiers();
+            try { return base.SaveChanges(acceptAllChangesOnSuccess); }
+            catch (DbUpdateException ex) when (UserIdentityConflict(ex) is not null)
+            { throw UserIdentityConflict(ex)!; }
+        }
+
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            NormalizeUserIdentifiers();
+            try { return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken); }
+            catch (DbUpdateException ex) when (UserIdentityConflict(ex) is not null)
+            { throw UserIdentityConflict(ex)!; }
+        }
+
+        private void NormalizeUserIdentifiers()
+        {
+            foreach (var entry in ChangeTracker.Entries<ApplicationUser>().Where(e => e.State is EntityState.Added or EntityState.Modified))
+            {
+                entry.Entity.PersonnelCode = EMS.Domain.UserIdentityRules.Normalize(entry.Entity.PersonnelCode);
+                entry.Entity.NationalCode = EMS.Domain.UserIdentityRules.NormalizeOptional(entry.Entity.NationalCode);
+            }
+        }
+
+        private static EMS.Application.Common.Exceptions.ConflictException? UserIdentityConflict(DbUpdateException ex)
+        {
+            if (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 } sql &&
+                UniqueConstraintMessages.Find(sql.Message) is { } known &&
+                known.Code is EMS.Application.Common.Exceptions.ErrorCodes.PersonnelCodeTaken or EMS.Application.Common.Exceptions.ErrorCodes.NationalCodeTaken)
+                return new(known.Message, known.Code);
+            return null;
+        }
+
         protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         {
             base.ConfigureConventions(configurationBuilder);

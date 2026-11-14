@@ -1,4 +1,4 @@
-﻿using EMS.Application.Dtos.User;
+using EMS.Application.Dtos.User;
 using FluentValidation;
 
 namespace EMS.Application.Validators.User;
@@ -36,13 +36,7 @@ public sealed class UpdateUserDtoValidator
             .NotEmpty().WithMessage("نام خانوادگی الزامی است.")
             .MaximumLength(100).WithMessage("نام خانوادگی نمی‌تواند بیشتر از 100 کاراکتر باشد.");
 
-        RuleFor(x => x.PersonnelCode)
-            .NotEmpty().WithMessage("کد پرسنلی الزامی است.")
-            .MaximumLength(32).WithMessage("کد پرسنلی نمی‌تواند بیشتر از 32 کاراکتر باشد.");
-
-        RuleFor(x => x.NationalCode)
-            .MaximumLength(10).WithMessage("کد ملی نمی‌تواند بیشتر از ۱۰ کاراکتر باشد.")
-            .When(x => !string.IsNullOrWhiteSpace(x.NationalCode));
+        this.AddIdentityRules(x => x.PersonnelCode, x => x.NationalCode);
 
         RuleFor(x => x.PhoneNumber)
             .MaximumLength(20).WithMessage("شماره تلفن نمی‌تواند بیشتر از ۲۰ کاراکتر باشد.")

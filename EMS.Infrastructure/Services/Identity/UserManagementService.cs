@@ -1,4 +1,7 @@
-﻿using EMS.Application.Common.DataAccess;
+using EMS.Domain;
+using EMS.Application.Validators.User;
+using FluentValidation;
+using EMS.Application.Common.DataAccess;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Export;
 using EMS.Application.Common.Logging;
@@ -238,6 +241,8 @@ public sealed partial class UserManagementService : IUserManagementService
         CreateUserDto request,
         CancellationToken cancellationToken = default)
     {
+        await new CreateUserDtoValidator().ValidateAndThrowAsync(request, cancellationToken);
+
         await ValidateAssignmentsAsync(
             request.RoleIds,
             request.SkillIds,
@@ -319,6 +324,8 @@ public sealed partial class UserManagementService : IUserManagementService
         UpdateUserDto request,
         CancellationToken cancellationToken = default)
     {
+        await new UpdateUserDtoValidator().ValidateAndThrowAsync(request, cancellationToken);
+
         await ValidateAssignmentsAsync(
             request.RoleIds,
             request.SkillIds,
@@ -517,7 +524,7 @@ public sealed partial class UserManagementService : IUserManagementService
         long? exceptUserId,
         CancellationToken cancellationToken)
     {
-        var personnel = personnelCode.Trim();
+        var personnel = UserIdentityRules.Normalize(personnelCode);
 
         // row-access: a uniqueness check must see EVERY user, not only the ones the caller may see (a hidden duplicate is still a duplicate)
         var personnelQuery = _userManager.Users
@@ -532,11 +539,11 @@ public sealed partial class UserManagementService : IUserManagementService
         if (await personnelQuery.AnyAsync(cancellationToken))
         {
             throw new ConflictException(
-                "این کد پرسنلی قبلاً ثبت شده است.",
+                UserIdentityRules.PersonnelTaken,
                 ErrorCodes.PersonnelCodeTaken);
         }
 
-        var national = NormalizeOptional(nationalCode);
+        var national = UserIdentityRules.NormalizeOptional(nationalCode);
 
         if (national is not null)
         {
@@ -553,7 +560,7 @@ public sealed partial class UserManagementService : IUserManagementService
             if (await nationalQuery.AnyAsync(cancellationToken))
             {
                 throw new ConflictException(
-                    "این کد ملی قبلاً ثبت شده است.",
+                    UserIdentityRules.NationalTaken,
                     ErrorCodes.NationalCodeTaken);
             }
         }

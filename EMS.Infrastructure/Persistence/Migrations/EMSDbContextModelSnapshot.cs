@@ -2497,6 +2497,11 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NationalCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AspNetUsers_NationalCode")
+                        .HasFilter("[NationalCode] IS NOT NULL");
+
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -2504,6 +2509,10 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("PersonnelCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AspNetUsers_PersonnelCode");
 
                     b.HasIndex("PostId");
 

@@ -1,4 +1,4 @@
-﻿using EMS.Infrastructure.Persistence.Identity;
+using EMS.Infrastructure.Persistence.Identity;
 using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Models;
 using EMS.Application.Dtos.User;
@@ -391,7 +391,7 @@ public sealed partial class UserManagementService
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var search = request.Search.Trim();
+            var search = EMS.Domain.UserIdentityRules.Normalize(request.Search);
 
             var isNumeric = long.TryParse(
                 search,

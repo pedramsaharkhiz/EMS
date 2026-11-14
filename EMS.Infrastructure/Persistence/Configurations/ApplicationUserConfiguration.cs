@@ -17,6 +17,8 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.LastName).HasMaxLength(100).IsRequired();
             builder.Property(x => x.PersonnelCode).HasMaxLength(32).IsUnicode(false).IsRequired();
             builder.Property(x => x.NationalCode).HasMaxLength(10).IsUnicode(false).IsRequired(false);
+            builder.HasIndex(x => x.PersonnelCode).IsUnique().HasDatabaseName(EMS.Domain.UserIdentityRules.PersonnelIndex);
+            builder.HasIndex(x => x.NationalCode).IsUnique().HasFilter("[NationalCode] IS NOT NULL").HasDatabaseName(EMS.Domain.UserIdentityRules.NationalIndex);
             builder.Property(x => x.PhoneNumber).HasMaxLength(20).IsUnicode(false).IsRequired(false);
             builder.Property(x => x.Email).HasMaxLength(256).IsUnicode(false).IsRequired(false);
             builder.Property(x => x.NormalizedEmail).HasMaxLength(256).IsUnicode(false).IsRequired(false);

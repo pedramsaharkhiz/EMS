@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,8 +10,10 @@ namespace EMS.Application.Dtos.User
         public string NormalizedUserName { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string PersonnelCode { get; set; }
-        public string NationalCode { get; set; }
+        private string _personnelCode = string.Empty;
+        public string PersonnelCode { get => _personnelCode; set => _personnelCode = EMS.Domain.UserIdentityRules.Normalize(value); }
+        private string? _nationalCode;
+        public string? NationalCode { get => _nationalCode; set => _nationalCode = EMS.Domain.UserIdentityRules.NormalizeOptional(value); }
         public string PhoneNumber { get; set; }
         public string Email { get; set; }
         public string NormalizedEmail { get; set; }

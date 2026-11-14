@@ -1,4 +1,4 @@
-﻿using EMS.Application.Dtos.User;
+using EMS.Application.Dtos.User;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
@@ -17,9 +17,7 @@ namespace EMS.Application.Validators.User
             RuleFor(x => x.FirstName).MaximumLength(100).WithMessage("نام 'کاربر' باید حداکثر 100 کاراکتر باشد.");
             RuleFor(x => x.LastName).NotEmpty().WithMessage("نام خانوادگی 'کاربر' الزامی است.");
             RuleFor(x => x.LastName).MaximumLength(100).WithMessage("نام خانوادگی 'کاربر' باید حداکثر 100 کاراکتر باشد.");
-            RuleFor(x => x.PersonnelCode).NotEmpty().WithMessage("کد پرسنلی 'کاربر' الزامی است.");
-            RuleFor(x => x.PersonnelCode).MaximumLength(32).WithMessage("کد پرسنلی 'کاربر' باید حداکثر 32 کاراکتر باشد.");
-            RuleFor(x => x.NationalCode).MaximumLength(10).When(x => !string.IsNullOrEmpty(x.NationalCode)).WithMessage("کد ملی 'کاربر' باید حداکثر 10 کاراکتر باشد.");
+            this.AddIdentityRules(x => x.PersonnelCode, x => x.NationalCode);
             RuleFor(x => x.PhoneNumber).MaximumLength(20).When(x => !string.IsNullOrEmpty(x.PhoneNumber)).WithMessage("شماره تلفن 'کاربر' باید حداکثر 20 کاراکتر باشد.");
             RuleFor(x => x.Email).MaximumLength(256).When(x => !string.IsNullOrEmpty(x.Email)).WithMessage("ایمیل 'کاربر' باید حداکثر 256 کاراکتر باشد.");
             RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrEmpty(x.Email)).WithMessage("ایمیل 'کاربر' معتبر نیست.");
