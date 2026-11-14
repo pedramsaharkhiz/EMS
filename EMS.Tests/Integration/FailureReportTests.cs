@@ -463,14 +463,15 @@ namespace EMS.Tests.Integration
             var ra = Id(await CreateAsync(a)); var rb = Id(await CreateAsync(b)); var rc = Id(await CreateAsync(c));
             var scope = $"equipmentId={f.EquipmentId}";
 
-            Assert.Equal(new[] { ra, rb, rc }, await ListIdsAsync(scope));
+            Assert.Equal(new[] { rc, rb, ra }, await ListIdsAsync(scope));
+            Assert.Equal(new[] { ra, rb, rc }, await ListIdsAsync($"{scope}&sortDirection=asc"));
             Assert.Equal(new[] { rb }, await ListIdsAsync($"{scope}&priorityId=5"));
-            Assert.Equal(new[] { ra, rc }, await ListIdsAsync($"{scope}&priorityId=1&priorityId=3"));
+            Assert.Equal(new[] { rc, ra }, await ListIdsAsync($"{scope}&priorityId=1&priorityId=3"));
             Assert.Equal(new[] { rb }, await ListIdsAsync($"{scope}&search=LB-{tag}"));
             Assert.Equal(new[] { rb }, await ListIdsAsync($"{scope}&referenceNumber=LB-{tag}"));
-            Assert.Equal(new[] { rb, rc }, await ListIdsAsync($"{scope}&reportedFrom=2026-02-15T00:00:00Z"));
-            Assert.Equal(new[] { ra, rb }, await ListIdsAsync($"{scope}&reportedTo=2026-03-15T00:00:00Z"));
-            Assert.Equal(new[] { ra, rc, rb }, await ListIdsAsync($"{scope}&sortBy=priority"));
+            Assert.Equal(new[] { rc, rb }, await ListIdsAsync($"{scope}&reportedFrom=2026-02-15T00:00:00Z"));
+            Assert.Equal(new[] { rb, ra }, await ListIdsAsync($"{scope}&reportedTo=2026-03-15T00:00:00Z"));
+            Assert.Equal(new[] { rb, rc, ra }, await ListIdsAsync($"{scope}&sortBy=priority"));
             Assert.Equal(new[] { rc, rb, ra }, await ListIdsAsync($"{scope}&sortBy=reportedDateTime&sortDirection=desc"));
             Assert.Equal(3, (await ListIdsAsync($"failureTypeId={f.FailureTypeId}")).Count);
             Assert.Equal(3, (await ListIdsAsync($"failureCategoryId={f.CategoryId}")).Count);
@@ -567,7 +568,7 @@ namespace EMS.Tests.Integration
             await CreateAsync(Body(f, $"XR-{tag}-2", priority: 1));
             await CreateAsync(Body(f, $"OT-{tag}"));
 
-            var (fileName, headers, book) = await ExportAsync($"search=XR-{tag}&sortBy=referenceNumber");
+            var (fileName, headers, book) = await ExportAsync($"search=XR-{tag}&sortBy=referenceNumber&sortDirection=asc");
             using var _ = book;
             Assert.Matches(@"^گزارش-خرابی-\d{4}-\d{2}-\d{2}\.xlsx$", fileName);
             var sheet = book.Worksheet(1);
@@ -585,7 +586,7 @@ namespace EMS.Tests.Integration
             Assert.Equal("بله", Cell(2, "فعال"));
 
             // every cell is the very value the list returns for the same report
-            var listed = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport?search=XR-{tag}&sortBy=referenceNumber"))).EnumerateArray().ToList();
+            var listed = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/FailureReport?search=XR-{tag}&sortBy=referenceNumber&sortDirection=asc"))).EnumerateArray().ToList();
             Assert.Equal(2, listed.Count);
             for (var i = 0; i < 2; i++)
             {
@@ -627,7 +628,7 @@ namespace EMS.Tests.Integration
 
             foreach (var query in new[]
             {
-                $"search=AG-{tag}&sortBy=referenceNumber",
+                $"search=AG-{tag}&sortBy=referenceNumber&sortDirection=asc",
                 $"search=AG-{tag}&sortBy=referenceNumber&sortDirection=desc",
                 $"search=AG-{tag}&statusId={Closed}",
                 $"search=AG-{tag}&priorityId=4&priorityId=2",
@@ -649,7 +650,7 @@ namespace EMS.Tests.Integration
             }
 
             // sanity: the filters above really did select different things
-            Assert.Equal(new[] { $"AG-{tag}-1", $"AG-{tag}-3" }, ColumnOf(await SheetOf($"search=AG-{tag}&sortBy=referenceNumber")));
+            Assert.Equal(new[] { $"AG-{tag}-1", $"AG-{tag}-3" }, ColumnOf(await SheetOf($"search=AG-{tag}&sortBy=referenceNumber&sortDirection=asc")));
             Assert.Equal(new[] { $"AG-{tag}-2" }, ColumnOf(await SheetOf($"search=AG-{tag}&isActive=false")));
         }
 

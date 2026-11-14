@@ -6,10 +6,12 @@ namespace EMS.Application.Dtos.FailureReport
     /// <summary>
     /// Id filters accept several values: <c>?statusId=1&amp;statusId=2</c>. Everything is optional and combined with AND.
     /// Sort with <c>sortBy</c>: referenceNumber, equipment, failureType, failureCategory, reportType, status, organization,
-    /// priority, reportedDateTime, createdDateTime (default: id).
+    /// priority, reportedDateTime, createdDateTime (default: id descending, newest record first).
     /// </summary>
     public class FailureReportListRequestDto : PagedRequest
     {
+        public FailureReportListRequestDto() => SortDirection = "desc";
+
         /// <summary>Looks in the reference number, the description and the equipment's Yaas code.</summary>
         public string? Search { get; set; }
         public string? ReferenceNumber { get; set; }
