@@ -313,7 +313,7 @@ namespace EMS.Infrastructure.Services.Identity
                 PostTitle = post?.Title,
                 SupportingDepartments = departments,
                 Roles = roles.OrderBy(r => r, StringComparer.Ordinal).ToList(),
-                Permissions = permissions.Where(p => !Retired.Contains(p)).OrderBy(p => p, StringComparer.Ordinal).ToList(),
+                Permissions = permissions.OrderBy(p => p, StringComparer.Ordinal).ToList(),
             };
         }
 
@@ -347,6 +347,10 @@ namespace EMS.Infrastructure.Services.Identity
                     .Select(c => c.ClaimValue!)
                     .Distinct()
                     .ToListAsync(cancellationToken);
+
+            // A role saved before a permission was retired may still carry it. It means nothing any more, so it is neither sent to the client
+            // nor put in the token: the sign-in, the refresh and /me all answer with the same current permissions.
+            permissions.RemoveAll(p => Retired.Contains(p));
 
             var roleNames = activeRoles
                 .Where(r => !string.IsNullOrWhiteSpace(r.Name))
