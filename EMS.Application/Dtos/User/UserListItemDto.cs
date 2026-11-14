@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 namespace EMS.Application.Dtos.User;
 
 public class UserListItemDto
@@ -20,18 +21,8 @@ public class UserListItemDto
 
     public string? Email { get; set; }
 
-    /// <summary>Where the user works: his supporting department with its city and province (the same fields the technician of an equipment shows).</summary>
-    public long? SupportingDepartmentId { get; set; }
-
-    public string? SupportingDepartmentTitle { get; set; }
-
-    public long? CityId { get; set; }
-
-    public string? CityTitle { get; set; }
-
-    public long? ProvinceId { get; set; }
-
-    public string? ProvinceTitle { get; set; }
+    /// <summary>Where the user works: every supporting department he belongs to, each with its city and province (empty when none).</summary>
+    public List<PersonDepartmentDto> SupportingDepartments { get; set; } = [];
 
     /// <summary>The user's post (سمت), optional; the two system posts have the codes Line (صف) and Staff (ستاد).</summary>
     public long? PostId { get; set; }

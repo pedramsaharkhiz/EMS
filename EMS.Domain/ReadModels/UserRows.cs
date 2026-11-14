@@ -11,6 +11,7 @@ namespace EMS.Domain.ReadModels
         public string? NationalCode { get; set; }
         public string? PhoneNumber { get; set; }
         public string? Email { get; set; }
+        /// <summary>The titles of the user's departments, cities and provinces, each as one text separated by "، ".</summary>
         public string? SupportingDepartmentTitle { get; set; }
         public string? CityTitle { get; set; }
         public string? ProvinceTitle { get; set; }

@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 namespace EMS.Application.Dtos.TechnicianAssignment
 {
     /// <summary>
@@ -22,12 +23,8 @@ namespace EMS.Application.Dtos.TechnicianAssignment
         public bool? TechnicianIsActive { get; set; }
         public long? TechnicianPostId { get; set; }
         public string? TechnicianPostTitle { get; set; }
-        public long? TechnicianSupportingDepartmentId { get; set; }
-        public string? TechnicianSupportingDepartmentTitle { get; set; }
-        public long? TechnicianCityId { get; set; }
-        public string? TechnicianCityTitle { get; set; }
-        public long? TechnicianProvinceId { get; set; }
-        public string? TechnicianProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> TechnicianSupportingDepartments { get; set; } = [];
 
         /// <summary>A short title; <see cref="Description"/> is the full explanation.</summary>
         public string Title { get; set; } = string.Empty;
@@ -44,12 +41,8 @@ namespace EMS.Application.Dtos.TechnicianAssignment
         public bool? AssignedByIsActive { get; set; }
         public long? AssignedByPostId { get; set; }
         public string? AssignedByPostTitle { get; set; }
-        public long? AssignedBySupportingDepartmentId { get; set; }
-        public string? AssignedBySupportingDepartmentTitle { get; set; }
-        public long? AssignedByCityId { get; set; }
-        public string? AssignedByCityTitle { get; set; }
-        public long? AssignedByProvinceId { get; set; }
-        public string? AssignedByProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> AssignedBySupportingDepartments { get; set; } = [];
 
         public DateTime AssignedDateTime { get; set; }
         public DateTime? DeadlineDateTime { get; set; }

@@ -67,8 +67,9 @@ public sealed class CreateUserDtoValidator
             .GreaterThan(0).WithMessage("شناسه‌ی سمت باید بزرگ‌تر از صفر باشد.")
             .When(x => x.PostId.HasValue);
 
-        RuleFor(x => x.SupportingDepartmentId)
-            .GreaterThan(0).WithMessage("شناسه‌ی واحد پشتیبانی باید بزرگ‌تر از صفر باشد.")
-            .When(x => x.SupportingDepartmentId.HasValue);
+        RuleFor(x => x.SupportingDepartmentIds)
+            .Must(ids => ids is null || ids.Count <= 50).WithMessage("یک کاربر نمی‌تواند بیشتر از ۵۰ واحد پشتیبانی داشته باشد.");
+        RuleForEach(x => x.SupportingDepartmentIds)
+            .GreaterThan(0).WithMessage("شناسه‌ی واحد پشتیبانی باید بزرگ‌تر از صفر باشد.");
     }
 }

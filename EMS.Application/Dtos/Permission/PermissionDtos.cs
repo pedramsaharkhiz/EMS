@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 namespace EMS.Application.Dtos.Permission
 {
     /// <summary>One permission: <see cref="Name"/> is what the API checks and what is sent when a role is saved; the rest is for people.</summary>
@@ -57,8 +58,8 @@ namespace EMS.Application.Dtos.Permission
         public long? PostId { get; set; }
         public string? PostCode { get; set; }
         public string? PostTitle { get; set; }
-        public long? SupportingDepartmentId { get; set; }
-        public string? SupportingDepartmentTitle { get; set; }
+        /// <summary>The supporting departments the user works for (empty when none).</summary>
+        public List<PersonDepartmentDto> SupportingDepartments { get; set; } = [];
         public IEnumerable<string> Roles { get; set; } = Enumerable.Empty<string>();
         public IEnumerable<string> Permissions { get; set; } = Enumerable.Empty<string>();
     }

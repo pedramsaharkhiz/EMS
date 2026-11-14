@@ -25,6 +25,7 @@ namespace EMS.Infrastructure.Persistence
         public DbSet<SupportingDepartment> SupportingDepartments => Set<SupportingDepartment>();
         public DbSet<Skill> Skills => Set<Skill>();
         public DbSet<TechnicianSkill> TechnicianSkills => Set<TechnicianSkill>();
+        public DbSet<UserSupportingDepartment> UserSupportingDepartments => Set<UserSupportingDepartment>();
         public DbSet<Zone> Zones => Set<Zone>();
         public DbSet<OrganizationManagement> OrganizationManagements => Set<OrganizationManagement>();
         public DbSet<Field> Fields => Set<Field>();

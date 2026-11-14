@@ -12,7 +12,7 @@ namespace EMS.Infrastructure.Repositories
         public UserReferenceRepository(EMSDbContext context) => _context = context;
 
         public IQueryable<UserDirectoryRow> QueryDirectory() =>
-            _context.Users.AsNoTracking().Select(u => new UserDirectoryRow { Id = u.Id, SupportingDepartmentId = u.SupportingDepartmentId });
+            _context.Users.AsNoTracking().Select(u => new UserDirectoryRow { Id = u.Id, SupportingDepartmentIds = u.SupportingDepartments.Select(d => d.SupportingDepartmentId) });
 
         public async Task<Dictionary<long, PersonReference>> GetPeopleAsync(IEnumerable<long?> userIds, CancellationToken cancellationToken = default)
         {
@@ -21,7 +21,7 @@ namespace EMS.Infrastructure.Repositories
                 return new Dictionary<long, PersonReference>();
 
             // The soft-delete filter is lifted for the whole query: a post, a department or a city that was deactivated since still names where the person works.
-            return await _context.Users.AsNoTracking().IncludingInactive()
+            var people = await _context.Users.AsNoTracking().IncludingInactive()
                 .Where(u => ids.Contains(u.Id))
                 .Select(u => new PersonReference
                 {
@@ -31,14 +31,31 @@ namespace EMS.Infrastructure.Repositories
                     IsActive = u.IsActive,
                     PostId = u.PostId,
                     PostTitle = u.Post!.Title,
-                    SupportingDepartmentId = u.SupportingDepartmentId,
-                    SupportingDepartmentTitle = u.SupportingDepartment!.Title,
-                    CityId = (long?)u.SupportingDepartment!.CityId,
-                    CityTitle = u.SupportingDepartment!.City.Title,
-                    ProvinceId = (long?)u.SupportingDepartment!.City.ProvinceId,
-                    ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
                 })
                 .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+            // every department of these people, in one more query
+            var memberships = await (
+                from m in _context.UserSupportingDepartments.AsNoTracking()
+                join d in _context.SupportingDepartments.IncludingInactive().AsNoTracking() on m.SupportingDepartmentId equals d.SupportingDepartmentId
+                where ids.Contains(m.UserId)
+                select new
+                {
+                    m.UserId,
+                    Department = new PersonDepartment
+                    {
+                        Id = d.SupportingDepartmentId, Title = d.Title, CityId = d.CityId, CityTitle = d.City.Title,
+                        ProvinceId = d.City.ProvinceId, ProvinceTitle = d.City.Province.Title,
+                    },
+                }).ToListAsync(cancellationToken);
+
+            foreach (var group in memberships.GroupBy(m => m.UserId))
+            {
+                if (people.TryGetValue(group.Key, out var person))
+                    person.SupportingDepartments = group.Select(m => m.Department).OrderBy(d => d.Title, StringComparer.Ordinal).ThenBy(d => d.Id).ToList();
+            }
+
+            return people;
         }
     }
 }

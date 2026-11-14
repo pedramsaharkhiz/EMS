@@ -149,6 +149,7 @@ namespace EMS.Application.Services.Equipment
             // one grouped query for the whole page, not one per row
             var counts = await _attachments.CountActiveAsync(AttachmentsTable, page.Items.Select(r => r.Id).ToList(), cancellationToken);
             var items = page.Items.Select(row => Fill(new EquipmentListItemDto(), row)).ToList();
+            await FillTechnicianDepartmentsAsync(items, cancellationToken);
             foreach (var item in items)
                 item.AttachmentCount = counts.GetValueOrDefault(item.Id);
 
@@ -263,7 +264,11 @@ namespace EMS.Application.Services.Equipment
             await EnsureVisibleAsync(equipmentId, cancellationToken);
 
             var row = await _repository.GetTechnicianOfEquipmentAsync(equipmentId, cancellationToken);
-            return row is null ? null : new EquipmentTechnicianDto
+            if (row is null)
+                return null;
+
+            var person = (await _people.GetPeopleAsync(new long?[] { row.Id }, cancellationToken)).GetValueOrDefault(row.Id);
+            return new EquipmentTechnicianDto
             {
                 Id = row.Id,
                 FullName = row.FullName,
@@ -271,12 +276,7 @@ namespace EMS.Application.Services.Equipment
                 IsActive = row.IsActive,
                 PostId = row.PostId,
                 PostTitle = row.PostTitle,
-                SupportingDepartmentId = row.SupportingDepartmentId,
-                SupportingDepartmentTitle = row.SupportingDepartmentTitle,
-                CityId = row.CityId,
-                CityTitle = row.CityTitle,
-                ProvinceId = row.ProvinceId,
-                ProvinceTitle = row.ProvinceTitle,
+                SupportingDepartments = PersonReferenceMapper.ToDtos(person?.SupportingDepartments),
             };
         }
 
@@ -290,13 +290,13 @@ namespace EMS.Application.Services.Equipment
             }
 
             var page = await query.ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
+            var people = await _people.GetPeopleAsync(page.Items.Select(t => (long?)t.Id), cancellationToken);
             return new PagedResult<TechnicianItemDto>
             {
                 Items = page.Items.Select(t => new TechnicianItemDto
                 {
                     Id = t.Id, FullName = t.FullName, PersonnelCode = t.PersonnelCode,
-                    SupportingDepartmentId = t.SupportingDepartmentId, SupportingDepartmentTitle = t.SupportingDepartmentTitle,
-                    CityId = t.CityId, CityTitle = t.CityTitle, ProvinceId = t.ProvinceId, ProvinceTitle = t.ProvinceTitle,
+                    SupportingDepartments = PersonReferenceMapper.ToDtos(people.GetValueOrDefault(t.Id)?.SupportingDepartments),
                 }).ToList(),
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
@@ -483,7 +483,7 @@ namespace EMS.Application.Services.Equipment
                 _audit.Created("Equipment", id);
 
             var rows = (await _repository.GetRowsAsync(ids, cancellationToken)).ToDictionary(r => r.Id);
-            return ids.Select(id =>
+            var details = ids.Select(id =>
             {
                 var row = rows[id];
                 var detail = Fill(new EquipmentDetailDto(), row);
@@ -491,6 +491,8 @@ namespace EMS.Application.Services.Equipment
                 detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
                 return detail;
             }).ToList();
+            await FillTechnicianDepartmentsAsync(details, cancellationToken);
+            return details;
         }
 
         public async Task<EquipmentDetailDto> UpdateAsync(long id, EquipmentUpdateDto request, CancellationToken cancellationToken = default)
@@ -718,10 +720,23 @@ namespace EMS.Application.Services.Equipment
         {
             var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var detail = Fill(new EquipmentDetailDto(), row);
+            await FillTechnicianDepartmentsAsync(new[] { detail }, cancellationToken);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             detail.AttachmentCount = (await _attachments.CountActiveAsync(AttachmentsTable, new[] { id }, cancellationToken)).GetValueOrDefault(id);
             return detail;
+        }
+
+        /// <summary>The technician's departments (a list) come from the person lookup, one query for all the rows; the rows themselves only carry the texts of the Excel file.</summary>
+        private async Task FillTechnicianDepartmentsAsync(IEnumerable<EquipmentListItemDto> items, CancellationToken cancellationToken)
+        {
+            var withTechnician = items.Where(i => i.TechnicianUserId.HasValue).ToList();
+            if (withTechnician.Count == 0)
+                return;
+
+            var people = await _people.GetPeopleAsync(withTechnician.Select(i => i.TechnicianUserId), cancellationToken);
+            foreach (var item in withTechnician)
+                PersonReferenceMapper.FillDepartments(item, "Technician", people.GetValueOrDefault(item.TechnicianUserId!.Value));
         }
 
         private static TDto Fill<TDto>(TDto dto, EquipmentRow row) where TDto : EquipmentListItemDto
@@ -768,12 +783,6 @@ namespace EMS.Application.Services.Equipment
             dto.TechnicianIsActive = row.TechnicianIsActive;
             dto.TechnicianPostId = row.TechnicianPostId;
             dto.TechnicianPostTitle = row.TechnicianPostTitle;
-            dto.TechnicianSupportingDepartmentId = row.TechnicianSupportingDepartmentId;
-            dto.TechnicianSupportingDepartmentTitle = row.TechnicianSupportingDepartmentTitle;
-            dto.TechnicianCityId = row.TechnicianCityId;
-            dto.TechnicianCityTitle = row.TechnicianCityTitle;
-            dto.TechnicianProvinceId = row.TechnicianProvinceId;
-            dto.TechnicianProvinceTitle = row.TechnicianProvinceTitle;
             dto.Description = row.Description;
             dto.IsActive = row.IsActive;
             dto.CreatedDateTime = row.CreatedDateTime;

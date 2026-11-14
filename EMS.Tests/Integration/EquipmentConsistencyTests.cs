@@ -39,10 +39,22 @@ namespace EMS.Tests.Integration
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Users", new
             {
                 userName, password = "Passw0rd!x", firstName = "علی", lastName = "تکنسین", personnelCode = "PC-" + userName,
-                postId = (long)PostCode.Line, supportingDepartmentId = departmentId,
+                postId = (long)PostCode.Line, supportingDepartmentIds = departmentId.HasValue ? new[] { departmentId.Value } : Array.Empty<long>(),
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
+        }
+
+        /// <summary>The list of departments of a person: exactly one, with its city and province.</summary>
+        private static void AssertDepartment(JsonElement departments, Place place)
+        {
+            var department = Assert.Single(departments.EnumerateArray().ToList());
+            Assert.Equal(place.DepartmentId, department.GetProperty("id").GetInt64());
+            Assert.Equal(place.DepartmentTitle, department.GetProperty("title").GetString());
+            Assert.Equal(place.CityId, department.GetProperty("cityId").GetInt64());
+            Assert.Equal(place.CityTitle, department.GetProperty("cityTitle").GetString());
+            Assert.Equal(place.ProvinceId, department.GetProperty("provinceId").GetInt64());
+            Assert.Equal(place.ProvinceTitle, department.GetProperty("provinceTitle").GetString());
         }
 
         private sealed record Org(long Id, string Title, string ZoneTitle, string ManagementTitle, string FieldTitle);
@@ -90,12 +102,7 @@ namespace EMS.Tests.Integration
         {
             string Name(string suffix) => prefix + suffix;
             Assert.Equal(technician, row.GetProperty(prefix == "technician" ? "technicianUserId" : "technicianUserId").GetInt64());
-            Assert.Equal(place.DepartmentId, row.GetProperty(Name("SupportingDepartmentId")).GetInt64());
-            Assert.Equal(place.DepartmentTitle, row.GetProperty(Name("SupportingDepartmentTitle")).GetString());
-            Assert.Equal(place.CityId, row.GetProperty(Name("CityId")).GetInt64());
-            Assert.Equal(place.CityTitle, row.GetProperty(Name("CityTitle")).GetString());
-            Assert.Equal(place.ProvinceId, row.GetProperty(Name("ProvinceId")).GetInt64());
-            Assert.Equal(place.ProvinceTitle, row.GetProperty(Name("ProvinceTitle")).GetString());
+            AssertDepartment(row.GetProperty(Name("SupportingDepartments")), place);
         }
 
         // ------------------------------------------------------------------------------------ the technician's place
@@ -122,24 +129,18 @@ namespace EMS.Tests.Integration
 
             // /{id}/technician has the city and province too
             var single = await ReadDataAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/technician"));
-            Assert.Equal(place.DepartmentTitle, single.GetProperty("supportingDepartmentTitle").GetString());
-            Assert.Equal(place.CityTitle, single.GetProperty("cityTitle").GetString());
-            Assert.Equal(place.ProvinceTitle, single.GetProperty("provinceTitle").GetString());
+            AssertDepartment(single.GetProperty("supportingDepartments"), place);
 
             // the dropdown
             var dropdown = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, "/api/Equipment/technicians?pageSize=100&search=PC-cn")))
                 .EnumerateArray().Single(t => t.GetProperty("id").GetInt64() == technician);
-            Assert.Equal(place.DepartmentTitle, dropdown.GetProperty("supportingDepartmentTitle").GetString());
-            Assert.Equal(place.CityTitle, dropdown.GetProperty("cityTitle").GetString());
-            Assert.Equal(place.ProvinceTitle, dropdown.GetProperty("provinceTitle").GetString());
+            AssertDepartment(dropdown.GetProperty("supportingDepartments"), place);
 
             // the history entry: the department it records, with its city and province, and where the technician works now
             var history = DataOf(await ReadJsonAsync(await SendAdminAsync(HttpMethod.Get, $"/api/Equipment/{id}/location-history"))).EnumerateArray().First();
             Assert.Equal(place.CityTitle, history.GetProperty("currentCityTitle").GetString());
             Assert.Equal(place.ProvinceTitle, history.GetProperty("currentProvinceTitle").GetString());
-            Assert.Equal(place.DepartmentTitle, history.GetProperty("technicianSupportingDepartmentTitle").GetString());
-            Assert.Equal(place.CityTitle, history.GetProperty("technicianCityTitle").GetString());
-            Assert.Equal(place.ProvinceTitle, history.GetProperty("technicianProvinceTitle").GetString());
+            AssertDepartment(history.GetProperty("technicianSupportingDepartments"), place);
         }
 
         [Fact]
@@ -148,8 +149,7 @@ namespace EMS.Tests.Integration
             var noDepartment = await NewTechnicianAsync(null);
             var id = await NewEquipmentAsync(new { technicianUserId = noDepartment });
             var row = await ListRowAsync(id);
-            Assert.Equal(JsonValueKind.Null, row.GetProperty("technicianSupportingDepartmentTitle").ValueKind);
-            Assert.Equal(JsonValueKind.Null, row.GetProperty("technicianCityTitle").ValueKind);
+            Assert.Empty(row.GetProperty("technicianSupportingDepartments").EnumerateArray());
 
             var without = await ListRowAsync(await NewEquipmentAsync(new { }));
             Assert.Equal(JsonValueKind.Null, without.GetProperty("technicianIsActive").ValueKind);

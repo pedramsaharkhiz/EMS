@@ -29,7 +29,7 @@ namespace EMS.Tests.Unit
             public IEnumerable<string> Permissions => Array.Empty<string>();
         }
 
-        private sealed class FixedScope : IDataScopeAccessor { public DataScope Current { get; } = DataScope.Restricted(1, 5, "آزمون"); }
+        private sealed class FixedScope : IDataScopeAccessor { public DataScope Current { get; } = DataScope.Restricted(1, new long[] { 5, 6 }, "آزمون"); }
 
         private sealed class NoSecurityLog : ISecurityEventLogger
         {
@@ -70,7 +70,8 @@ namespace EMS.Tests.Unit
 
             var sql = rows.OrderBy(r => r.Id).ToQueryString();
             Assert.Contains("[SupportingDepartmentId]", sql);
-            Assert.Contains("= @", sql);                                   // the department is a parameter, never concatenated text
+            Assert.Matches(@"IN \(|OPENJSON", sql);                         // the departments are parameters (a list), never concatenated text
+            Assert.DoesNotContain("5, 6", sql);
             Assert.Contains("COUNT(", rows.GroupBy(r => r.StatusId).Select(g => new { g.Key, Count = g.Count() }).ToQueryString());
         }
 

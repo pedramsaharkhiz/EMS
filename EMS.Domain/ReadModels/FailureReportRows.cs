@@ -58,11 +58,9 @@ namespace EMS.Domain.ReadModels
         public bool? ReportedByIsActive { get; set; }
         public long? ReportedByPostId { get; set; }
         public string? ReportedByPostTitle { get; set; }
-        public long? ReportedBySupportingDepartmentId { get; set; }
+        /// <summary>The titles of the reporter's departments, cities and provinces, each as one text separated by "، " (for the Excel file; the list gets the structured form from the person lookup).</summary>
         public string? ReportedBySupportingDepartmentTitle { get; set; }
-        public long? ReportedByCityId { get; set; }
         public string? ReportedByCityTitle { get; set; }
-        public long? ReportedByProvinceId { get; set; }
         public string? ReportedByProvinceTitle { get; set; }
 
         public int PriorityId { get; set; }

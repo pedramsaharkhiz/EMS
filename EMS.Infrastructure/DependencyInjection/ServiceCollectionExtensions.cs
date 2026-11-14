@@ -163,12 +163,13 @@ public static class ServiceCollectionExtensions
                     }
 
                     var validator = context.HttpContext.RequestServices.GetRequiredService<IAccessTokenValidator>();
-                    var (result, department) = await validator.ValidateWithScopeAsync(userId, stamp, context.HttpContext.RequestAborted);
+                    // a user who sees every department (DataScope.ViewAll) does not need his own: the lookup is skipped for him
+                    var seesEverything = context.Principal?.HasClaim("permission", EMS.Application.Common.Security.Permissions.DataScope.ViewAll) == true;
+                    var (result, departments) = await validator.ValidateWithScopeAsync(userId, stamp, loadDepartments: !seesEverything, cancellationToken: context.HttpContext.RequestAborted);
                     if (result == AccessTokenValidationResult.Valid)
                     {
-                        // the data scope (row-level security) needs the user's department: it rides on this lookup
-                        if (department is { } departmentId)
-                            context.HttpContext.Items[EMS.Infrastructure.Security.RowSecurity.DataScopeKeys.SupportingDepartmentId] = departmentId;
+                        // the data scope (row-level security) needs the user's departments: they come from this validation
+                        context.HttpContext.Items[EMS.Infrastructure.Security.RowSecurity.DataScopeKeys.SupportingDepartmentIds] = departments;
                         return;
                     }
 

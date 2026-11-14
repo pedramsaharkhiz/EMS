@@ -42,7 +42,7 @@ namespace EMS.Tests.Integration
             "Users.View", "Users.Create", "Users.Update", "Users.Delete", "Users.ManageRoles", "Roles.View", "Roles.ManageUsers",
         };
 
-        private sealed record Person(long Id, string Token);
+        private sealed record Person(long Id, string Token, string Code);
 
         private sealed class World
         {
@@ -53,18 +53,21 @@ namespace EMS.Tests.Integration
             public long TypeId, FailureTypeId;
         }
 
-        private async Task<Person> NewPersonAsync(long? department, params string[] permissions)
+        private Task<Person> NewPersonAsync(long? department, params string[] permissions) =>
+            NewPersonInAsync(department.HasValue ? new[] { department.Value } : Array.Empty<long>(), permissions);
+
+        private async Task<Person> NewPersonInAsync(long[] departments, params string[] permissions)
         {
             var admin = await AdminAsync();
             var name = "rs_" + Guid.NewGuid().ToString("N")[..10];
             var created = await As(admin, HttpMethod.Post, "/api/Users", new
             {
-                userName = name, password = "Passw0rd!x", firstName = "علی", lastName = "رضایی", personnelCode = "PC-" + name, supportingDepartmentId = department,
+                userName = name, password = "Passw0rd!x", firstName = "علی", lastName = "رضایی", personnelCode = "PC-" + name, supportingDepartmentIds = departments,
             });
             Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
             var id = Id(await ReadDataAsync(created));
             await AssignRoleAsync(admin, id, await CreateRoleAsync(admin, "role_" + name, permissions));
-            return new Person(id, (await LoginAsync(name, "Passw0rd!x")).AccessToken);
+            return new Person(id, (await LoginAsync(name, "Passw0rd!x")).AccessToken, "PC-" + name);
         }
 
         private async Task<long> NewOrganizationAsync(long? departmentId)
@@ -177,7 +180,7 @@ namespace EMS.Tests.Integration
 
             var userA = await ReadDataAsync(await As(w.UserA.Token, HttpMethod.Get, "/api/RowSecurity/my-scope"));
             Assert.False(userA.GetProperty("isUnrestricted").GetBoolean());
-            Assert.Equal(w.DepartmentA, userA.GetProperty("supportingDepartmentId").GetInt64());
+            Assert.Equal(new[] { w.DepartmentA }, userA.GetProperty("supportingDepartmentIds").EnumerateArray().Select(x => x.GetInt64()).ToArray());
             Assert.Contains("ستاد شما", userA.GetProperty("reason").GetString());
             var policies = userA.GetProperty("policies").EnumerateArray().ToList();
             Assert.All(policies, p => Assert.True(p.GetProperty("restrictsYou").GetBoolean()));      // every protected type now has a real rule
@@ -186,7 +189,7 @@ namespace EMS.Tests.Integration
 
             var none = await ReadDataAsync(await As(w.NoDepartment.Token, HttpMethod.Get, "/api/RowSecurity/my-scope"));
             Assert.False(none.GetProperty("isUnrestricted").GetBoolean());
-            Assert.Equal(JsonValueKind.Null, none.GetProperty("supportingDepartmentId").ValueKind);
+            Assert.Empty(none.GetProperty("supportingDepartmentIds").EnumerateArray());
             Assert.Contains("ستاد ندارید", none.GetProperty("reason").GetString());
         }
 
@@ -489,7 +492,7 @@ namespace EMS.Tests.Integration
             Assert.True((await ReadDataAsync(await As(await AdminAsync(), HttpMethod.Get, $"/api/Users/{outsider.Id}"))).GetProperty("isActive").GetBoolean());
 
             // creating a user or moving one is only to a department he sees
-            object NewUser(long? department) => new { userName = "n" + Guid.NewGuid().ToString("N")[..12], password = "Passw0rd!x", firstName = "x", lastName = "y", personnelCode = Uniq("PC"), supportingDepartmentId = department };
+            object NewUser(long? department) => new { userName = "n" + Guid.NewGuid().ToString("N")[..12], password = "Passw0rd!x", firstName = "x", lastName = "y", personnelCode = Uniq("PC"), supportingDepartmentIds = department.HasValue ? new[] { department.Value } : Array.Empty<long>() };
             var created = await As(w.UserA.Token, HttpMethod.Post, "/api/Users", NewUser(w.DepartmentA));
             Assert.True(created.StatusCode == HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
             var wrong = await As(w.UserA.Token, HttpMethod.Post, "/api/Users", NewUser(w.DepartmentB));
@@ -502,10 +505,12 @@ namespace EMS.Tests.Integration
             Assert.DoesNotContain(outsider.Id, technicians);
 
             // the one who sees everything sees everyone
-            var all = await IdsAsync(w.Central.Token, "/api/Users");
-            Assert.Contains(outsider.Id, all);
-            Assert.Contains(colleague.Id, all);
-            Assert.Contains(outsider.Id, await IdsAsync(w.Central.Token, "/api/Equipment/technicians"));
+            // (looked up by what is unique to him: the shared test database holds more users than one page)
+            foreach (var person in new[] { outsider, colleague })
+            {
+                Assert.Contains(person.Id, await IdsAsync(w.Central.Token, $"/api/Users?search={person.Code}"));
+                Assert.Contains(person.Id, await IdsAsync(w.Central.Token, $"/api/Equipment/technicians?search={person.Code}"));
+            }
         }
 
         // ------------------------------------------------------------------------------------------ attachments
@@ -540,6 +545,141 @@ namespace EMS.Tests.Integration
             Assert.Equal(HttpStatusCode.NotFound, (await As(w.UserA.Token, HttpMethod.Delete, $"/api/Attachments/{attachmentB}")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await As(w.Central.Token, HttpMethod.Get, $"/api/Attachments/{attachmentB}/download")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await As(await AdminAsync(), HttpMethod.Get, $"/api/Attachments/Equipments/{w.EquipmentB}")).StatusCode);
+        }
+
+        // ------------------------------------------------------------------------------------------ a user with several departments
+
+        private async Task<JsonElement> UserAsync(string token, long id) => await ReadDataAsync(await As(token, HttpMethod.Get, $"/api/Users/{id}"));
+
+        private static long[] DepartmentIdsOf(JsonElement user) => user.GetProperty("supportingDepartments").EnumerateArray().Select(Id).ToArray();
+
+        private async Task<HttpResponseMessage> PutDepartmentsAsync(string token, long userId, params long[] departments)
+        {
+            var user = await UserAsync(await AdminAsync(), userId);
+            return await As(token, HttpMethod.Put, $"/api/Users/{userId}", new
+            {
+                userName = user.GetProperty("userName").GetString(), firstName = user.GetProperty("firstName").GetString(), lastName = user.GetProperty("lastName").GetString(),
+                personnelCode = user.GetProperty("personnelCode").GetString(), isActive = true, supportingDepartmentIds = departments,
+            });
+        }
+
+        [Fact]
+        public async Task A_user_with_two_departments_sees_the_data_of_both_and_nothing_of_a_third_and_is_seen_from_both()
+        {
+            var w = await NewWorldAsync();
+            var admin = await AdminAsync();
+            var city = await CatalogFixtures.EnsureCityAsync(this);
+            var departmentC = await PostIdAsync("/api/SupportingDepartment", new { cityId = city, title = Uniq("rsC") });
+            var organizationC = await NewOrganizationAsync(departmentC);
+            var equipmentC = await EquipmentAsync(admin, w, new { CurrentSupportingDepartmentId = departmentC });
+            var reportC = await ReportAsync(admin, w, organizationC, equipmentC);
+            var userC = await NewPersonAsync(departmentC, FieldPermissions);
+
+            var both = await NewPersonInAsync(new[] { w.DepartmentA, w.DepartmentB }, FieldPermissions);
+
+            // the data of both departments, never of the third
+            var reports = await IdsAsync(both.Token, "/api/FailureReport");
+            Assert.Contains(w.ReportA, reports);
+            Assert.Contains(w.ReportB, reports);
+            Assert.DoesNotContain(reportC, reports);
+            var equipment = await IdsAsync(both.Token, "/api/Equipment");
+            Assert.Contains(w.EquipmentA, equipment);
+            Assert.Contains(w.EquipmentOrgA, equipment);
+            Assert.Contains(w.EquipmentB, equipment);
+            Assert.DoesNotContain(equipmentC, equipment);
+            await AssertLooksMissingAsync(both.Token, HttpMethod.Get, $"/api/FailureReport/{reportC}", "/api/FailureReport/987654321");
+
+            // my-scope lists both departments
+            var scope = await ReadDataAsync(await As(both.Token, HttpMethod.Get, "/api/RowSecurity/my-scope"));
+            Assert.False(scope.GetProperty("isUnrestricted").GetBoolean());
+            Assert.Equal(new[] { w.DepartmentA, w.DepartmentB }.OrderBy(x => x), scope.GetProperty("supportingDepartmentIds").EnumerateArray().Select(x => x.GetInt64()).OrderBy(x => x));
+            Assert.Contains("ستادهای شما", scope.GetProperty("reason").GetString());
+            var me = await ReadDataAsync(await As(both.Token, HttpMethod.Get, "/api/Identity/me"));
+            Assert.Equal(2, me.GetProperty("supportingDepartments").GetArrayLength());
+
+            // he is seen from each of his departments (users list and technician dropdown), not from another one
+            foreach (var viewer in new[] { w.UserA, w.UserB })
+            {
+                Assert.Contains(both.Id, await IdsAsync(viewer.Token, "/api/Users"));
+                Assert.Contains(both.Id, await IdsAsync(viewer.Token, "/api/Equipment/technicians"));
+            }
+            Assert.DoesNotContain(both.Id, await IdsAsync(userC.Token, "/api/Users"));
+            Assert.DoesNotContain(both.Id, await IdsAsync(userC.Token, "/api/Equipment/technicians"));
+            await AssertLooksMissingAsync(userC.Token, HttpMethod.Get, $"/api/Users/{both.Id}", "/api/Users/987654321");
+
+            // wherever a person is named, ALL of his departments come with him
+            var assigned = await As(admin, HttpMethod.Post, $"/api/FailureReport/{w.ReportA}/assignments", new { technicianUserId = both.Id, title = "تعمیر", priorityId = 3 });
+            Assert.Equal(HttpStatusCode.Created, assigned.StatusCode);
+            var assignment = await ReadDataAsync(await As(admin, HttpMethod.Get, $"/api/TechnicianAssignment/{Id(await ReadDataAsync(assigned))}"));
+            Assert.Equal(2, assignment.GetProperty("technicianSupportingDepartments").GetArrayLength());
+        }
+
+        [Fact]
+        public async Task The_departments_of_a_user_are_set_listed_filtered_replaced_and_checked()
+        {
+            var w = await NewWorldAsync();
+            var admin = await AdminAsync();
+            var name = "md_" + Guid.NewGuid().ToString("N")[..10];
+
+            // a repeated id counts once; the list is ordered by title
+            var created = await As(admin, HttpMethod.Post, "/api/Users", new
+            {
+                userName = name, password = "Passw0rd!x", firstName = "علی", lastName = "رضایی", personnelCode = "PC-" + name,
+                supportingDepartmentIds = new[] { w.DepartmentB, w.DepartmentA, w.DepartmentB },
+            });
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var id = Id(await ReadDataAsync(created));
+            Assert.Equal(new[] { w.DepartmentA, w.DepartmentB }, DepartmentIdsOf(await UserAsync(admin, id)));
+            var listed = (await ReadDataAsync(await As(admin, HttpMethod.Get, $"/api/Users?supportingDepartmentId={w.DepartmentB}&pageSize=100"))).EnumerateArray().Single(u => Id(u) == id);
+            Assert.Equal(2, listed.GetProperty("supportingDepartments").GetArrayLength());
+            var first = listed.GetProperty("supportingDepartments")[0];
+            foreach (var property in new[] { "id", "title", "cityId", "cityTitle", "provinceId", "provinceTitle" })
+                Assert.True(first.TryGetProperty(property, out _), property);
+
+            // the filter finds him by either department
+            foreach (var department in new[] { w.DepartmentA, w.DepartmentB })
+                Assert.Contains(id, (await ReadDataAsync(await As(admin, HttpMethod.Get, $"/api/Users?supportingDepartmentId={department}&pageSize=100"))).EnumerateArray().Select(Id));
+
+            // an update replaces the whole list
+            Assert.Equal(HttpStatusCode.OK, (await PutDepartmentsAsync(admin, id, w.DepartmentB)).StatusCode);
+            Assert.Equal(new[] { w.DepartmentB }, DepartmentIdsOf(await UserAsync(admin, id)));
+            Assert.DoesNotContain(id, (await ReadDataAsync(await As(admin, HttpMethod.Get, $"/api/Users?supportingDepartmentId={w.DepartmentA}&pageSize=100"))).EnumerateArray().Select(Id));
+            Assert.Equal(HttpStatusCode.OK, (await PutDepartmentsAsync(admin, id)).StatusCode);
+            Assert.Empty(DepartmentIdsOf(await UserAsync(admin, id)));
+
+            // an unknown department and an invalid id are refused
+            var unknown = await PutDepartmentsAsync(admin, id, w.DepartmentA, 987654321);
+            Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+            Assert.Equal("department_not_found", ErrorCodeOf(await ReadJsonAsync(unknown)));
+            Assert.Equal(HttpStatusCode.BadRequest, (await PutDepartmentsAsync(admin, id, 0)).StatusCode);
+            Assert.Empty(DepartmentIdsOf(await UserAsync(admin, id)));        // nothing was changed by the refused updates
+        }
+
+        [Fact]
+        public async Task A_caller_can_only_add_or_remove_departments_he_sees_and_the_ones_he_does_not_see_stay()
+        {
+            var w = await NewWorldAsync();
+            var city = await CatalogFixtures.EnsureCityAsync(this);
+            var departmentC = await PostIdAsync("/api/SupportingDepartment", new { cityId = city, title = Uniq("rsC") });
+            var editor = w.UserA;                                         // sees department A only
+            var admin = await AdminAsync();
+            var target = await NewPersonInAsync(new[] { w.DepartmentA, w.DepartmentB });
+
+            // sending the list unchanged is fine (he may change the other fields)
+            Assert.Equal(HttpStatusCode.OK, (await PutDepartmentsAsync(editor.Token, target.Id, w.DepartmentA, w.DepartmentB)).StatusCode);
+
+            // taking out a department he cannot see, or putting the user into one he cannot see, is refused like a missing department
+            foreach (var wanted in new[] { new[] { w.DepartmentA }, new[] { w.DepartmentA, w.DepartmentB, departmentC }, new[] { departmentC } })
+            {
+                var refused = await PutDepartmentsAsync(editor.Token, target.Id, wanted);
+                Assert.Equal(HttpStatusCode.NotFound, refused.StatusCode);
+                Assert.Equal("department_not_found", ErrorCodeOf(await ReadJsonAsync(refused)));
+            }
+            Assert.Equal(new[] { w.DepartmentA, w.DepartmentB }, DepartmentIdsOf(await UserAsync(admin, target.Id)).OrderBy(x => x));
+
+            // he can add one he sees to a user he sees, and remove it again
+            var onlyA = await NewPersonInAsync(new[] { w.DepartmentA });
+            Assert.Equal(HttpStatusCode.OK, (await PutDepartmentsAsync(editor.Token, onlyA.Id, w.DepartmentA)).StatusCode);
         }
     }
 }

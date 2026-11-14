@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 namespace EMS.Application.Dtos.Equipment
 {
     /// <summary>
@@ -12,11 +13,7 @@ namespace EMS.Application.Dtos.Equipment
         public bool IsActive { get; set; }
         public long? PostId { get; set; }
         public string? PostTitle { get; set; }
-        public long? SupportingDepartmentId { get; set; }
-        public string? SupportingDepartmentTitle { get; set; }
-        public long? CityId { get; set; }
-        public string? CityTitle { get; set; }
-        public long? ProvinceId { get; set; }
-        public string? ProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to, each with its city and province (empty when none).</summary>
+        public List<PersonDepartmentDto> SupportingDepartments { get; set; } = [];
     }
 }

@@ -172,7 +172,7 @@ namespace EMS.Tests.Integration
             var userName = "sd_u" + Guid.NewGuid().ToString("N")[..8];
             var create = await SendAsync(HttpMethod.Post, "/api/Users", new
             {
-                userName, password = "Passw0rd!x", firstName = "A", lastName = "B", personnelCode = "PC-" + userName, supportingDepartmentId = byUser
+                userName, password = "Passw0rd!x", firstName = "A", lastName = "B", personnelCode = "PC-" + userName, supportingDepartmentIds = new[] { byUser }
             }, bearer: admin);
             Assert.True(create.IsSuccessStatusCode, await create.Content.ReadAsStringAsync());
             await AssertConflictAsync($"/api/SupportingDepartment/{byUser}");

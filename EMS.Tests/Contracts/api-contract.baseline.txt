@@ -141,12 +141,7 @@ GET api/AssignmentNote/{id}
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -181,12 +176,7 @@ PUT api/AssignmentNote/{id}
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -219,12 +209,7 @@ POST api/AssignmentNote/{id}/seen
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -285,12 +270,7 @@ GET api/Attachments/{tableName}/{entityId}
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -322,12 +302,7 @@ POST api/Attachments/{tableName}/{entityId}
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -678,12 +653,7 @@ GET api/Equipment
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -757,12 +727,7 @@ POST api/Equipment
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -826,12 +791,7 @@ POST api/Equipment/bulk
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -958,12 +918,7 @@ GET api/Equipment/technicians
       Id : Int64
       FullName : String
       PersonnelCode : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1023,12 +978,7 @@ POST api/Equipment/with-attachments
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -1105,12 +1055,7 @@ GET api/Equipment/{id}
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -1184,12 +1129,7 @@ PUT api/Equipment/{id}
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -1228,12 +1168,7 @@ GET api/Equipment/{id}/location-history
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       ChangedByUserId : Int64?
       ChangedByName : String
@@ -1241,12 +1176,7 @@ GET api/Equipment/{id}/location-history
       ChangedByIsActive : Boolean?
       ChangedByPostId : Int64?
       ChangedByPostTitle : String
-      ChangedBySupportingDepartmentId : Int64?
-      ChangedBySupportingDepartmentTitle : String
-      ChangedByCityId : Int64?
-      ChangedByCityTitle : String
-      ChangedByProvinceId : Int64?
-      ChangedByProvinceTitle : String
+      ChangedBySupportingDepartments : List<PersonDepartmentDto>
       Description : String
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
@@ -1314,12 +1244,7 @@ POST api/Equipment/{id}/move
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime
@@ -1343,12 +1268,7 @@ GET api/Equipment/{id}/technician
       IsActive : Boolean
       PostId : Int64?
       PostTitle : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -1994,12 +1914,7 @@ GET api/FailureReport
       ReportedByIsActive : Boolean?
       ReportedByPostId : Int64?
       ReportedByPostTitle : String
-      ReportedBySupportingDepartmentId : Int64?
-      ReportedBySupportingDepartmentTitle : String
-      ReportedByCityId : Int64?
-      ReportedByCityTitle : String
-      ReportedByProvinceId : Int64?
-      ReportedByProvinceTitle : String
+      ReportedBySupportingDepartments : List<PersonDepartmentDto>
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -2071,12 +1986,7 @@ POST api/FailureReport
       ReportedByIsActive : Boolean?
       ReportedByPostId : Int64?
       ReportedByPostTitle : String
-      ReportedBySupportingDepartmentId : Int64?
-      ReportedBySupportingDepartmentTitle : String
-      ReportedByCityId : Int64?
-      ReportedByCityTitle : String
-      ReportedByProvinceId : Int64?
-      ReportedByProvinceTitle : String
+      ReportedBySupportingDepartments : List<PersonDepartmentDto>
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -2173,12 +2083,7 @@ GET api/FailureReport/{failureReportId}/assignments
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -2190,12 +2095,7 @@ GET api/FailureReport/{failureReportId}/assignments
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -2241,12 +2141,7 @@ POST api/FailureReport/{failureReportId}/assignments
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -2258,12 +2153,7 @@ POST api/FailureReport/{failureReportId}/assignments
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -2305,12 +2195,7 @@ POST api/FailureReport/{failureReportId}/assignments/bulk
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -2322,12 +2207,7 @@ POST api/FailureReport/{failureReportId}/assignments/bulk
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -2405,12 +2285,7 @@ GET api/FailureReport/{id}
       ReportedByIsActive : Boolean?
       ReportedByPostId : Int64?
       ReportedByPostTitle : String
-      ReportedBySupportingDepartmentId : Int64?
-      ReportedBySupportingDepartmentTitle : String
-      ReportedByCityId : Int64?
-      ReportedByCityTitle : String
-      ReportedByProvinceId : Int64?
-      ReportedByProvinceTitle : String
+      ReportedBySupportingDepartments : List<PersonDepartmentDto>
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -2486,12 +2361,7 @@ PUT api/FailureReport/{id}
       ReportedByIsActive : Boolean?
       ReportedByPostId : Int64?
       ReportedByPostTitle : String
-      ReportedBySupportingDepartmentId : Int64?
-      ReportedBySupportingDepartmentTitle : String
-      ReportedByCityId : Int64?
-      ReportedByCityTitle : String
-      ReportedByProvinceId : Int64?
-      ReportedByProvinceTitle : String
+      ReportedBySupportingDepartments : List<PersonDepartmentDto>
       PriorityId : Int32
       PriorityTitle : String
       ReportedDateTime : DateTime
@@ -2791,8 +2661,7 @@ GET api/Identity/me
       PostId : Int64?
       PostCode : String
       PostTitle : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       Roles : IEnumerable<String>
       Permissions : IEnumerable<String>
   response 400: ApiResponse<Object>
@@ -3481,12 +3350,7 @@ GET api/Role/{roleId}/users
       NationalCode : String
       PhoneNumber : String
       Email : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -3568,7 +3432,7 @@ GET api/RowSecurity/my-scope
     data:
       UserId : Int64?
       IsUnrestricted : Boolean
-      SupportingDepartmentId : Int64?
+      SupportingDepartmentIds : List<Int64>
       Reason : String
       Policies : List<RowPolicyItemDto>
   response 400: ApiResponse<Object>
@@ -3949,12 +3813,7 @@ GET api/TechnicianAssignment
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -3966,12 +3825,7 @@ GET api/TechnicianAssignment
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4035,12 +3889,7 @@ GET api/TechnicianAssignment/{assignmentId}/notes
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -4074,12 +3923,7 @@ POST api/TechnicianAssignment/{assignmentId}/notes
       CreatedByIsActive : Boolean?
       CreatedByPostId : Int64?
       CreatedByPostTitle : String
-      CreatedBySupportingDepartmentId : Int64?
-      CreatedBySupportingDepartmentTitle : String
-      CreatedByCityId : Int64?
-      CreatedByCityTitle : String
-      CreatedByProvinceId : Int64?
-      CreatedByProvinceTitle : String
+      CreatedBySupportingDepartments : List<PersonDepartmentDto>
   response 400: ApiResponse<Object>
     envelope: success, message, data, meta, error, traceId
   response 401: ApiResponse<Object>
@@ -4111,12 +3955,7 @@ GET api/TechnicianAssignment/{id}
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4128,12 +3967,7 @@ GET api/TechnicianAssignment/{id}
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4179,12 +4013,7 @@ PUT api/TechnicianAssignment/{id}
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4196,12 +4025,7 @@ PUT api/TechnicianAssignment/{id}
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4244,12 +4068,7 @@ POST api/TechnicianAssignment/{id}/accept
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4261,12 +4080,7 @@ POST api/TechnicianAssignment/{id}/accept
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4360,12 +4174,7 @@ POST api/TechnicianAssignment/{id}/cancel
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4377,12 +4186,7 @@ POST api/TechnicianAssignment/{id}/cancel
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4425,12 +4229,7 @@ POST api/TechnicianAssignment/{id}/complete
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4442,12 +4241,7 @@ POST api/TechnicianAssignment/{id}/complete
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4490,12 +4284,7 @@ POST api/TechnicianAssignment/{id}/reject
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4507,12 +4296,7 @@ POST api/TechnicianAssignment/{id}/reject
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4552,12 +4336,7 @@ POST api/TechnicianAssignment/{id}/seen
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4569,12 +4348,7 @@ POST api/TechnicianAssignment/{id}/seen
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4617,12 +4391,7 @@ POST api/TechnicianAssignment/{id}/start
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4634,12 +4403,7 @@ POST api/TechnicianAssignment/{id}/start
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -4690,12 +4454,7 @@ GET api/Users
       NationalCode : String
       PhoneNumber : String
       Email : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -4723,7 +4482,7 @@ POST api/Users
     NationalCode : String
     PhoneNumber : String
     Email : String
-    SupportingDepartmentId : Int64?
+    SupportingDepartmentIds : List<Int64>
     PostId : Int64?
     IsActive : Boolean
   response 201: ApiResponse<UserDetailDto>
@@ -4743,12 +4502,7 @@ POST api/Users
       NationalCode : String
       PhoneNumber : String
       Email : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -4827,12 +4581,7 @@ GET api/Users/{id}
       NationalCode : String
       PhoneNumber : String
       Email : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -4859,7 +4608,7 @@ PUT api/Users/{id}
     NationalCode : String
     PhoneNumber : String
     Email : String
-    SupportingDepartmentId : Int64?
+    SupportingDepartmentIds : List<Int64>
     PostId : Int64?
     IsActive : Boolean
     RowVersion : String
@@ -4881,12 +4630,7 @@ PUT api/Users/{id}
       NationalCode : String
       PhoneNumber : String
       Email : String
-      SupportingDepartmentId : Int64?
-      SupportingDepartmentTitle : String
-      CityId : Int64?
-      CityTitle : String
-      ProvinceId : Int64?
-      ProvinceTitle : String
+      SupportingDepartments : List<PersonDepartmentDto>
       PostId : Int64?
       PostCode : String
       PostTitle : String
@@ -4950,12 +4694,7 @@ GET api/Users/{userId}/assignments
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Title : String
       PriorityId : Int32
       PriorityTitle : String
@@ -4967,12 +4706,7 @@ GET api/Users/{userId}/assignments
       AssignedByIsActive : Boolean?
       AssignedByPostId : Int64?
       AssignedByPostTitle : String
-      AssignedBySupportingDepartmentId : Int64?
-      AssignedBySupportingDepartmentTitle : String
-      AssignedByCityId : Int64?
-      AssignedByCityTitle : String
-      AssignedByProvinceId : Int64?
-      AssignedByProvinceTitle : String
+      AssignedBySupportingDepartments : List<PersonDepartmentDto>
       AssignedDateTime : DateTime
       DeadlineDateTime : DateTime?
       CompletedDateTime : DateTime?
@@ -5065,12 +4799,7 @@ GET api/Users/{userId}/equipment
       TechnicianIsActive : Boolean?
       TechnicianPostId : Int64?
       TechnicianPostTitle : String
-      TechnicianSupportingDepartmentId : Int64?
-      TechnicianSupportingDepartmentTitle : String
-      TechnicianCityId : Int64?
-      TechnicianCityTitle : String
-      TechnicianProvinceId : Int64?
-      TechnicianProvinceTitle : String
+      TechnicianSupportingDepartments : List<PersonDepartmentDto>
       Description : String
       IsActive : Boolean
       CreatedDateTime : DateTime

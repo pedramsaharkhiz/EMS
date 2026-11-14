@@ -24,8 +24,8 @@ namespace EMS.Tests.Unit
         private sealed class DepartmentPolicy : RowPolicy<Doc>
         {
             public override string Name => "Department";
-            public override string Describe(DataScope scope) => $"دپارتمان {scope.SupportingDepartmentId}";
-            public override Expression<Func<Doc, bool>>? Filter(DataScope scope) { var d = scope.SupportingDepartmentId; return x => x.Department == d; }
+            public override string Describe(DataScope scope) => $"دپارتمان {string.Join("،", scope.SupportingDepartmentIds)}";
+            public override Expression<Func<Doc, bool>>? Filter(DataScope scope) { var ids = scope.SupportingDepartmentIds.ToArray(); return x => x.Department != null && ids.Contains(x.Department.Value); }
         }
 
         private sealed class NotSecretPolicy : RowPolicy<Doc>
@@ -81,13 +81,13 @@ namespace EMS.Tests.Unit
             return (access, context, scope, security);
         }
 
-        private static DataScope Department(long id) => DataScope.Restricted(7, id, "آزمون");
+        private static DataScope Department(long id) => DataScope.Restricted(7, new[] { id }, "آزمون");
 
         [Fact]
         public void An_unrestricted_scope_gets_the_rows_untouched_and_the_policies_are_not_even_asked()
         {
             var (access, context, scope, _) = New(typeof(ThrowingPolicy));
-            scope.Current = DataScope.Unrestricted(7, 10, "همه");
+            scope.Current = DataScope.Unrestricted(7, new long[] { 10 }, "همه");
 
             Assert.Equal(4, access.Apply(context.Docs).Count());
             Assert.Equal(4, New(typeof(DepartmentPolicy)).Access.Apply(New(typeof(DepartmentPolicy)).Context.Docs).Count());   // the system scope (no user) is unrestricted too
@@ -152,7 +152,7 @@ namespace EMS.Tests.Unit
         public async Task An_unrestricted_scope_sees_everything_and_a_missing_record_is_a_plain_404_without_a_security_entry()
         {
             var (access, context, scope, security) = New(typeof(DepartmentPolicy));
-            scope.Current = DataScope.Unrestricted(7, null, "همه");
+            scope.Current = DataScope.Unrestricted(7, Array.Empty<long>(), "همه");
 
             await access.RequireVisibleAsync(context.Docs, d => d.Id == 3, "Doc", 3L, "یافت نشد.");
             await Assert.ThrowsAsync<NotFoundException>(() => access.RequireVisibleAsync(context.Docs, d => d.Id == 999, "Doc", 999L, "یافت نشد."));
@@ -171,7 +171,7 @@ namespace EMS.Tests.Unit
             Assert.All(restricted, i => Assert.Equal("Doc", i.RowType));
             Assert.Equal("دپارتمان 10", restricted[0].Description);
 
-            scope.Current = DataScope.Unrestricted(7, 10, "همه");
+            scope.Current = DataScope.Unrestricted(7, new long[] { 10 }, "همه");
             Assert.All(access.Describe(), i => Assert.False(i.RestrictsThisScope));        // nobody is restricted, so nothing "restricts you"
         }
     }

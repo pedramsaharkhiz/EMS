@@ -1,4 +1,4 @@
-﻿using EMS.Infrastructure.Persistence.Identity;
+using EMS.Infrastructure.Persistence.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,12 +29,11 @@ namespace EMS.Infrastructure.Persistence.Configurations
             builder.Property(x => x.LockoutEnd).HasColumnType("datetimeoffset(7)").IsRequired(false);
             builder.Property(x => x.LockoutEnabled).IsRequired();
             builder.Property(x => x.AccessFailedCount).IsRequired();
-            builder.Property(x => x.SupportingDepartmentId).IsRequired(false);
             builder.Property(x => x.IsActive).HasDefaultValue(true).IsRequired();
             builder.Property(x => x.CreatedByUserId).IsRequired(false);
             builder.Property(x => x.CreatedDateTime).HasDefaultValueSql("SYSUTCDATETIME()").IsRequired();
 
-            builder.HasOne(x => x.SupportingDepartment).WithMany().HasForeignKey(x => x.SupportingDepartmentId).OnDelete(DeleteBehavior.NoAction);
+            builder.HasMany(x => x.SupportingDepartments).WithOne().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.NoAction);
             builder.Property(x => x.PostId).IsRequired(false);
             builder.HasOne(x => x.Post).WithMany().HasForeignKey(x => x.PostId).OnDelete(DeleteBehavior.NoAction);
         }

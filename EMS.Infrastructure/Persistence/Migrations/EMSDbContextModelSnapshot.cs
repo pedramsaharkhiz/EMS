@@ -2209,6 +2209,22 @@ namespace EMS.Infrastructure.Persistence.Migrations
                     b.ToTable("UserRefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.UserSupportingDepartment", b =>
+                {
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SupportingDepartmentId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId", "SupportingDepartmentId");
+
+                    b.HasIndex("SupportingDepartmentId")
+                        .HasDatabaseName("IX_UserSupportingDepartments_SupportingDepartmentId");
+
+                    b.ToTable("UserSupportingDepartments", (string)null);
+                });
+
             modelBuilder.Entity("EMS.Domain.Entities.Zone", b =>
                 {
                     b.Property<long>("ZoneId")
@@ -2450,9 +2466,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
-                    b.Property<long?>("SupportingDepartmentId")
-                        .HasColumnType("bigint");
-
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -2472,8 +2485,6 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.HasIndex("PostId");
-
-                    b.HasIndex("SupportingDepartmentId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -3013,6 +3024,21 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EMS.Domain.Entities.UserSupportingDepartment", b =>
+                {
+                    b.HasOne("EMS.Domain.Entities.SupportingDepartment", null)
+                        .WithMany()
+                        .HasForeignKey("SupportingDepartmentId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("EMS.Infrastructure.Persistence.Identity.ApplicationUser", null)
+                        .WithMany("SupportingDepartments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EMS.Infrastructure.Persistence.Identity.ApplicationRoleClaim", b =>
                 {
                     b.HasOne("EMS.Infrastructure.Persistence.Identity.ApplicationRole", null)
@@ -3029,14 +3055,7 @@ namespace EMS.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PostId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("EMS.Domain.Entities.SupportingDepartment", "SupportingDepartment")
-                        .WithMany()
-                        .HasForeignKey("SupportingDepartmentId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("Post");
-
-                    b.Navigation("SupportingDepartment");
                 });
 
             modelBuilder.Entity("EMS.Infrastructure.Persistence.Identity.ApplicationUserClaim", b =>
@@ -3238,6 +3257,8 @@ namespace EMS.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("EMS.Infrastructure.Persistence.Identity.ApplicationUser", b =>
                 {
+                    b.Navigation("SupportingDepartments");
+
                     b.Navigation("TechnicianSkills");
                 });
 #pragma warning restore 612, 618

@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 using EMS.Application.Dtos.User;
 using EMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EMS.Infrastructure.Services.Identity;
 
 /// <summary>
-/// Fills what a user row carries only as ids: the post (سمت) code and title, and the place of work (supporting department, its city and province),
+/// Fills what a user row carries only as ids: the post (سمت) code and title, and the places of work (every supporting department with its city and province),
 /// with one query each for all users of the page. A deactivated post or department is still shown (a user keeps what he had), so the soft-delete
 /// filter is lifted.
 /// </summary>
@@ -33,28 +34,28 @@ internal static class UserPostLookup
             }
         }
 
-        var withDepartment = all.Where(x => x.SupportingDepartmentId.HasValue).ToList();
-        if (withDepartment.Count > 0)
+        // the departments of every user of the page: one query (the soft-delete filter is lifted, a deactivated department still names where he works)
+        var userIds = all.Select(x => x.Id).Distinct().ToList();
+        if (userIds.Count > 0)
         {
-            var ids = withDepartment.Select(x => x.SupportingDepartmentId!.Value).Distinct().ToList();
-            var departments = await db.SupportingDepartments.IncludingInactive().AsNoTracking()
-                .Where(d => ids.Contains(d.SupportingDepartmentId))
-                .Select(d => new
+            var memberships = await (
+                from m in db.UserSupportingDepartments.AsNoTracking()
+                join d in db.SupportingDepartments.IncludingInactive().AsNoTracking() on m.SupportingDepartmentId equals d.SupportingDepartmentId
+                where userIds.Contains(m.UserId)
+                select new
                 {
-                    d.SupportingDepartmentId, d.Title, CityId = d.CityId, CityTitle = d.City.Title,
+                    m.UserId, DepartmentId = d.SupportingDepartmentId, d.Title, CityId = d.CityId, CityTitle = d.City.Title,
                     ProvinceId = d.City.ProvinceId, ProvinceTitle = d.City.Province.Title,
-                })
-                .ToDictionaryAsync(d => d.SupportingDepartmentId, cancellationToken);
+                }).ToListAsync(cancellationToken);
 
-            foreach (var user in withDepartment)
+            var byUser = memberships.GroupBy(m => m.UserId).ToDictionary(g => g.Key);
+            foreach (var user in all)
             {
-                if (!departments.TryGetValue(user.SupportingDepartmentId!.Value, out var department))
-                    continue;
-                user.SupportingDepartmentTitle = department.Title;
-                user.CityId = department.CityId;
-                user.CityTitle = department.CityTitle;
-                user.ProvinceId = department.ProvinceId;
-                user.ProvinceTitle = department.ProvinceTitle;
+                user.SupportingDepartments = byUser.TryGetValue(user.Id, out var rows)
+                    ? rows.OrderBy(r => r.Title, StringComparer.Ordinal).ThenBy(r => r.DepartmentId)
+                        .Select(r => new PersonDepartmentDto { Id = r.DepartmentId, Title = r.Title, CityId = r.CityId, CityTitle = r.CityTitle, ProvinceId = r.ProvinceId, ProvinceTitle = r.ProvinceTitle })
+                        .ToList()
+                    : [];
             }
         }
     }

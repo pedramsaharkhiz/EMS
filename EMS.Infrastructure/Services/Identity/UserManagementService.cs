@@ -58,7 +58,6 @@ public sealed partial class UserManagementService : IUserManagementService
                 NationalCode = x.NationalCode,
                 PhoneNumber = x.PhoneNumber,
                 Email = x.Email,
-                SupportingDepartmentId = x.SupportingDepartmentId,
                 PostId = x.PostId,
                 IsActive = x.IsActive
             });
@@ -188,6 +187,10 @@ public sealed partial class UserManagementService : IUserManagementService
     {
         var roles = ActiveRoleMembers();
         var skills = ActiveSkillMembers();
+        var departments =
+            from m in _dbContext.UserSupportingDepartments
+            join d in _dbContext.SupportingDepartments on m.SupportingDepartmentId equals d.SupportingDepartmentId
+            select new { m.UserId, d.Title, CityTitle = d.City.Title, ProvinceTitle = d.City.Province.Title };
 
         return BuildUserQuery(request)
             .IncludingInactive()
@@ -203,9 +206,9 @@ public sealed partial class UserManagementService : IUserManagementService
                 PhoneNumber = x.PhoneNumber,
                 Email = x.Email,
                 PostTitle = x.Post!.Title,
-                SupportingDepartmentTitle = x.SupportingDepartment!.Title,
-                CityTitle = x.SupportingDepartment!.City.Title,
-                ProvinceTitle = x.SupportingDepartment!.City.Province.Title,
+                SupportingDepartmentTitle = string.Join("، ", departments.Where(d => d.UserId == x.Id).OrderBy(d => d.Title).Select(d => d.Title)),
+                CityTitle = string.Join("، ", departments.Where(d => d.UserId == x.Id).Select(d => d.CityTitle).Distinct().OrderBy(t => t)),
+                ProvinceTitle = string.Join("، ", departments.Where(d => d.UserId == x.Id).Select(d => d.ProvinceTitle).Distinct().OrderBy(t => t)),
                 RoleNames = string.Join("، ", roles.Where(r => r.UserId == x.Id).OrderBy(r => r.Name).Select(r => r.Name)),
                 SkillTitles = string.Join("، ", skills.Where(r => r.UserId == x.Id).OrderBy(r => r.Name).Select(r => r.Name)),
                 IsActive = x.IsActive,
@@ -215,13 +218,6 @@ public sealed partial class UserManagementService : IUserManagementService
     /// <summary>A user reached by his id must be one the caller may see: 404 otherwise, as for a missing one. Call it BEFORE loading the user.</summary>
     private Task RequireVisibleUserAsync(long id, CancellationToken cancellationToken) =>
         _access.RequireVisibleAsync(_dbContext.Users.AsNoTracking(), u => u.Id == id, "User", id, "کاربر موردنظر پیدا نشد.", cancellationToken, ErrorCodes.UserNotFound);
-
-    /// <summary>The department a user is created in or moved to must be one the caller may see (the user policy applied to a user that does not exist yet).</summary>
-    private void RequireDepartmentVisible(long? departmentId)
-    {
-        if (!_access.IsVisible(new ApplicationUser { SupportingDepartmentId = departmentId }))
-            throw new NotFoundException("دپارتمان پشتیبانی یافت نشد.", ErrorCodes.DepartmentNotFound);
-    }
 
     public async Task<UserDetailDto?> GetByIdAsync(
         long id,
@@ -268,12 +264,11 @@ public sealed partial class UserManagementService : IUserManagementService
             null,
             cancellationToken);
 
-        await EnsureDepartmentExistsAsync(
-            request.SupportingDepartmentId,
-            cancellationToken);
+        var departmentIds = NormalizeDepartmentIds(request.SupportingDepartmentIds);
+        await EnsureDepartmentsExistAsync(departmentIds, cancellationToken);
 
         await EnsurePostAsync(request.PostId, currentPostId: null, cancellationToken);
-        RequireDepartmentVisible(request.SupportingDepartmentId);
+        RequireDepartmentsVisible(0, departmentIds, departmentIds);
 
         var user = new ApplicationUser
         {
@@ -284,7 +279,6 @@ public sealed partial class UserManagementService : IUserManagementService
             NationalCode = NormalizeOptional(request.NationalCode),
             PhoneNumber = NormalizeOptional(request.PhoneNumber),
             Email = NormalizeOptional(request.Email),
-            SupportingDepartmentId = request.SupportingDepartmentId,
             PostId = request.PostId,
             IsActive = request.IsActive,
             LockoutEnabled = true
@@ -300,6 +294,8 @@ public sealed partial class UserManagementService : IUserManagementService
                 FormatIdentityErrors(result),
                 ErrorCodes.IdentityError);
         }
+
+        await ApplyDepartmentsAsync(user.Id, departmentIds, cancellationToken);
 
         await ApplyAssignmentsAsync(
             user,
@@ -372,9 +368,8 @@ public sealed partial class UserManagementService : IUserManagementService
             id,
             cancellationToken);
 
-        await EnsureDepartmentExistsAsync(
-            request.SupportingDepartmentId,
-            cancellationToken);
+        var departmentIds = NormalizeDepartmentIds(request.SupportingDepartmentIds);
+        await EnsureDepartmentsExistAsync(departmentIds, cancellationToken);
 
         await EnsurePostAsync(request.PostId, user.PostId, cancellationToken);
 
@@ -385,9 +380,10 @@ public sealed partial class UserManagementService : IUserManagementService
         user.NationalCode = NormalizeOptional(request.NationalCode);
         user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
         user.Email = NormalizeOptional(request.Email);
-        if (user.SupportingDepartmentId != request.SupportingDepartmentId)
-            RequireDepartmentVisible(request.SupportingDepartmentId);      // moving a user to a department the caller cannot see is refused
-        user.SupportingDepartmentId = request.SupportingDepartmentId;
+        var currentDepartmentIds = await CurrentDepartmentIdsAsync(user.Id, cancellationToken);
+        var changedDepartmentIds = currentDepartmentIds.Except(departmentIds).Concat(departmentIds.Except(currentDepartmentIds)).ToList();
+        if (changedDepartmentIds.Count > 0)
+            RequireDepartmentsVisible(user.Id, changedDepartmentIds, departmentIds);      // putting a user into (or taking him out of) a department the caller cannot see is refused
         user.PostId = request.PostId;
         user.IsActive = request.IsActive;
 
@@ -407,6 +403,8 @@ public sealed partial class UserManagementService : IUserManagementService
                 FormatIdentityErrors(result),
                 ErrorCodes.IdentityError);
         }
+
+        await ApplyDepartmentsAsync(user.Id, departmentIds, cancellationToken);
 
         await ApplyAssignmentsAsync(
             user,
@@ -581,23 +579,6 @@ public sealed partial class UserManagementService : IUserManagementService
             throw new BadRequestException("سمت انتخاب‌شده غیرفعال است.", ErrorCodes.ParentInactive);
     }
 
-    private async Task EnsureDepartmentExistsAsync(
-        long? departmentId,
-        CancellationToken cancellationToken)
-    {
-        if (departmentId.HasValue &&
-            !await _dbContext.SupportingDepartments
-                .IncludingInactive()
-                .AnyAsync(
-                    x => x.SupportingDepartmentId == departmentId.Value,
-                    cancellationToken))
-        {
-            throw new BadRequestException(
-                "دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.",
-                ErrorCodes.DepartmentNotFound);
-        }
-    }
-
     private async Task RevokeRefreshTokensAsync(
         long userId,
         CancellationToken cancellationToken)
@@ -675,7 +656,6 @@ public sealed partial class UserManagementService : IUserManagementService
             NationalCode = user.NationalCode,
             PhoneNumber = user.PhoneNumber,
             Email = user.Email,
-            SupportingDepartmentId = user.SupportingDepartmentId,
             PostId = user.PostId,
             IsActive = user.IsActive,
             EmailConfirmed = user.EmailConfirmed,

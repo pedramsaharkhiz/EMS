@@ -1,6 +1,6 @@
 # دسترسی سطح ردیف (RLS): زیرساخت
 
-> **وضعیت: قاعده تعریف و اجرا شده** ([BUSINESS-DECISIONS.md ۳.۲۳](BUSINESS-DECISIONS.md)، [ADR-0029](adr/0029-row-security-rule-and-coverage.md)): هر کاربر داده‌های **ستاد خودش** و کارهای ارجاع‌شده به خودش را می‌بیند؛ دارندهٔ `DataScope.ViewAll` (و `Admin`) همه را. فاز ۱ (زیرساخت)، ۲ (جزئیات، نوشتن، مقصد، پیوست) و ۳ (کاربران، انتخاب تکنسین) اجرا شده‌اند؛ باقی‌مانده‌ها در پایین. تصمیم فنی زیرساخت: [ADR-0026](adr/0026-row-security-central-door-and-policies.md).
+> **وضعیت: قاعده تعریف و اجرا شده** ([BUSINESS-DECISIONS.md ۳.۲۳](BUSINESS-DECISIONS.md)، [ADR-0029](adr/0029-row-security-rule-and-coverage.md)): هر کاربر داده‌های **ستاد خودش** و کارهای ارجاع‌شده به خودش را می‌بیند؛ دارندهٔ `DataScope.ViewAll` (و `Admin`) همه را. فاز ۱ (زیرساخت)، ۲ (جزئیات، نوشتن، مقصد، پیوست) و ۳ (کاربران، انتخاب تکنسین) اجرا شده‌اند؛ باقی‌مانده‌ها در پایین. تصمیم فنی زیرساخت: [ADR-0028](adr/0028-row-security-central-door-and-policies.md).
 
 ## ایده
 
@@ -22,7 +22,7 @@
 | `IRowPolicy<TRow>` | **یک شرط** (عبارت قابل ترجمه به SQL) برای هر مدل خواندنی؛ هم لیست، هم Excel، هم داشبورد، هم جزئیات و نوشتن همین را می‌پرسند | `EMS.Application/Security/RowPolicies` |
 | `IRowAccess` | در مرکزی: `Apply` (کوئری)، `RequireVisibleAsync`/`IsVisibleAsync` (رکورد با شناسه)، `Describe` (توضیح) | `RowAccess` |
 
-**هزینه:** scope از همان خواندنی ساخته می‌شود که اعتبارسنجی توکن در هر درخواست انجام می‌دهد (مهر امنیتی). دپارتمان کاربر در همان کوئری خوانده می‌شود، پس **کوئری اضافه‌ای نیست**.
+**هزینه:** scope از همان خواندنی ساخته می‌شود که اعتبارسنجی توکن در هر درخواست انجام می‌دهد (مهر امنیتی). ستادهای کاربر با **یک کوئری ایندکس‌دار جدا** (کلید `(کاربر، ستاد)`) خوانده می‌شوند. برای کاربری که `DataScope.ViewAll` دارد این کوئری اصلاً زده نمی‌شود.
 
 ## رفتارهای تضمین‌شده
 
@@ -33,7 +33,7 @@
 
 ## ردیابی (traceability)
 
-۱. **«چرا کاربر X این را نمی‌بیند؟»** `GET /api/RowSecurity/my-scope` برای کاربر واردشده: `isUnrestricted`، `supportingDepartmentId`، `reason` (به فارسی) و فهرست همه‌ی نوع‌های محافظت‌شده با قاعده‌ای که روی هر کدام اعمال می‌شود (`description`) و اینکه واقعاً او را محدود می‌کند یا نه (`restrictsYou`). هر کاربر فقط scope خودش را می‌بیند. (نمایش scope **کاربر دیگر** برای مدیر در فاز بعد.)
+۱. **«چرا کاربر X این را نمی‌بیند؟»** `GET /api/RowSecurity/my-scope` برای کاربر واردشده: `isUnrestricted`، `supportingDepartmentIds` (فهرست؛ برای کاربر نامحدود خالی است)، `reason` (به فارسی) و فهرست همه‌ی نوع‌های محافظت‌شده با قاعده‌ای که روی هر کدام اعمال می‌شود (`description`) و اینکه واقعاً او را محدود می‌کند یا نه (`restrictsYou`). هر کاربر فقط scope خودش را می‌بیند. (نمایش scope **کاربر دیگر** برای مدیر در فاز بعد.)
 ۲. **لاگ امنیتی:** هر دسترسی ردشده به رکوردِ موجود.
 ۳. **لاگ Debug:** هر بار که سیاستی کوئری را محدود می‌کند (نوع، کاربر، دلیل).
 ۴. توضیح هر سیاست در `Describe` همان متنی است که فرانت نشان می‌دهد؛ قاعده‌ی تازه = توضیح تازه در همان کلاس.
@@ -49,8 +49,8 @@
        public override string Describe(DataScope scope) => "گزارش‌های شعبه‌های زیر پوشش دپارتمان شما";
        public override Expression<Func<FailureReportRow, bool>>? Filter(DataScope scope)
        {
-           var department = scope.SupportingDepartmentId;      // مقدار را در متغیر بگیر: پارامتر SQL می‌شود
-           return r => r.SupportingDepartmentId == department;
+           var departments = scope.SupportingDepartmentIds.ToArray();      // فهرست را در متغیر بگیر: پارامتر SQL می‌شود
+           return r => r.SupportingDepartmentId != null && departments.Contains(r.SupportingDepartmentId.Value);
        }
    }
    ```

@@ -21,7 +21,8 @@ public sealed class UpdateUserDto
 
     public string? Email { get; set; }
 
-    public long? SupportingDepartmentId { get; set; }
+    /// <summary>The supporting departments the user works for (zero, one or several; a repeated id counts once). An update replaces the whole list.</summary>
+    public List<long>? SupportingDepartmentIds { get; set; }
 
     /// <summary>Optional post (سمت); like the other fields, an update replaces it (null clears it).</summary>
     public long? PostId { get; set; }

@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 using EMS.Domain.Enums;
 
 namespace EMS.Application.Dtos.EquipmentLocationHistory
@@ -24,12 +25,8 @@ namespace EMS.Application.Dtos.EquipmentLocationHistory
         public bool? TechnicianIsActive { get; set; }
         public long? TechnicianPostId { get; set; }
         public string? TechnicianPostTitle { get; set; }
-        public long? TechnicianSupportingDepartmentId { get; set; }
-        public string? TechnicianSupportingDepartmentTitle { get; set; }
-        public long? TechnicianCityId { get; set; }
-        public string? TechnicianCityTitle { get; set; }
-        public long? TechnicianProvinceId { get; set; }
-        public string? TechnicianProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> TechnicianSupportingDepartments { get; set; } = [];
         public DateTime AssignedDateTime { get; set; }
         public long? ChangedByUserId { get; set; }
         // who made the change, with the same person set as the technician
@@ -38,12 +35,8 @@ namespace EMS.Application.Dtos.EquipmentLocationHistory
         public bool? ChangedByIsActive { get; set; }
         public long? ChangedByPostId { get; set; }
         public string? ChangedByPostTitle { get; set; }
-        public long? ChangedBySupportingDepartmentId { get; set; }
-        public string? ChangedBySupportingDepartmentTitle { get; set; }
-        public long? ChangedByCityId { get; set; }
-        public string? ChangedByCityTitle { get; set; }
-        public long? ChangedByProvinceId { get; set; }
-        public string? ChangedByProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> ChangedBySupportingDepartments { get; set; } = [];
         public string? Description { get; set; }
     }
 }
