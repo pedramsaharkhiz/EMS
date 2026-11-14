@@ -23,7 +23,7 @@ namespace EMS.Application.Validators.User
             RuleFor(x => x.PhoneNumber).MaximumLength(20).When(x => !string.IsNullOrEmpty(x.PhoneNumber)).WithMessage("شماره تلفن 'کاربر' باید حداکثر 20 کاراکتر باشد.");
             RuleFor(x => x.Email).MaximumLength(256).When(x => !string.IsNullOrEmpty(x.Email)).WithMessage("ایمیل 'کاربر' باید حداکثر 256 کاراکتر باشد.");
             RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrEmpty(x.Email)).WithMessage("ایمیل 'کاربر' معتبر نیست.");
-            RuleFor(x => x.SupportingDepartmentId).GreaterThan(0).When(x => x.SupportingDepartmentId.HasValue).WithMessage("شناسه 'دپارتمان  پشتیبانی' باید بزرگتر از صفر باشد.");
+            RuleForEach(x => x.SupportingDepartmentIds).GreaterThan(0).WithMessage("شناسه 'دپارتمان  پشتیبانی' باید بزرگتر از صفر باشد.");
             //RuleFor(x => x.IsActive).NotNull().WithMessage("وضعیت فعال بودن 'کاربر' الزامی است.");;
         }
     }

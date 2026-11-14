@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 using EMS.Application.Common.Models;
 
 namespace EMS.Application.Dtos.AssignmentNote;
@@ -44,10 +45,6 @@ public sealed class AssignmentNoteItemDto
         public bool? CreatedByIsActive { get; set; }
         public long? CreatedByPostId { get; set; }
         public string? CreatedByPostTitle { get; set; }
-        public long? CreatedBySupportingDepartmentId { get; set; }
-        public string? CreatedBySupportingDepartmentTitle { get; set; }
-        public long? CreatedByCityId { get; set; }
-        public string? CreatedByCityTitle { get; set; }
-        public long? CreatedByProvinceId { get; set; }
-        public string? CreatedByProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> CreatedBySupportingDepartments { get; set; } = [];
 }

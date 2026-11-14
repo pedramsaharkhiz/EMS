@@ -298,7 +298,6 @@ public sealed class UserRoleAssignmentService
                 NationalCode = user.NationalCode,
                 PhoneNumber = user.PhoneNumber,
                 Email = user.Email,
-                SupportingDepartmentId = user.SupportingDepartmentId,
                 PostId = user.PostId,
                 IsActive = user.IsActive
             })

@@ -6,6 +6,7 @@ using EMS.Application.Common.Filtering;
 using EMS.Application.Common.Interfaces;
 using EMS.Application.Common.Logging;
 using EMS.Application.Common.Models;
+using EMS.Application.Common.People;
 using EMS.Application.Dtos.Dashboard;
 using EMS.Application.Dtos.FailureReport;
 using EMS.Application.Extensions;
@@ -73,6 +74,7 @@ namespace EMS.Application.Services.FailureReport
         private readonly IAuditEventLogger _audit;
         private readonly IExcelExporter _exporter;
         private readonly IRowAccess _access;
+        private readonly IUserReferenceRepository _people;
 
         public FailureReportService(
             IFailureReportRepository repository,
@@ -86,7 +88,8 @@ namespace EMS.Application.Services.FailureReport
             IUnitOfWork unitOfWork,
             IAuditEventLogger audit,
             IExcelExporter exporter,
-            IRowAccess access)
+            IRowAccess access,
+            IUserReferenceRepository people)
         {
             _repository = repository;
             _equipment = equipment;
@@ -100,6 +103,7 @@ namespace EMS.Application.Services.FailureReport
             _audit = audit;
             _exporter = exporter;
             _access = access;
+            _people = people;
         }
 
         // ------------------------------------------------------------------------------------------------ read
@@ -108,9 +112,12 @@ namespace EMS.Application.Services.FailureReport
         {
             var page = await Query(request).ToPagedResultAsync(request.PageNumber, request.PageSize, cancellationToken);
 
+            var items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList();
+            await FillReporterDepartmentsAsync(items, cancellationToken);
+
             return new PagedResult<FailureReportListItemDto>
             {
-                Items = page.Items.Select(row => Fill(new FailureReportListItemDto(), row)).ToList(),
+                Items = items,
                 PageNumber = page.PageNumber,
                 PageSize = page.PageSize,
                 TotalCount = page.TotalCount,
@@ -275,9 +282,22 @@ namespace EMS.Application.Services.FailureReport
         {
             var row = await _repository.GetRowAsync(id, cancellationToken) ?? throw NotFound();      // row-access: every caller checked the record's visibility first
             var detail = Fill(new FailureReportDetailDto(), row);
+            await FillReporterDepartmentsAsync(new[] { detail }, cancellationToken);
             detail.ModifiedDateTime = row.ModifiedDateTime;
             detail.RowVersion = RowVersionToken.From(row.ModifiedDateTime);
             return detail;
+        }
+
+        /// <summary>The reporter's departments (a list) come from the person lookup, one query for all the rows; the rows themselves only carry the texts of the Excel file.</summary>
+        private async Task FillReporterDepartmentsAsync(IEnumerable<FailureReportListItemDto> items, CancellationToken cancellationToken)
+        {
+            var list = items.ToList();
+            if (list.Count == 0)
+                return;
+
+            var people = await _people.GetPeopleAsync(list.Select(i => (long?)i.ReportedByUserId), cancellationToken);
+            foreach (var item in list)
+                PersonReferenceMapper.FillDepartments(item, "ReportedBy", people.GetValueOrDefault(item.ReportedByUserId));
         }
 
         private static TDto Fill<TDto>(TDto dto, FailureReportRow row) where TDto : FailureReportListItemDto
@@ -322,12 +342,6 @@ namespace EMS.Application.Services.FailureReport
             dto.ReportedByIsActive = row.ReportedByIsActive;
             dto.ReportedByPostId = row.ReportedByPostId;
             dto.ReportedByPostTitle = row.ReportedByPostTitle;
-            dto.ReportedBySupportingDepartmentId = row.ReportedBySupportingDepartmentId;
-            dto.ReportedBySupportingDepartmentTitle = row.ReportedBySupportingDepartmentTitle;
-            dto.ReportedByCityId = row.ReportedByCityId;
-            dto.ReportedByCityTitle = row.ReportedByCityTitle;
-            dto.ReportedByProvinceId = row.ReportedByProvinceId;
-            dto.ReportedByProvinceTitle = row.ReportedByProvinceTitle;
             dto.PriorityId = row.PriorityId;
             dto.PriorityTitle = row.PriorityTitle;
             dto.ReportedDateTime = row.ReportedDateTime;

@@ -28,7 +28,7 @@ namespace EMS.Tests.Integration
             var response = await SendAdminAsync(HttpMethod.Post, "/api/Users", new
             {
                 userName, password = "Passw0rd!x", firstName = "علی", lastName = "تکنسین" + Guid.NewGuid().ToString("N")[..4],
-                personnelCode = "PC-" + userName, postId, supportingDepartmentId = departmentId,
+                personnelCode = "PC-" + userName, postId, supportingDepartmentIds = departmentId.HasValue ? new[] { departmentId.Value } : Array.Empty<long>(),
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await ReadDataAsync(response)).GetProperty("id").GetInt64();
@@ -178,8 +178,9 @@ namespace EMS.Tests.Integration
             Assert.True(json.GetProperty("isActive").GetBoolean());
             Assert.Equal(LinePost, json.GetProperty("postId").GetInt64());
             Assert.Equal("صف", json.GetProperty("postTitle").GetString());
-            Assert.Equal(department, json.GetProperty("supportingDepartmentId").GetInt64());
-            Assert.Equal(departmentTitle, json.GetProperty("supportingDepartmentTitle").GetString());
+            var departments = json.GetProperty("supportingDepartments").EnumerateArray().ToList();
+            Assert.Equal(department, Assert.Single(departments).GetProperty("id").GetInt64());
+            Assert.Equal(departmentTitle, departments[0].GetProperty("title").GetString());
 
             // no phone number or e-mail on purpose
             foreach (var name in new[] { "phoneNumber", "email", "nationalCode" })

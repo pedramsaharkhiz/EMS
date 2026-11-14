@@ -15,7 +15,8 @@ namespace EMS.Application.Dtos.Permission
     {
         public long? UserId { get; set; }
         public bool IsUnrestricted { get; set; }
-        public long? SupportingDepartmentId { get; set; }
+        /// <summary>The departments whose data the user sees (empty for an unrestricted user and for a user without a department).</summary>
+        public List<long> SupportingDepartmentIds { get; set; } = new();
         /// <summary>The reason of the scope, in words.</summary>
         public string Reason { get; set; } = string.Empty;
         public List<RowPolicyItemDto> Policies { get; set; } = new();

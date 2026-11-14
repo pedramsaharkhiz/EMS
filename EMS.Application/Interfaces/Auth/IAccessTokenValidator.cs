@@ -23,9 +23,9 @@ namespace EMS.Application.Interfaces.Auth
         Task<AccessTokenValidationResult> ValidateAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// The same check, plus the user's current supporting department, read in the SAME lookup. Token validation already reads the user on every request;
-        /// the data scope (row-level security) rides on it so it costs no extra query.
+        /// The same check, plus the user's current supporting departments (one indexed query by user id), which the data scope (row-level security) needs.
+        /// A caller that already knows the user sees everything (<c>DataScope.ViewAll</c>) passes <paramref name="loadDepartments"/> = false and saves the query.
         /// </summary>
-        Task<(AccessTokenValidationResult Result, long? SupportingDepartmentId)> ValidateWithScopeAsync(long userId, string? tokenSecurityStamp, CancellationToken cancellationToken = default);
+        Task<(AccessTokenValidationResult Result, IReadOnlyList<long> SupportingDepartmentIds)> ValidateWithScopeAsync(long userId, string? tokenSecurityStamp, bool loadDepartments = true, CancellationToken cancellationToken = default);
     }
 }

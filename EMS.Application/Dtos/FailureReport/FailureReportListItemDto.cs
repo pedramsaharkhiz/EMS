@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 using EMS.Domain.Enums;
 namespace EMS.Application.Dtos.FailureReport
 {
@@ -49,12 +50,8 @@ namespace EMS.Application.Dtos.FailureReport
         public bool? ReportedByIsActive { get; set; }
         public long? ReportedByPostId { get; set; }
         public string? ReportedByPostTitle { get; set; }
-        public long? ReportedBySupportingDepartmentId { get; set; }
-        public string? ReportedBySupportingDepartmentTitle { get; set; }
-        public long? ReportedByCityId { get; set; }
-        public string? ReportedByCityTitle { get; set; }
-        public long? ReportedByProvinceId { get; set; }
-        public string? ReportedByProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> ReportedBySupportingDepartments { get; set; } = [];
         /// <summary>1 (کم) to 5 (فوری).</summary>
         public int PriorityId { get; set; }
         public string PriorityTitle { get; set; } = string.Empty;

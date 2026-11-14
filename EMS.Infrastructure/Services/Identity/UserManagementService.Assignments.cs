@@ -197,6 +197,66 @@ public sealed partial class UserManagementService
         }
     }
 
+    // ------------------------------------------------------------------ supporting departments (a user may work for several)
+
+    /// <summary>The requested departments: distinct ids, in order. A missing list means none.</summary>
+    private static List<long> NormalizeDepartmentIds(IEnumerable<long>? ids) => (ids ?? Enumerable.Empty<long>()).Distinct().OrderBy(id => id).ToList();
+
+    /// <summary>Every requested department must exist (active or not: a user keeps a department that was deactivated later).</summary>
+    private async Task EnsureDepartmentsExistAsync(IReadOnlyCollection<long> departmentIds, CancellationToken cancellationToken)
+    {
+        if (departmentIds.Count == 0)
+            return;
+
+        var found = await _dbContext.SupportingDepartments.IncludingInactive().AsNoTracking()
+            .Where(d => departmentIds.Contains(d.SupportingDepartmentId)).CountAsync(cancellationToken);
+        if (found != departmentIds.Count)
+            throw new BadRequestException("دپارتمان پشتیبانی انتخاب‌شده وجود ندارد.", ErrorCodes.DepartmentNotFound);
+    }
+
+    private static ApplicationUser DepartmentCandidate(long userId, IEnumerable<long> departmentIds) => new()
+    {
+        Id = userId,
+        SupportingDepartments = departmentIds.Select(id => new UserSupportingDepartment { UserId = userId, SupportingDepartmentId = id }).ToList(),
+    };
+
+    /// <summary>
+    /// What the caller may do with the departments of a user, with the row-security rule applied to users that do not exist yet:
+    /// every department that is ADDED or REMOVED must be one the caller sees (404 <c>department_not_found</c> otherwise), and the user must stay visible to the caller
+    /// afterwards (a restricted caller cannot leave a user without any department of his own). A department the caller cannot see and does not touch stays as it is.
+    /// </summary>
+    private void RequireDepartmentsVisible(long userId, IReadOnlyCollection<long> changed, IReadOnlyCollection<long> resulting)
+    {
+        foreach (var id in changed)
+        {
+            if (!_access.IsVisible(DepartmentCandidate(0, new[] { id })))
+                throw new NotFoundException("دپارتمان پشتیبانی یافت نشد.", ErrorCodes.DepartmentNotFound);
+        }
+
+        if (!_access.IsVisible(DepartmentCandidate(userId, resulting)))
+            throw new NotFoundException("دپارتمان پشتیبانی یافت نشد.", ErrorCodes.DepartmentNotFound);
+    }
+
+    /// <summary>The departments a user has now, ordered by id.</summary>
+    private async Task<List<long>> CurrentDepartmentIdsAsync(long userId, CancellationToken cancellationToken) =>
+        await _dbContext.UserSupportingDepartments.AsNoTracking().Where(d => d.UserId == userId)
+            .Select(d => d.SupportingDepartmentId).OrderBy(id => id).ToListAsync(cancellationToken);
+
+    /// <summary>Makes the user's departments exactly <paramref name="departmentIds"/> (adds the new ones, removes the others). Must run inside the surrounding Create/Update transaction.</summary>
+    private async Task ApplyDepartmentsAsync(long userId, IReadOnlyCollection<long> departmentIds, CancellationToken cancellationToken)
+    {
+        var existing = await _dbContext.UserSupportingDepartments.Where(d => d.UserId == userId).ToListAsync(cancellationToken);
+        var remove = existing.Where(d => !departmentIds.Contains(d.SupportingDepartmentId)).ToList();
+        var add = departmentIds.Where(id => existing.All(d => d.SupportingDepartmentId != id)).ToList();
+        if (remove.Count == 0 && add.Count == 0)
+            return;
+
+        _dbContext.UserSupportingDepartments.RemoveRange(remove);
+        _dbContext.UserSupportingDepartments.AddRange(add.Select(id => new UserSupportingDepartment { UserId = userId, SupportingDepartmentId = id }));
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        _audit.Operation("UserDepartmentsChanged", "User", userId);
+    }
+
     private async Task<UserDetailDto> LoadDetailAsync(
         ApplicationUser user,
         CancellationToken ct)
@@ -314,9 +374,8 @@ public sealed partial class UserManagementService
 
         if (request.SupportingDepartmentId.HasValue)
         {
-            query = query.Where(x =>
-                x.SupportingDepartmentId ==
-                request.SupportingDepartmentId.Value);
+            var departmentId = request.SupportingDepartmentId.Value;
+            query = query.Where(x => x.SupportingDepartments.Any(d => d.SupportingDepartmentId == departmentId));
         }
 
         if (request.PostId.HasValue)
@@ -361,7 +420,7 @@ public sealed partial class UserManagementService
 
                 || (isNumeric &&
                     (x.Id == numericSearch ||
-                     x.SupportingDepartmentId == numericSearch))
+                     x.SupportingDepartments.Any(d => d.SupportingDepartmentId == numericSearch)))
             );
         }
 

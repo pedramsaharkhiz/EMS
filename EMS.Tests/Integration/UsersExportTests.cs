@@ -43,6 +43,28 @@ namespace EMS.Tests.Integration
         }
 
         [Fact]
+        public async Task The_department_city_and_province_cells_name_every_department_of_a_user()
+        {
+            var tag = Guid.NewGuid().ToString("N")[..6];
+            var city = await CatalogFixtures.EnsureCityAsync(this);
+            var titleA = "ستاد آ " + tag; var titleB = "ستاد ب " + tag;
+            var a = await CatalogFixtures.PostAsync(this, "/api/SupportingDepartment", new { cityId = city, title = titleA }, "id");
+            var b = await CatalogFixtures.PostAsync(this, "/api/SupportingDepartment", new { cityId = city, title = titleB }, "id");
+            await NewUserAsync(tag, "1", new { SupportingDepartmentIds = new[] { b, a } });
+            await NewUserAsync(tag, "2");
+
+            var (headers, book, _) = await ExportAsync($"search=ux_{tag}");
+            using var _ = book;
+            var sheet = book.Worksheet(1);
+            string Cell(int row, string header) => sheet.Cell(row, headers.IndexOf(header) + 1).GetString();
+
+            var rows = Enumerable.Range(2, 2).ToDictionary(r => Cell(r, "نام کاربری"), r => r);
+            Assert.Equal($"{titleA}، {titleB}", Cell(rows[$"ux_{tag}_1"], "دپارتمان پشتیبانی"));      // every department, ordered by title, in one cell
+            Assert.Equal(string.Empty, Cell(rows[$"ux_{tag}_2"], "دپارتمان پشتیبانی"));
+            Assert.Equal(1, Cell(rows[$"ux_{tag}_1"], "شهر").Split('،').Length);                       // the city is named once, not once per department
+        }
+
+        [Fact]
         public async Task Export_is_a_standard_xlsx_that_shows_what_the_list_shows_with_roles_skills_and_text_codes()
         {
             var tag = Guid.NewGuid().ToString("N")[..6];

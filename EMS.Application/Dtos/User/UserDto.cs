@@ -15,7 +15,7 @@ namespace EMS.Application.Dtos.User
         public string PhoneNumber { get; set; }
         public string Email { get; set; }
         public string NormalizedEmail { get; set; }
-        public long? SupportingDepartmentId { get; set; }
+        public List<long>? SupportingDepartmentIds { get; set; }
         public bool IsActive { get; set; }
     }
 }

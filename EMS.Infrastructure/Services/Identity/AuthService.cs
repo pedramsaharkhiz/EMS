@@ -4,6 +4,7 @@ using EMS.Application.Common.Exceptions;
 using EMS.Application.Common.Logging;
 using Azure.Core;
 using EMS.Application.Common.Security;
+using EMS.Application.Dtos.Common;
 using EMS.Application.Dtos.RefreshToken;
 using EMS.Application.Interfaces.Auth;
 using EMS.Domain.Entities;
@@ -288,17 +289,19 @@ namespace EMS.Infrastructure.Services.Identity
         {
             var user = await _dbContext.Users.AsNoTracking()
                 .Where(u => u.Id == userId)
-                .Select(u => new { u.Id, u.UserName, u.FirstName, u.LastName, u.IsActive, u.PostId, u.SupportingDepartmentId })
+                .Select(u => new { u.Id, u.UserName, u.FirstName, u.LastName, u.IsActive, u.PostId })
                 .FirstOrDefaultAsync(cancellationToken);
             if (user is null || !user.IsActive)
                 throw new UnauthorizedAppException("کاربر نامعتبر است.", ErrorCodes.InvalidUser);
 
             var (roles, permissions) = await GetActiveAccessAsync(user.Id, cancellationToken);
             var post = await GetPostAsync(user.PostId, cancellationToken);
-            var departmentTitle = user.SupportingDepartmentId is { } departmentId
-                ? await _dbContext.SupportingDepartments.IncludingInactive().AsNoTracking()
-                    .Where(d => d.SupportingDepartmentId == departmentId).Select(d => d.Title).FirstOrDefaultAsync(cancellationToken)
-                : null;
+            var departments = await _dbContext.UserSupportingDepartments.AsNoTracking()
+                .Where(m => m.UserId == user.Id)
+                .Join(_dbContext.SupportingDepartments.IncludingInactive().AsNoTracking(), m => m.SupportingDepartmentId, d => d.SupportingDepartmentId,
+                    (m, d) => new PersonDepartmentDto { Id = d.SupportingDepartmentId, Title = d.Title, CityId = d.CityId, CityTitle = d.City.Title, ProvinceId = d.City.ProvinceId, ProvinceTitle = d.City.Province.Title })
+                .ToListAsync(cancellationToken);
+            departments = departments.OrderBy(d => d.Title, StringComparer.Ordinal).ThenBy(d => d.Id).ToList();
 
             return new EMS.Application.Dtos.Permission.CurrentUserDto
             {
@@ -308,8 +311,7 @@ namespace EMS.Infrastructure.Services.Identity
                 PostId = user.PostId,
                 PostCode = post?.Code,
                 PostTitle = post?.Title,
-                SupportingDepartmentId = user.SupportingDepartmentId,
-                SupportingDepartmentTitle = departmentTitle,
+                SupportingDepartments = departments,
                 Roles = roles.OrderBy(r => r, StringComparer.Ordinal).ToList(),
                 Permissions = permissions.Where(p => !Retired.Contains(p)).OrderBy(p => p, StringComparer.Ordinal).ToList(),
             };

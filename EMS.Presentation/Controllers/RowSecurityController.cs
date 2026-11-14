@@ -19,7 +19,7 @@ namespace EMS.Presentation.Controllers
         }
 
         /// <summary>
-        /// The data scope of the signed-in user: unrestricted or not, his department, the reason in words, and every protected type with the rule that applies to it.
+        /// The data scope of the signed-in user: unrestricted or not, his departments, the reason in words, and every protected type with the rule that applies to it.
         /// Any signed-in user may read his OWN scope; it reveals nothing about anyone else.
         /// </summary>
         [Lookup]
@@ -31,7 +31,7 @@ namespace EMS.Presentation.Controllers
             {
                 UserId = scope.UserId,
                 IsUnrestricted = scope.IsUnrestricted,
-                SupportingDepartmentId = scope.SupportingDepartmentId,
+                SupportingDepartmentIds = scope.SupportingDepartmentIds.ToList(),
                 Reason = scope.Reason,
                 Policies = _access.Describe()
                     .Select(p => new RowPolicyItemDto { Name = p.Name, RowType = p.RowType, Description = p.Description, RestrictsYou = p.RestrictsThisScope })

@@ -65,11 +65,9 @@ namespace EMS.Domain.ReadModels
         public long? TechnicianPostId { get; set; }
         public string? TechnicianPostTitle { get; set; }
         /// <summary>Where the technician works (his own department, city and province), not where the equipment is.</summary>
-        public long? TechnicianSupportingDepartmentId { get; set; }
+        /// <summary>The titles of the technician's departments, cities and provinces, each as one text separated by "، " (for the Excel file; the list gets the structured form from the person lookup).</summary>
         public string? TechnicianSupportingDepartmentTitle { get; set; }
-        public long? TechnicianCityId { get; set; }
         public string? TechnicianCityTitle { get; set; }
-        public long? TechnicianProvinceId { get; set; }
         public string? TechnicianProvinceTitle { get; set; }
 
         public string? Description { get; set; }
@@ -110,19 +108,14 @@ namespace EMS.Domain.ReadModels
         public bool IsActive { get; set; }
         public long? PostId { get; set; }
         public string? PostTitle { get; set; }
-        public long? SupportingDepartmentId { get; set; }
-        public string? SupportingDepartmentTitle { get; set; }
-        public long? CityId { get; set; }
-        public string? CityTitle { get; set; }
-        public long? ProvinceId { get; set; }
-        public string? ProvinceTitle { get; set; }
     }
 
     /// <summary>A user as a technician choice / assignment target, with only what the visibility rule reads (his supporting department).</summary>
     public sealed class UserDirectoryRow
     {
         public long Id { get; set; }
-        public long? SupportingDepartmentId { get; set; }
+        /// <summary>The departments the user belongs to (the row policy asks whether the caller shares one).</summary>
+        public IEnumerable<long> SupportingDepartmentIds { get; set; } = Array.Empty<long>();
     }
 
     public sealed class TechnicianInfo
@@ -130,11 +123,7 @@ namespace EMS.Domain.ReadModels
         public long Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string PersonnelCode { get; set; } = string.Empty;
-        public long? SupportingDepartmentId { get; set; }
-        public string? SupportingDepartmentTitle { get; set; }
-        public long? CityId { get; set; }
-        public string? CityTitle { get; set; }
-        public long? ProvinceId { get; set; }
-        public string? ProvinceTitle { get; set; }
+        /// <summary>The departments the technician belongs to (what the row policy reads; the screens get the titles from the person lookup).</summary>
+        public IEnumerable<long> SupportingDepartmentIds { get; set; } = Array.Empty<long>();
     }
 }

@@ -150,12 +150,9 @@ namespace EMS.Infrastructure.Repositories
                 TechnicianIsActive = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (bool?)u.IsActive).FirstOrDefault(),
                 TechnicianPostId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.PostId).FirstOrDefault(),
                 TechnicianPostTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.Post!.Title).FirstOrDefault(),
-                TechnicianSupportingDepartmentId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartmentId).FirstOrDefault(),
-                TechnicianSupportingDepartmentTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.Title).FirstOrDefault(),
-                TechnicianCityId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.CityId).FirstOrDefault(),
-                TechnicianCityTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Title).FirstOrDefault(),
-                TechnicianProvinceId = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => (long?)u.SupportingDepartment!.City.ProvinceId).FirstOrDefault(),
-                TechnicianProvinceTitle = _context.Users.Where(u => u.Id == e.TechnicianUserId).Select(u => u.SupportingDepartment!.City.Province.Title).FirstOrDefault(),
+                TechnicianSupportingDepartmentTitle = string.Join("، ", _context.UserSupportingDepartments.Where(m => m.UserId == e.TechnicianUserId).Join(_context.SupportingDepartments, m => m.SupportingDepartmentId, d => d.SupportingDepartmentId, (m, d) => d.Title).OrderBy(t => t)),
+                TechnicianCityTitle = string.Join("، ", _context.UserSupportingDepartments.Where(m => m.UserId == e.TechnicianUserId).Join(_context.SupportingDepartments, m => m.SupportingDepartmentId, d => d.SupportingDepartmentId, (m, d) => d.City.Title).Distinct().OrderBy(t => t)),
+                TechnicianProvinceTitle = string.Join("، ", _context.UserSupportingDepartments.Where(m => m.UserId == e.TechnicianUserId).Join(_context.SupportingDepartments, m => m.SupportingDepartmentId, d => d.SupportingDepartmentId, (m, d) => d.City.Province.Title).Distinct().OrderBy(t => t)),
 
                 Description = e.Description,
                 IsActive = e.IsActive,
@@ -233,12 +230,7 @@ namespace EMS.Infrastructure.Repositories
                     Id = u.Id,
                     FullName = u.FirstName + " " + u.LastName,
                     PersonnelCode = u.PersonnelCode,
-                    SupportingDepartmentId = u.SupportingDepartmentId,
-                    SupportingDepartmentTitle = u.SupportingDepartment!.Title,
-                    CityId = (long?)u.SupportingDepartment!.CityId,
-                    CityTitle = u.SupportingDepartment!.City.Title,
-                    ProvinceId = (long?)u.SupportingDepartment!.City.ProvinceId,
-                    ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
+                    SupportingDepartmentIds = u.SupportingDepartments.Select(d => d.SupportingDepartmentId),
                 });
 
         public async Task<HashSet<long>> FindExistingUserIdsAsync(IReadOnlyCollection<long> userIds, CancellationToken cancellationToken = default)
@@ -266,12 +258,6 @@ namespace EMS.Infrastructure.Repositories
                     IsActive = u.IsActive,
                     PostId = u.PostId,
                     PostTitle = u.Post!.Title,
-                    SupportingDepartmentId = u.SupportingDepartmentId,
-                    SupportingDepartmentTitle = u.SupportingDepartment!.Title,
-                    CityId = (long?)u.SupportingDepartment!.CityId,
-                    CityTitle = u.SupportingDepartment!.City.Title,
-                    ProvinceId = (long?)u.SupportingDepartment!.City.ProvinceId,
-                    ProvinceTitle = u.SupportingDepartment!.City.Province.Title,
                 })
                 .FirstOrDefaultAsync(cancellationToken);
         }

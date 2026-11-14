@@ -1,3 +1,4 @@
+using EMS.Application.Dtos.Common;
 using EMS.Domain.Enums;
 
 namespace EMS.Application.Dtos.Equipment
@@ -63,12 +64,8 @@ namespace EMS.Application.Dtos.Equipment
         public long? TechnicianPostId { get; set; }
         public string? TechnicianPostTitle { get; set; }
         // where the TECHNICIAN works: his own supporting department and its city and province (not where the equipment is)
-        public long? TechnicianSupportingDepartmentId { get; set; }
-        public string? TechnicianSupportingDepartmentTitle { get; set; }
-        public long? TechnicianCityId { get; set; }
-        public string? TechnicianCityTitle { get; set; }
-        public long? TechnicianProvinceId { get; set; }
-        public string? TechnicianProvinceTitle { get; set; }
+        /// <summary>Where he works: every supporting department he belongs to (empty when none).</summary>
+        public List<PersonDepartmentDto> TechnicianSupportingDepartments { get; set; } = [];
 
         public string? Description { get; set; }
         public bool IsActive { get; set; }
